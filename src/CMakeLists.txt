@@ -1,3 +1,3 @@
 include_directories(../include)
-add_executable(${PROJECT_NAME} mcv.cpp)
-
+set(source_file mcv.cpp gen_python.cpp)
+add_executable(${PROJECT_NAME} ${source_file})

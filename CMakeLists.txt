@@ -3,12 +3,22 @@
 cmake_minimum_required(VERSION 3.11)
 project(mcv VERSION 0.0.1)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(is_top_level_project TRUE)
 else()
     set(is_top_level_project FALSE)
+endif()
+
+# check verilator
+execute_process(
+    COMMAND bash -c "verilator -V|grep ROOT|grep verilator|awk '{print $3}'"
+    OUTPUT_VARIABLE verilator_root
+)
+
+if (NOT "${verilator_root}" STREQUAL "")
+    include_directories(${verilator_root})
 endif()
 
 # options

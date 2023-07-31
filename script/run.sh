@@ -2,5 +2,6 @@ cmake . -Bbuild
 cd build
 make
 if [[ $? == 0 ]] ; then
-  bin/mcv $@
+  cd ..
+  build/bin/mcv $@
 fi
