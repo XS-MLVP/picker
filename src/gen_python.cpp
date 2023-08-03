@@ -104,7 +104,7 @@ void print_entity(std::ostream& out, const cppast::cpp_entity& e)
 }
 
 
-void gen_python(std::unique_ptr<cppast::cpp_file> &cppfile, std::string target_dir){
+void gen_python(inja::json &cfg, std::unique_ptr<cppast::cpp_file> &cppfile, std::string target_dir){
     std::string prefix;
     cppast::visit(*cppfile, [&](const cppast::cpp_entity& e, cppast::visitor_info info) {
         if (e.kind() == cppast::cpp_entity_kind::file_t || cppast::is_templated(e)
@@ -140,4 +140,28 @@ void gen_python(std::unique_ptr<cppast::cpp_file> &cppfile, std::string target_d
         }
         return true;
     });
+
+    // Gen pybind11
+    auto fname = cfg[CFG_MODEL_NAME].template get<std::string>();
+    auto vrinc = cfg[CFG_VERILATOR_INCLUDE].template get<std::string>();
+    auto pyccp = path_join({target_dir, fname + "_python.cpp"});
+    auto pybsh = path_join({target_dir, fname + "_python.build"});
+
+    auto data = std::map<std::string,std::string>{
+        {"dut_name", fname},
+        {"mode_name","mcv"},
+        {"body",""},
+    };
+    auto pytmp = find_file(std::vector<std::string>{"template/python/pybind11.cpp", 
+                                                    "/etc/mcv/template/python/pybind11.cpp"});
+    write_file(pyccp, template_rander(pytmp, data));
+
+    auto build_file = fname + "__ALL.cpp " + fname + "_python.cpp";
+    auto build_opts = std::string("-faligned-new -faligned-new -O3 -Wall -shared -std=c++17 -fPIC");
+    auto build_python = "cd `dirname $0`\nc++ "+build_opts+" $(python3 -m pybind11 --includes) -I " + vrinc +
+    " -o mcv$(python3-config --extension-suffix) " + vrinc + "/verilated.cpp "+ build_file +"\n";
+    
+    write_file(pybsh, build_python);
+    MESSAGE("build python ...");
+    exec_result("bash " + pybsh, 1);
 }
