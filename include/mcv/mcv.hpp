@@ -18,6 +18,7 @@
 #include <fstream>
 #include <chrono>
 #include <regex>
+#include <set>
 
 inline long vtime()
 {
@@ -104,6 +105,14 @@ inline bool strconatins(std::string str, std::string subs)
 inline std::string streplace(std::string str, std::string s, std::string t = "")
 {
     return std::regex_replace(str, std::regex(s), t);
+}
+
+inline std::string streplace(std::string str, std::vector<std::string> s, std::string t = ""){
+    auto ret = str;
+    for (auto &v : s){
+        ret = streplace(ret, v, t);
+    }
+    return ret;
 }
 
 template <typename T>

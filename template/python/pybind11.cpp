@@ -5,7 +5,7 @@
 namespace py = pybind11;
 
 // Util functions
-inline std::string &trim(std::string &s)
+inline std::string str_trim(std::string s)
 {
     if (s.empty())
     {
@@ -21,7 +21,7 @@ inline std::string &trim(std::string &s)
 }
 
 
-inline std::vector<std::string> strsplit(std::string str, std::string s = " ")
+inline std::vector<std::string> str_split(std::string str, std::string s = " ")
 {
     std::vector<std::string> ret;
     int start = 0;
@@ -29,23 +29,23 @@ inline std::vector<std::string> strsplit(std::string str, std::string s = " ")
     while (end != -1)
     {
         auto sub = str.substr(start, end - start);
-        trim(sub);
+        str_trim(sub);
         ret.push_back(sub);
         start = end + s.size();
         end = str.find(s, start);
     }
     auto sub = str.substr(start, end - start);
-    trim(sub);
+    str_trim(sub);
     ret.push_back(sub);
     return ret;
 }
 
 
 void commandArgs(VerilatedContext &self, std::string kwargs=""){
-    auto args = strsplit(kwargs);
+    auto args = str_split(kwargs);
     std::vector<char *> cstrs;
     cstrs.reserve(args.size());
-    for (auto &s : args) cstrs.push_back(const_cast<char *>(s.c_str()));
+    for (auto &s : args) cstrs.push_back(const_cast<char *>(str_trim(s).c_str()));
     return self.commandArgs(int(cstrs.size()), cstrs.data());
 }
 
