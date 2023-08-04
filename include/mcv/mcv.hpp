@@ -17,6 +17,7 @@
 #include "inja.hpp"
 #include <fstream>
 #include <chrono>
+#include <regex>
 
 inline long vtime()
 {
@@ -50,7 +51,7 @@ inline std::string exec(const char *cmd)
     return result;
 }
 
-inline std::string &trim(std::string &s, std::string p)
+inline std::string trim(std::string s, std::string p)
 {
     if (s.empty())
     {
@@ -61,7 +62,7 @@ inline std::string &trim(std::string &s, std::string p)
     return s;
 }
 
-inline std::string &trim(std::string &s)
+inline std::string trim(std::string s)
 {
     if (s.empty())
     {
@@ -93,6 +94,16 @@ inline std::vector<std::string> strsplit(std::string str, std::string s = " ")
     trim(sub);
     ret.push_back(sub);
     return ret;
+}
+
+inline bool strconatins(std::string str, std::string subs)
+{
+    return str.find(subs) != std::string::npos;
+}
+
+inline std::string streplace(std::string str, std::string s, std::string t = "")
+{
+    return std::regex_replace(str, std::regex(s), t);
 }
 
 template <typename T>
@@ -258,12 +269,24 @@ inline bool write_file(std::string fname, std::string text)
     return true;
 }
 
-// export functions
-// gen python interface
-void gen_python(inja::json &cfg, std::unique_ptr<cppast::cpp_file> &cppfile, std::string target_dir);
-
 // constant
 const std::string CFG_VERILATOR_INCLUDE = "CFG_VERILATOR_INCLUDE";
 const std::string CFG_MODEL_NAME = "CFG_MODEL_NAME";
+
+// struct
+struct CMember
+{
+    std::string pclass;
+    std::string type; // func or var
+    std::string name;
+    std::string define;
+};
+
+// export functions
+// gen python interface
+void gen_python(inja::json &cfg, std::vector<CMember> &var_and_fucs, std::string target_dir);
+std::vector<CMember> parse_cpp_public_items(std::unique_ptr<cppast::cpp_file> &cppfile, std::string &fname);
+void print_cpp(std::unique_ptr<cppast::cpp_file> &cppfile);
+void print_cmembers(std::ostream &out, std::vector<CMember> &member);
 
 #endif

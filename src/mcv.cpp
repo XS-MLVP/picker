@@ -10,12 +10,12 @@
 
 bool is_debug = false;
 
-void parse_and_gen(inja::json &cfg, std::unique_ptr<cppast::cpp_file> &cppfile, std::string lang_to_gen, std::string target_dir)
+void parse_and_gen(inja::json &cfg, std::string name, std::vector<CMember> &var_and_fucs, std::string lang_to_gen, std::string target_dir)
 {
-    MESSAGE("Gen(%s) with lang: %s", (*cppfile).name().c_str(), lang_to_gen.c_str());
+    MESSAGE("Gen(%s) with lang: %s", name.c_str(), lang_to_gen.c_str());
     if (lang_to_gen == PYTHON)
     {
-        gen_python(cfg, cppfile, target_dir);
+        gen_python(cfg, var_and_fucs, target_dir);
     }
     else if (lang_to_gen == GOLANG)
     {
@@ -108,11 +108,13 @@ void mcv_main(int argc, char **argv)
 
     // check verilator
     auto verilator_version = exec_result("verilator --version", 1);
-    auto verilator_root = exec_result("verilator -V|grep ROOT|grep verilator|awk '{print $3}'", 0);
+    auto verilator_root = trim(exec_result("verilator -V|grep ROOT|grep verilator|awk '{print $3}'", 0));
 
     DEBUG("find verilator with version: %s", verilator_version.c_str());
-    config.add_include_dir(verilator_root + "/include");
-    mcfg[CFG_VERILATOR_INCLUDE] = verilator_root + "/include";
+    auto verilator_include = verilator_root + "/include";
+    MESSAGE("verilator include: %s", verilator_include.c_str());
+    config.add_include_dir(verilator_include);
+    mcfg[CFG_VERILATOR_INCLUDE] = verilator_include;
 
     cppast::libclang_parser parser(type_safe::ref(logger));
     for (auto f : files)
@@ -142,11 +144,15 @@ void mcv_main(int argc, char **argv)
             vassert(false, f + " not supported");
         }
         // pase *.h file
-        auto parsed = parser.parse(idx, f, config);
+        auto cppparsed = parser.parse(idx, f, config);
+        auto parsed = parse_cpp_public_items(cppparsed, file_name);
+        if (is_debug){
+            print_cpp(cppparsed);
+        }
         mcfg[CFG_MODEL_NAME] = file_name;
         for (auto lan : langs)
         {
-            parse_and_gen(mcfg, parsed, lan, work_path);
+            parse_and_gen(mcfg, file_name, parsed, lan, work_path);
         }
     }
     // parse and gen

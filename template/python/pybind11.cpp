@@ -57,11 +57,10 @@ class MCVWrapper{
     MCVWrapper(VerilatedContext* ctx, std::string top="top"){
         this->dut = new {{dut_name}}(ctx, top.c_str());
     }
-    // API METHODS
-    void eval() { this->dut->eval(); }
-    void eval_step() { this->dut->eval_step(); }
-    void eval_end_step() { this->dut->eval_end_step(); }
-    void final() { this->dut->final(); }
+    // Generated METHODS
+    {{mcv_wrapper_funcs}}
+    // Generated Attribus
+    {{mcv_wrapper_getset}}
 };
 
 
@@ -80,9 +79,6 @@ PYBIND11_MODULE({{mode_name}}, m) {
         .def(py::init([](VerilatedContext* ctx, std::string top="top"){
             return MCVWrapper(ctx, top);
         }))
-        .def("eval_step", &MCVWrapper::eval_step)
-        .def("eval_end_step", &MCVWrapper::eval_end_step)
-        .def("final", &MCVWrapper::final)
-        .def("eval", &MCVWrapper::eval)
-        {{body}};
+        {{mcv_dut_getset}}
+        {{mcv_dut_funcs}};
 }
