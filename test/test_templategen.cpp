@@ -8,6 +8,6 @@ int main(int argc, char **argv)
         {"mode_name","test_name"},
         {"body","<this is body>"},
     };
-    MESSAGE("render result:\n%s",template_rander("template/python/pybind11.cpp", ctx).c_str());
+    MESSAGE("render result:\n%s", mcv::template_rander("template/python/pybind11.cpp", ctx).c_str());
     return 0;
 }
