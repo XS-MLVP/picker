@@ -27,7 +27,7 @@ namespace py = pybind11;
         py::class_<VerilatedVcdC>(m, "VerilatedVcdC")\
         .def(py::init([](VerilatedVcdFile *f = nullptr){\
             return new VerilatedVcdC(f);\
-        }))\
+        }), py::arg("f")=nullptr)\
         .def("isOpen", &VerilatedVcdC::isOpen)\
         .def("openNext", &VerilatedVcdC::openNext, py::arg("incFilename ")=true)\
         .def("rolloverSize", &VerilatedVcdC::rolloverSize)\
@@ -197,7 +197,11 @@ PYBIND11_MODULE({{mode_name}}, m) {
         .def("commandArgsPlusMatch", [](VerilatedContext*self, std::string prefixp){
             return std::string(self->commandArgsPlusMatch(prefixp.c_str()));
         })
-        .def("coveragep", &VerilatedContext::coveragep)
+        .def("coveragep", [](VerilatedContext*self){
+            #if VM_COVERAGE
+                return self->coveragep();
+            #endif
+        })
         .def("errorCountInc", &VerilatedContext::errorCountInc)
         .def("errorCount", [](VerilatedContext* self, int v = INVAL_INT){
             if (v != INVAL_INT){
@@ -234,8 +238,35 @@ PYBIND11_MODULE({{mode_name}}, m) {
                 self->gotFinish(v > 0);
             }
             return self->gotFinish();
-        }, py::arg("v") = INVAL_BOOL);
+        }, py::arg("v") = INVAL_BOOL).
+        def("if_compile_trace", [](VerilatedContext*self){
+            #if VM_TRACE
+            return true;
+            #else
+            return false;
+            #endif
+        });
     
+    // 2. VerilatedCovContext
+    #if VM_COVERAGE
+    py::class_<VerilatedCovContext,std::unique_ptr<VerilatedCovContext, py::nodelete>>(m, "VerilatedCovContext")
+        .def("defaultFilename", [](VerilatedCovContext*self){
+            return std::string(self->defaultFilename());
+        })
+        .def("forcePerInstance", &VerilatedCovContext::forcePerInstance)
+        .def("clear", &VerilatedCovContext::clear)
+        .def("zero", &VerilatedCovContext::zero)
+        .def("write", [](VerilatedCovContext*self, std::string fname){
+            if(fname.empty()){
+                fname = std::string(self->defaultFilename());
+            }
+            return self->write(fname.c_str());
+        }, py::arg("fname")="")
+        .def("clearNonMatch", [](VerilatedCovContext*self, std::string matchp){
+            return self->clearNonMatch(matchp.c_str());
+        });
+    #endif
+
     // used data
     {{template_data_define}}
 

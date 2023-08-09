@@ -54,24 +54,46 @@ namespace mcv
         {
             return ret;
         }
-        // int a, int b -> a:int, b:int
+        // int a, int b=2 -> a:int, b:int=2
         for (auto &a : strsplit(args, ","))
         {
             auto v = strsplit(trim(streplace(a, {"*", "&", "const", "unsigned"})));
             auto name = v.back();
+            auto defv = std::string();
             if (strconatins(name, "=")){
-                name = strsplit(name, "=").front();
+                auto name_and_v = strsplit(name, "=");
+                name = trim(name_and_v.front());
+                defv += "=" + trim(name_and_v.back());
             }
             auto type = conver_pytype(v.front());
             if (ret.empty())
             {
-                ret = name + ":" + type;
+                ret = ", "+name + ":" + type + defv; // first arg is self
             }
             else
             {
-                ret = ret + ", " + name + ":" + type;
+                ret = ret + ", " + name + ":" + type + defv;
             }
             types_collection.insert(type);
+        }
+        return ret;
+    }
+
+    std::string bind_default_args(std::string args){ // int a, int b = 1
+        std::string ret;
+        if (!strconatins(args, "=")){
+            return ret;
+        }
+        for (auto &a: strsplit(args, ",")){
+            if(strconatins(a, "=")){
+                auto parg = strsplit(a, "=");
+                auto name = trim(strsplit(trim(parg.front())," ").back());
+                auto valu = trim(parg.back());
+                ret = ret + ", py::arg(\""+name+"\")="+valu;
+            }else{
+                auto name = trim(strsplit(a, " ").back());
+                ret = ret + ", py::arg(\""+name+"\")";
+            }
         }
         return ret;
     }
@@ -150,11 +172,13 @@ namespace mcv
                 auto func = func_wrapper(v);
                 auto func_wtxt = sfmt("%s %s(%s){return this->dut->%s(%s);}\n",
                                       func["ret"].c_str(), func["name"].c_str(), func["args"].c_str(), func["name"].c_str(), func["nkargs"].c_str());
-                auto func_utxt = sfmt(".def(\"%s\", &MCVWrapper::%s)\n", func["name"].c_str(), func["name"].c_str());
+                
+                auto deft_args = bind_default_args(func["args"]);
+                auto func_utxt = sfmt(".def(\"%s\", &MCVWrapper::%s%s)\n", func["name"].c_str(), func["name"].c_str(), deft_args.c_str());
 
                 auto pyargs = py_args(func["args"], cpp_types);
                 auto pyret = py_ret(func["ret"], cpp_types);
-                auto func_ptxt = sfmt("def %s(self%s)%s:\n        pass\n", func["name"].c_str(), pyargs.c_str(), pyret.c_str());
+                auto func_ptxt = sfmt("def %s(self%s)%s:\n        raise NotImplementedError()\n", func["name"].c_str(), pyargs.c_str(), pyret.c_str());
 
                 if (wp_funcs.empty())
                 {
@@ -172,7 +196,7 @@ namespace mcv
             else if (v.type == "var")
             {
                 auto itm = v.name.c_str();
-                auto ret = trim(streplace(v.define, itm, ""));
+                auto ret = trim(streplace(v.define, std::string(" ")+itm, ""));
                 auto getset_wtxt = sfmt("void set_%s(%s){this->dut->%s=%s;}\n%s%s get_%s(){return this->dut->%s;}\n",
                                         itm, v.define.c_str(), itm, itm, wp_indent.c_str(), ret.c_str(), itm, itm);
 

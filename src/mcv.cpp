@@ -49,6 +49,8 @@ namespace mcv{
         ("n,name", "set mode name, default name is Lxx from lxx.v", cxxopts::value<std::string>())
         ("v,vflag", "User defined verilator args, split by comma. Eg: -v -x-assign=fast,-Wall,--trace. Or a file contain params.", 
                                                  cxxopts::value<std::string>())
+        ("e,exfiles", "extend input files, split by comma. Eg: -e f1,f2 Or a file contain files.", 
+                                                 cxxopts::value<std::string>())
         ("c,cppflag", "User defined CPPFLAGS, split by comma. Eg: -c -Wall,-DVL_DEBUG. Or a file contain params.", 
                                                  cxxopts::value<std::string>())
         ("h,help", "Print usage")
@@ -64,6 +66,15 @@ namespace mcv{
         {
             MESSAGE("%s", options.help().c_str());
             exit(0);
+        }
+
+        // extend input files
+        std::string efiles;
+        if (opts.count("exfiles"))
+        {
+            auto v_params = opts["exfiles"].as<std::string>();
+            efiles += streplace(v_params, ",", " ");
+            MESSAGE("exfiles: %s", efiles.c_str())
         }
 
         // parse cpp flags
@@ -159,6 +170,8 @@ namespace mcv{
         auto verilator_include = verilator_root + "/include";
         MESSAGE("verilator include: %s", verilator_include.c_str());
         config.add_include_dir(verilator_include);
+        config.add_include_dir(verilator_include + "/vltstd");
+        
         mcfg[CFG_VERILATOR_INCLUDE] = verilator_include;
         mcfg[CFG_CPP_FLAGS] = cflags;
 
@@ -183,7 +196,9 @@ namespace mcv{
         if (file_sufx == "v")
         {
             // convert *.v file to *.h
-            auto cmd = sfmt("verilator --cc %s --prefix %s --Mdir %s --build %s", file.c_str(), m_name.c_str(), work_path.c_str(), vflags.c_str());
+            auto cmd = sfmt("verilator --build --cc --prefix %s --Mdir %s %s %s %s", 
+                                    m_name.c_str(), work_path.c_str(),  vflags.c_str(), file.c_str(), efiles.c_str());
+            
             auto header_f = path_join({work_path, m_name}) + ".h";
             if (!file_exists(header_f) || opts["overwrite"].as<bool>())
             {
