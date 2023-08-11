@@ -110,17 +110,26 @@ namespace mcv
         return "->" + type;
     }
 
-    std::string py_emb(std::string str, std::set<std::string> &types_collection)
+    std::string py_emb(inja::json &cfg, std::string str, std::set<std::string> &types_collection)
     {
+        std::map<std::string, std::string> verilog_items;
+        if(cfg.count(CFG_VERILOG_IO_VARS)){
+            verilog_items = cfg[CFG_VERILOG_IO_VARS];
+        }
         if (str.empty())
         {
             return "";
         }
         auto v = strsplit(trim(streplace(str, {"&", "const"})));
-        auto name = v.back();
+        auto name = trim(v.back());
         auto type = conver_pytype(v.front());
+        std::string comment;
+        if (verilog_items.count(name)){
+            comment = " # inner cpp type is: " + v.front();
+            type = verilog_items[name];
+        }
         types_collection.insert(type);
-        return name + ": " + type + " = None";
+        return name + ": " + type + " = None" + comment;
     }
 
     std::string py_types(std::set<std::string> &types_collection)
@@ -202,7 +211,7 @@ namespace mcv
 
                 auto getset_utxt = sfmt(".def_property(\"%s\", &MCVWrapper::get_%s, &MCVWrapper::set_%s)\n",
                                         itm, itm, itm);
-                auto pymemb = py_emb(v.define, cpp_types) + "\n";
+                auto pymemb = py_emb(cfg, v.define, cpp_types) + "\n";
 
                 if (wp_getset.empty())
                 {

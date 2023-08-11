@@ -136,6 +136,19 @@ namespace mcv
         return ret;
     }
 
+    inline std::string strsplit(std::string str, std::initializer_list<std::string> s, bool front=true){
+        auto ret = str;
+        for (auto &v : s)
+        {
+            if(front){
+                ret = strsplit(ret, v).front();
+            }else{
+                ret = strsplit(ret, v).back();
+            }
+        }
+        return ret;
+    }
+
     inline bool strconatins(std::string str, std::string subs)
     {
         return str.find(subs) != std::string::npos;
@@ -334,6 +347,7 @@ namespace mcv
     const std::string CFG_VERILATOR_INCLUDE = "CFG_VERILATOR_INCLUDE";
     const std::string CFG_MODEL_NAME = "CFG_MODEL_NAME";
     const std::string CFG_CPP_FLAGS = "CFG_CPP_FLAGS";
+    const std::string CFG_VERILOG_IO_VARS = "CFG_VERILOG_IO_VARS";
 
     // struct
     struct CMember
@@ -350,5 +364,6 @@ namespace mcv
     std::vector<CMember> parse_cpp_public_items(std::unique_ptr<cppast::cpp_file> &cppfile, std::string &fname);
     void print_cpp(std::unique_ptr<cppast::cpp_file> &cppfile);
     void print_cmembers(std::ostream &out, std::vector<CMember> &member);
+    std::map<std::string, std::string> get_verilog_inoutput_type(std::string fname);
 }
 #endif

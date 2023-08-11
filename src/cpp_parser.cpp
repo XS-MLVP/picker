@@ -9,6 +9,37 @@
 
 namespace mcv
 {
+    std::map<std::string, std::string> get_verilog_inoutput_type(std::string fname){
+        std::map<std::string, std::string> ret;
+        std::ifstream ifile(fname);
+        if (ifile.is_open())
+        {
+            std::string line_txt;
+            while (std::getline(ifile, line_txt))
+            {
+                line_txt = trim(strsplit(line_txt, {"//", "/*"}));
+                if(line_txt.empty()){
+                    continue;
+                }
+                // output wire [69:0] out_wide, => out_wide:output_wire_69_0
+                for (auto &item: strsplit(line_txt, ",")){
+                    for(auto &tag: std::vector<std::string>{"input ", "output "}){
+                        if (strconatins(item, tag)){
+                            auto name = strsplit(trim(item), " ").back();
+                            auto valu = trim(streplace(streplace(trim(streplace(item, name)), {" ",":"}, "_"), {"]","["}));
+                            if(ret.count(name)){
+                                MESSAGE("find same name: %s (%s)", name.c_str(), line_txt.c_str());
+                                continue;
+                            }
+                            ret[name] = valu;
+                        }
+                    }
+                }
+            }
+        }
+        return ret;
+    }
+
     std::string get_template_args(std::string define){
         if(strconatins(define, "VerilatedTraceConfig")){
             return "";

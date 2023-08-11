@@ -205,6 +205,7 @@ namespace mcv{
                 MESSAGE("Convert: %s => %s:\n%s", file.c_str(), header_f.c_str(), cmd.c_str());
                 exec_result(cmd, 0);
             }
+            mcfg[CFG_VERILOG_IO_VARS] = get_verilog_inoutput_type(file);
             file = header_f;
         }
         else if (file_sufx == "h")
