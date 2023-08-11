@@ -42,10 +42,10 @@ namespace mcv{
         // arg-parser
         // define
         std::string file;
-        cxxopts::Options options("mcv", "Multi-language-based Chip Verification");
+        cxxopts::Options options("mcv", "Multi-language-based Chip Verification. \nConvert DUT(*.v) to other language libs.\n");
 
         options.add_options()
-        ("file", "Cpp head file to parse", cxxopts::value<std::string>(file))
+        ("file", "DUT .v file or cpp head file to convert", cxxopts::value<std::string>(file))
         ("l,lang", "Language to gen, select from [python, go, java, cpp], split by comma. Eg: --lang go,java. Default all",
                                                  cxxopts::value<std::string>())
         ("t,target", "Gen data in the target dir, default in current dir like _mcv_<name>_Ymd_HMS", cxxopts::value<std::string>())
@@ -62,7 +62,7 @@ namespace mcv{
         ("o,overwrite", "Force generate .cpp from .v");
 
         options.parse_positional("file");
-        options.positional_help("<hpp_file_to_parse>");
+        options.positional_help("<dut_file_to_convert>");
 
         // check help & position args
         auto opts = options.parse(argc, argv);
