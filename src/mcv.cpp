@@ -9,6 +9,7 @@ namespace mcv{
     #define PYTHON "python"
     #define GOLANG "go"
     #define JAVA "java"
+    #define CPP "cpp"
 
     bool is_debug = false;
 
@@ -24,6 +25,10 @@ namespace mcv{
             // TBD
         }
         else if (lang_to_gen == JAVA)
+        {
+            // TBD
+        }
+        else if (lang_to_gen == CPP)
         {
             // TBD
         }
@@ -43,9 +48,9 @@ namespace mcv{
 
         options.add_options()
         ("file", "Cpp head file to parse", cxxopts::value<std::string>(file))
-        ("l,lang", "Language to gen, select from [python, go, java], split by comma. Eg: --lang go,java. Default all",
+        ("l,lang", "Language to gen, select from [python, go, java, cpp], split by comma. Eg: --lang go,java. Default all",
                                                  cxxopts::value<std::string>())
-        ("t,target", "Gen data to target dir, default cpp file dir", cxxopts::value<std::string>())
+        ("t,target", "Gen data in the target dir, default in current dir like _mcv_<name>_Ymd_HMS", cxxopts::value<std::string>())
         ("n,name", "set mode name, default name is Lxx from lxx.v", cxxopts::value<std::string>())
         ("v,vflag", "User defined verilator args, split by comma. Eg: -v -x-assign=fast,-Wall,--trace. Or a file contain params.", 
                                                  cxxopts::value<std::string>())
@@ -55,6 +60,7 @@ namespace mcv{
                                                  cxxopts::value<std::string>())
         ("h,help", "Print usage")
         ("d,debug", "Enable debuging")
+        ("k,keep", "keep intermediate files of convertion")
         ("o,overwrite", "re-write results");
 
         options.parse_positional("file");
@@ -125,7 +131,7 @@ namespace mcv{
         }
 
         // check lang
-        std::vector<std::string> langs_to_parse{JAVA, GOLANG, PYTHON}; // all langs
+        std::vector<std::string> langs_to_parse{JAVA, GOLANG, PYTHON, CPP}; // all langs
         auto langs = langs_to_parse;
         if (opts.count("lang"))
         {
@@ -167,6 +173,9 @@ namespace mcv{
         auto verilator_root = trim(exec_result("verilator -V|grep ROOT|grep verilator|awk '{print $3}'", 0));
 
         DEBUG("find verilator with version: %s", verilator_version.c_str());
+        vassert(!verilator_version.empty(), "Get verilator fail, check verilaor is installed.");
+        vassert(!verilator_root.empty(), "Get verilator root fail, check verilaor -V.");
+
         auto verilator_include = verilator_root + "/include";
         MESSAGE("verilator include: %s", verilator_include.c_str());
         config.add_include_dir(verilator_include);
@@ -174,6 +183,7 @@ namespace mcv{
         
         mcfg[CFG_VERILATOR_INCLUDE] = verilator_include;
         mcfg[CFG_CPP_FLAGS] = cflags;
+        mcfg[CFG_VERILATOR_VERSION] = verilator_version;
 
         cppast::libclang_parser parser(type_safe::ref(logger));
 
@@ -191,7 +201,7 @@ namespace mcv{
         auto work_path = work_dir;
         if (work_path == "")
         {
-            work_path = file_path;
+            work_path = "./_mcv_"+m_name+"_"+fmtnow("%Y%m%d_%H%M%S");
         }
         if (file_sufx == "v")
         {
@@ -229,6 +239,14 @@ namespace mcv{
             parse_and_gen(mcfg, m_name, parsed, lan, work_path);
         }
 
+        // clean up intermediate files
+        if(!opts.count("keep")){
+            for (auto &e: std::vector<std::string>{"cpp", "h", "a", "o", "d", "mk", "build", "dat"}){
+                auto cmd_clean = std::string("rm -f "+work_path+"/*."+e);
+                exec_result(cmd_clean, 0);
+            }
+        }
+        
         // parse and gen
         auto time_end = vtime();
         MESSAGE("Gen complete, time cost: %.2f s", (time_end - time_start) / 1000000.0);

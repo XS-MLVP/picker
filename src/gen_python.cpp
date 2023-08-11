@@ -149,6 +149,9 @@ namespace mcv
 
     void gen_python(inja::json &cfg, std::vector<CMember> &var_and_fucs, std::string target_dir)
     {
+        auto py_check = exec_result("python3 -m pybind11 --includes", 0);
+        vassert(!py_check.empty(), "Get pybind11 fail, Make sure python3 and pybind 11 is installed!");
+
         exec_result("mkdir " + path_join({target_dir, "python"}), 1);
         auto fname = cfg[CFG_MODEL_NAME].template get<std::string>();
         auto vrinc = cfg[CFG_VERILATOR_INCLUDE].template get<std::string>();
@@ -162,7 +165,8 @@ namespace mcv
             {"dut_name", fname},
             {"mode_name", "_" + fname},
             {"mcv_dut_funcs", ""},
-            {"cpp_flages", cfg["CFG_CPP_FLAGS"].template get<std::string>()}
+            {"cpp_flages", cfg[CFG_CPP_FLAGS].template get<std::string>()},
+            {"verilator_version", cfg[CFG_VERILATOR_VERSION].template get<std::string>()},
         };
 
         // Gen MCVWrapper functions

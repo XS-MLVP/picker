@@ -345,6 +345,7 @@ namespace mcv
 
     // constant
     const std::string CFG_VERILATOR_INCLUDE = "CFG_VERILATOR_INCLUDE";
+    const std::string CFG_VERILATOR_VERSION = "CFG_VERILATOR_VERSION";
     const std::string CFG_MODEL_NAME = "CFG_MODEL_NAME";
     const std::string CFG_CPP_FLAGS = "CFG_CPP_FLAGS";
     const std::string CFG_VERILOG_IO_VARS = "CFG_VERILOG_IO_VARS";
