@@ -11,8 +11,6 @@ namespace mcv{
     #define JAVA "java"
     #define CPP "cpp"
 
-    bool is_debug = false;
-
     void parse_and_gen(inja::json &cfg, std::string name, std::vector<mcv::CMember> &var_and_fucs, std::string lang_to_gen, std::string target_dir)
     {
         MESSAGE("Gen(%s) with lang: %s", name.c_str(), lang_to_gen.c_str());
@@ -54,14 +52,14 @@ namespace mcv{
         ("n,name", "set mode name, default name is Lxx from lxx.v", cxxopts::value<std::string>())
         ("v,vflag", "User defined verilator args, split by comma. Eg: -v -x-assign=fast,-Wall,--trace. Or a file contain params.", 
                                                  cxxopts::value<std::string>())
-        ("e,exfiles", "extend input files, split by comma. Eg: -e f1,f2 Or a file contain files.", 
+        ("e,exfiles", "extend input files, split by comma. Eg: -e f1,f2.", 
                                                  cxxopts::value<std::string>())
         ("c,cppflag", "User defined CPPFLAGS, split by comma. Eg: -c -Wall,-DVL_DEBUG. Or a file contain params.", 
                                                  cxxopts::value<std::string>())
         ("h,help", "Print usage")
         ("d,debug", "Enable debuging")
-        ("k,keep", "keep intermediate files of convertion")
-        ("o,overwrite", "re-write results");
+        ("k,keep", "keep intermediate files")
+        ("o,overwrite", "Force generate .cpp from .v");
 
         options.parse_positional("file");
         options.positional_help("<hpp_file_to_parse>");

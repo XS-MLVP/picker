@@ -280,6 +280,7 @@ namespace mcv
         {
             if (file_exists(f))
             {
+                DEBUG("find file: %s", f.c_str());
                 return f;
             }
         }

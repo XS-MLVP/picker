@@ -1,3 +1,3 @@
 include_directories(../include)
-set(source_file mcv.cpp gen_python.cpp cpp_parser.cpp)
+set(source_file mcv.cpp gen_python.cpp cpp_parser.cpp global.cpp)
 add_executable(${PROJECT_NAME} ${source_file})
