@@ -20,15 +20,15 @@ namespace mcv{
         }
         else if (lang_to_gen == GOLANG)
         {
-            // TBD
+            gen_golang(cfg, var_and_fucs, target_dir);
         }
         else if (lang_to_gen == JAVA)
         {
-            // TBD
+            gen_java(cfg, var_and_fucs, target_dir);
         }
         else if (lang_to_gen == CPP)
         {
-            // TBD
+            gen_cpp(cfg, var_and_fucs, target_dir);
         }
         else
         {

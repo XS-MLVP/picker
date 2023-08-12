@@ -2,7 +2,7 @@
 
 #### 介绍
 
-MCV是基于verilator的多语言转换工具，目标是将RTL设计验证模块(.v)，转换成 python(已支持), java, golang 和 c++ 等编程语言接口。让用户可以基于现有的软件测试框架，例如 pytest, junit，TestNG, go test等，进行芯片验证。基于MCV进行验证具有如下优点：
+MCV是基于verilator的多语言转换工具，目标是将RTL设计验证模块(.v)，转换成 python(已支持), java（正在支持）, golang（待定）和 c++ (原生支持) 等编程语言接口。让用户可以基于现有的软件测试框架，例如 pytest, junit，TestNG, go test等，进行芯片验证。基于MCV进行验证具有如下优点：
 
 1. 不泄露RTL设计。经过MCV转换后，原始的设计文件(.v)被转化成了二进制文件(.so)，脱离原始设计文件后，依旧可进行验证，且验证者无法获取源代码。
 2. 减少编译时间。当DUT(Design Under Test)稳定时，只需要编译一次（打包成so）。
@@ -147,7 +147,7 @@ Cocotb [[https://www.cocotb.org/](https://www.cocotb.org/)]是COroutine based CO
 
 
 **3. MCV兼容性更好**
-由于cocotb和coroutine进行了绑定，因此和一些其他框架兼容性不够。例如cocotb使用pytest软件测试框架时需要重新编译（[打开参考](https://docs.cocotb.org/en/stable/runner.html)）。相对的，MCV只需要一次加载对应os文件，的兼容性更好，可直接使用pytests进行DUT功能点测试。
+由于cocotb和coroutine进行了绑定，因此和一些其他框架兼容性不够。例如cocotb使用pytest软件测试框架时需要重新编译（[参考链接](https://docs.cocotb.org/en/stable/runner.html)）。相对的，MCV只需要一次加载对应os文件，的兼容性更好，可直接使用pytests进行DUT功能点测试。
 
 
 **4. cocotb支持的后端仿真器更多**

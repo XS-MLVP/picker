@@ -363,6 +363,10 @@ namespace mcv
     // export functions
     // gen python interface
     void gen_python(inja::json &cfg, std::vector<CMember> &var_and_fucs, std::string target_dir);
+    void gen_java(inja::json &cfg, std::vector<CMember> &var_and_fucs, std::string target_dir);
+    void gen_golang(inja::json &cfg, std::vector<CMember> &var_and_fucs, std::string target_dir);
+    void gen_cpp(inja::json &cfg, std::vector<CMember> &var_and_fucs, std::string target_dir);
+
     std::vector<CMember> parse_cpp_public_items(std::unique_ptr<cppast::cpp_file> &cppfile, std::string &fname);
     void print_cpp(std::unique_ptr<cppast::cpp_file> &cppfile);
     void print_cmembers(std::ostream &out, std::vector<CMember> &member);
