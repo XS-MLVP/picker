@@ -1,0 +1,2 @@
+cd `dirname $0`
+java -jar ${JAVACPP_PATH}/javacpp.jar -jarprefix {{dut_name}} -copylibs {{dut_name}}.java

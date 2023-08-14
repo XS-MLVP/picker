@@ -19,6 +19,7 @@
 #include <chrono>
 #include <regex>
 #include <set>
+#include <unistd.h>
 
 namespace mcv
 {
@@ -255,6 +256,10 @@ namespace mcv
         return path;
     }
 
+    inline std::string current_path(){
+        return std::string(get_current_dir_name());
+    }
+
     template <typename... Args>
     std::string sfmt(const std::string &format, Args... args)
     {
@@ -371,5 +376,7 @@ namespace mcv
     void print_cpp(std::unique_ptr<cppast::cpp_file> &cppfile);
     void print_cmembers(std::ostream &out, std::vector<CMember> &member);
     std::map<std::string, std::string> get_verilog_inoutput_type(std::string fname);
+    std::map<std::string, std::string> gen_cpp_so(inja::json &cfg, std::vector<mcv::CMember> &var_and_fucs, 
+                                                  std::string target_dir, std::string &subdir);
 }
 #endif
