@@ -7,7 +7,7 @@ import org.bytedeco.javacpp.annotation.*;
           linkpath={"{{work_java_dir}}"})
 public class {{dut_name}} {
     static { Loader.load(); }
-    
+    {{dut_java_funcs}}
     public static void main(String[] args) {
         System.out.println("Start test");
     }

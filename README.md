@@ -143,10 +143,12 @@ Cocotb [[https://www.cocotb.org/](https://www.cocotb.org/)]是COroutine based CO
 ```
 
 **2. MCV对用户的要求更低**
+
 由于MCV提供的是更底层的接口，没有和固定编程模式绑定，因此开发者不需要学习更高阶的coroutine就能进行用例开发。coroutine是python3提供的异步编程模式，在该模式下，用户需要学习coroutine、异步、await、task、trigger等概念。另外，MCV也可以在异步模式下使用（不和coroutine冲突）。
 
 
 **3. MCV兼容性更好**
+
 由于cocotb和coroutine进行了绑定，因此和一些其他框架兼容性不够。例如cocotb使用pytest软件测试框架时需要重新编译（[参考链接](https://docs.cocotb.org/en/stable/runner.html)）。相对的，MCV只需要一次加载对应os文件，的兼容性更好，可直接使用pytests进行DUT功能点测试。
 
 
@@ -170,3 +172,7 @@ MCV的测试流程为：
 ```
 
 在DUT不变的情况下，MCV中DUT的编译只需要一次，不用每次修改test时都编译，能缩减测试时间（当前基于system verilog的验证，每次test需改都需要重新编译）。
+
+**6. MCV提供Python的wrapper IDE开发更友好**
+
+基于cocotb在编写测试时，没有对应的DUT相关的python文件，查询dut中的输入输出时，需要人为的通过RTL设计文件获取。而MCV-python会根据dut生产对应的python wrapper，IDE（例如vscode）可以基于该wrapper进行变量名称等提示。

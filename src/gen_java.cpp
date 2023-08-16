@@ -11,6 +11,15 @@ namespace mcv
 
         // Generate memebers and functions from DUT
         // TBD
+        for (auto &v : var_and_fucs)
+        {
+            if (v.type == "fuc")
+            {
+            }else if (v.type == "var"){
+            }
+        }
+
+        data["dut_java_funcs"] = "";
 
         // java wrapper
         auto javafile = path_join({target_dir, sub_dir, fname + ".java"});
@@ -21,5 +30,6 @@ namespace mcv
         auto buildfile = path_join({target_dir, sub_dir, fname + ".build"});
         auto buildtemp = mcv_file("template/java/javacpp.build");
         write_file(buildfile, template_rander(buildtemp, data));
+        exec_result("bash " + buildfile, 1);
     }
 }
