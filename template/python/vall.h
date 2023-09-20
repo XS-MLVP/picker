@@ -5,7 +5,6 @@
 #include "verilated_dpi.h"
 #include "verilated_fst_c.h"
 #include "verilated_funcs.h"
-#include "verilated_heavy.h"
 #include "verilated_intrinsics.h"
 #include "verilated_profiler.h"
 #include "verilated_save.h"

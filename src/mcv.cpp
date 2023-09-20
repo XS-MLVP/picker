@@ -165,6 +165,8 @@ namespace mcv{
         config.set_flags(cppast::cpp_standard::cpp_11, flags);
         config.set_flags(cppast::cpp_standard::cpp_14, flags);
         config.set_flags(cppast::cpp_standard::cpp_17, flags);
+        config.add_include_dir("/usr/include/c++/11");
+        config.add_include_dir("/usr/include/x86_64-linux-gnu/c++/11");
 
         // check verilator
         auto verilator_version = exec_result("verilator --version", 1);

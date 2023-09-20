@@ -1,6 +1,6 @@
 cmake . -Bbuild
 cd build
-make
+make -j`nproc`
 if [[ $? == 0 ]] ; then
   cd ..
   build/bin/mcv $@

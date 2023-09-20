@@ -1,3 +1,3 @@
 cmake . -Bbuild
 cd build
-make
+make -j`nproc`
