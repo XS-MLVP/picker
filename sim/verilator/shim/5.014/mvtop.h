@@ -1,5 +1,8 @@
+#pragma once
+
 #include <bits/stdc++.h>
 #include "mvcontext.h"
+#include "mvwave.h"
 
 extern "C"
 {
@@ -7,10 +10,15 @@ extern "C"
     {
     public:
         void *topp_;
+
+        /// all variable are reference to raw variable in Simulator
+
+        unsigned char &clk;
+
         MVContext *contextp_;
-        explicit MVTop();
+        // explicit MVTop();
         explicit MVTop(MVContext *contextp);
-        // explicit MVTop(MVContext *contextp, const char *vcname);
+        /// explicit MVTop(MVContext *contextp, const char *vcname);
         virtual ~MVTop();
         void eval() { eval_step(); }
         /// Evaluate when calling multiple units/models per time step.
@@ -24,6 +32,8 @@ extern "C"
         bool eventsPending();
         /// Returns time at next time slot. Aborts if !eventsPending()
         uint64_t nextTimeSlot();
+        /// Trace signals in the model; called by application code
+        void trace(MVWaveC *tfp, int levels, int options);
         /// Retrieve name of this model instance (as passed to constructor).
         const char *name() const;
 

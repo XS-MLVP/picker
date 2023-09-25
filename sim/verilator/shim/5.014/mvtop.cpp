@@ -1,60 +1,66 @@
 #include "mvtop.h"
 
-#include "Vhello.h"
-#include "Vhello__Syms.h"
+#include "Vtop.h"
+#include "Vtop__Syms.h"
 
-MVTop::MVTop(MVContext *contextp)
+MVTop::MVTop(MVContext *contextp) :
+    contextp_(contextp),
+    topp_(new Vtop((VerilatedContext *)(contextp->contextp_), "TOP")),
+    clk(((Vtop *)(this->topp_))->clk)
 {
-    this->contextp_ = contextp;
-    this->topp_ = new Vhello((VerilatedContext *)(contextp->contextp_), "TOP");
 }
 
 MVTop::~MVTop()
 {
-    delete (Vhello *)(this->topp_);
+    delete (Vtop *)(this->topp_);
 }
 
 void MVTop::eval_step()
 {
-    ((Vhello *)(this->topp_))->eval_step();
+    ((Vtop *)(this->topp_))->eval_step();
 }
 
 void MVTop::eval_end_step()
 {
-    ((Vhello *)(this->topp_))->eval_end_step();
+    ((Vtop *)(this->topp_))->eval_end_step();
 }
 
 void MVTop::final()
 {
-    ((Vhello *)(this->topp_))->final();
+    ((Vtop *)(this->topp_))->final();
 }
 
 bool MVTop::eventsPending()
 {
-    return ((Vhello *)(this->topp_))->eventsPending();
+    return ((Vtop *)(this->topp_))->eventsPending();
 }
 
 u_int64_t MVTop::nextTimeSlot()
 {
-    return ((Vhello *)(this->topp_))->nextTimeSlot();
+    return ((Vtop *)(this->topp_))->nextTimeSlot();
 }
 
 const char *MVTop::name() const
 {
-    return ((Vhello *)(this->topp_))->name();
+    return ((Vtop *)(this->topp_))->name();
 }
 
 const char *MVTop::hierName() const
 {
-    return ((Vhello *)(this->topp_))->hierName();
+    return ((Vtop *)(this->topp_))->hierName();
 }
 
 const char *MVTop::modelName() const
 {
-    return ((Vhello *)(this->topp_))->modelName();
+    return ((Vtop *)(this->topp_))->modelName();
 }
 
 unsigned MVTop::threads() const
 {
-    return ((Vhello *)(this->topp_))->threads();
+    return ((Vtop *)(this->topp_))->threads();
+}
+
+void MVTop::trace(MVWaveC *tfp, int levels, int options = 0)
+{
+    ((Vtop *)(this->topp_))->trace((VerilatedVcdC *)(tfp->tracep_), levels, options);
 }

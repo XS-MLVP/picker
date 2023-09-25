@@ -12,7 +12,7 @@ def test_protect_lib():
     top = p.Protect(ctx)
 
     ts = ctx.if_compile_trace()
-    print("comple with trace: %s"%ts)
+    print("compile with trace: %s"%ts)
 
     if ts and ctx.commandArgsPlusMatch("trace") == "+trace":
         ctx.traceEverOn(Yes)
