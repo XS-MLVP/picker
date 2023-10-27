@@ -1,2 +1,0 @@
--x-assign fast -Wall --trace
---assert --coverage -F example/tracing/input.vc

@@ -35,3 +35,4 @@ build/
 .vscode/
 log/
 logs/
+temp/
