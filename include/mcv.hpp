@@ -1,23 +1,13 @@
 
 #pragma once
 
-#include <iostream>
-#include <vector>
-#include <cstdio>
-#include <unistd.h>
-#include <memory>
-#include <stdexcept>
-#include <string>
-#include <array>
-#include "sys/time.h"
-#include <algorithm>
-#include <map>
-#include "codegen/inja.hpp"
-#include <fstream>
+#include <bits/stdc++.h>
+#include <sys/time.h>
 #include <chrono>
 #include <regex>
 #include <set>
-#include <unistd.h>
+#include "codegen/cpp.hpp"
+#include "parser/sv.hpp"
 
 namespace mcv
 {
@@ -383,8 +373,4 @@ namespace mcv
     std::map<std::string, std::string> gen_cpp_so(inja::json &cfg, std::vector<mcv::CMember> &var_and_fucs,
                                                   std::string target_dir, std::string &subdir);
 
-    namespace codegen
-    {
-        void gen_main(int argc, char **argv);
-    } // namespace codegen
 }

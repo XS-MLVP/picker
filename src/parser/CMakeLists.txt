@@ -1,12 +1,8 @@
-include_directories(../include)
+include_directories(../../include)
+include_directories(../../include/codegen)
+include_directories(../../include/parse)
 set(source_file 
-     mcv.cpp
-     gen_python.cpp
-     gen_java.cpp
-     gen_golang.cpp
-     gen_cpp.cpp
-     cpp_parser.cpp
-     global.cpp
+     sv.cpp
 )
 
-add_executable(${PROJECT_NAME} ${source_file})
+add_library(parser ${source_file})

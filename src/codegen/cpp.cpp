@@ -1,89 +1,13 @@
 #include <bits/stdc++.h>
 #include "mcv.hpp"
-#include "cxxopts.hpp"
-#include "codegen/json.hpp"
-#include "codegen/inja.hpp"
+#include "codegen/cpp.hpp"
+#include "parser/sv.hpp"
 
 namespace mcv
 {
     namespace codegen
     {
-
-        struct sv_pin_member
-        {
-            std::string logic_pin;
-            std::string logic_pin_type;
-            int logic_pin_length;
-        };
-
-        std::string capitalize_first_letter(const std::string &str)
-        {
-            if (str.empty())
-                return str;
-            std::string result = str;
-            if (result[0] >= 'a' && result[0] <= 'z')
-                result[0] = result[0] - 'a' + 'A';
-            return result;
-        }
-
-        std::vector<sv_pin_member> parse_sv_pin(std::string filename, std::string &src_module_name)
-        {
-            // call verible-verilog-syntax
-            std::string syntax_cmd = "verible-verilog-syntax --export_json --printtokens " + filename;
-            std::string verible_result = exec(syntax_cmd.c_str());
-
-            // nlohmann parse json
-            nlohmann::json module_json = nlohmann::json::parse(verible_result);
-
-            // filter json like 标点符号等
-            auto module_token = module_json[filename]["tokens"];
-            for (auto it = module_token.begin(); it != module_token.end();)
-            {
-                auto itemV = it.value();
-                std::string a = itemV["tag"];
-                (a.size() < 5) ? (it = module_token.erase(it)) : (it++);
-            }
-            // 不指明解析的module名，则默认解析文件中最后一个module
-            if (src_module_name.length() == 0)
-            {
-                std::vector<std::string> module_list;
-                for (int i = 0; i < module_token.size(); i++)
-                    if (module_token[i]["tag"] == "module")
-                        module_list.push_back(module_token[i + 1]["text"]);
-                src_module_name = module_list.back();
-            }
-
-            // 解析module_token，将解析好的pin_name\pin_length\pin_type都push进pin数组并返回。
-            std::vector<sv_pin_member> pin;
-            for (int j = 0; j < module_token.size(); j++)
-                if (module_token[j]["tag"] == "module" && module_token[j + 1]["text"] == src_module_name)
-                {
-                    for (int i = j; i < module_token.size(); i++)
-                    {
-                        if (module_token[i]["tag"] == "input" || module_token[i]["tag"] == "output")
-                        {
-                            sv_pin_member tmp_pin;
-                            tmp_pin.logic_pin_type = capitalize_first_letter(module_token[i]["tag"]);
-                            if (module_token[i + 1]["tag"] == "SymbolIdentifier")
-                            {
-                                tmp_pin.logic_pin = module_token[i + 1]["text"];
-                                tmp_pin.logic_pin_length = 0;
-                            }
-                            else if (module_token[i + 1]["tag"] == "TK_DecNumber")
-                            {
-                                std::string pin_high = module_token[i + 1]["text"];
-                                std::string pin_low = module_token[i + 2]["text"];
-                                tmp_pin.logic_pin = module_token[i + 3]["text"];
-                                tmp_pin.logic_pin_length = std::stoi(pin_high) - std::stoi(pin_low) + 1;
-                            }
-                            pin.push_back(tmp_pin);
-                        }
-                    }
-                }
-            return pin;
-        }
-
-        int gen_dpi(std::vector<sv_pin_member> pin, std::string &src_module_name, std::string &dst_module_name, std::string &src_dir, std::string &dst_dir)
+        int gen_dpi(std::vector<sv_pin_member> pin, std::string &src_module_name, std::string &dst_module_name, std::string &src_dir, std::string &dst_dir, std::string &wave_file_name, std::string &simulator, std::string &vflag)
         {
             inja::Environment env;
 
@@ -94,8 +18,18 @@ namespace mcv
             std::string pin_connect_template = "    .{{logic_pin}}({{logic_pin}}),\n";
             std::string logic_pin_declaration_template = "  logic {{logic_pin_length}} {{logic_pin}};\n";
             std::string wire_pin_declaration_template = "  wire {{logic_pin_length}} {{logic_pin}};\n";
-            std::string dpi_function_export_template = "  export \"DPI-C\" function get_{{logic_pin}};\n  export \"DPI-C\" function set_{{logic_pin}};\n";
-            std::string dpi_function_implement_template = "  function get_{{logic_pin}};\n    output logic {{logic_pin_length}} value;\n    value={{logic_pin}};\n  endfunction\n\n  function set_{{logic_pin}};\n    input logic {{logic_pin_length}} value;\n    {{logic_pin}}=value;\n  endfunction\n\n";
+
+            std::string dpi_function_export_template = "  export \"DPI-C\" function get_{{logic_pin}};\n"
+                                                       "  export \"DPI-C\" function set_{{logic_pin}};\n";
+
+            std::string dpi_function_implement_template = "  function get_{{logic_pin}};\n"
+                                                          "    output logic {{logic_pin_length}} value;\n"
+                                                          "    value={{logic_pin}};\n"
+                                                          "  endfunction\n\n"
+                                                          "  function set_{{logic_pin}};\n"
+                                                          "    input logic {{logic_pin_length}} value;\n"
+                                                          "    {{logic_pin}}=value;\n"
+                                                          "  endfunction\n\n";
 
             std::string hpp_logic_annotation_template = "    // {{logic_pin_type}} {{logic_pin_length}} {{logic_pin}}\n";
             std::string hpp_logic_pin_template = "    dut::XData {{logic_pin}};\n";
@@ -125,7 +59,7 @@ namespace mcv
                 hpp_logic_annotation = hpp_logic_annotation + env.render(hpp_logic_annotation_template, data);
                 logic_pin_declaration = logic_pin_declaration + env.render(logic_pin_declaration_template, data);
                 wire_pin_declaration = wire_pin_declaration + env.render(wire_pin_declaration_template, data);
-                                dpi_function_export = dpi_function_export + env.render(dpi_function_export_template, data);
+                dpi_function_export = dpi_function_export + env.render(dpi_function_export_template, data);
                 dpi_function_implement = dpi_function_implement + env.render(dpi_function_implement_template, data);
             }
             // remove extra ','
@@ -150,6 +84,45 @@ namespace mcv
             data["__REINIT_PINS__"] = cpp_reinit_pins;
             data["__BIND_PINS__"] = cpp_bind_pins;
             data["__LOGIC_ANNOTATION__"] = hpp_logic_annotation;
+
+            data["__WAVE_FILE_NAME__"] = wave_file_name;
+            data["__SIMULATOR__"] = simulator;
+
+            // Render Simulator Related Files
+            std::string cpp_flags;
+            std::string sv_dump_wave;
+            std::string verilaotr_trace;
+            if (simulator == "verilator")
+            {
+                cpp_flags += "-I /usr/local/share/verilator/include "
+                             "-I /usr/local//share/verilator/include/vltstd/ "
+                             "-DVL_DEBUG=1 "
+                             "-DUSE_VERILAOTR ";
+                if (wave_file_name.length() > 0)
+                {
+                    cpp_flags += "-DUSE_VCD ";
+                    verilaotr_trace = "--trace";
+                }
+            }
+            else if (simulator == "vcs")
+            {
+                if (wave_file_name.length() > 0)
+                {
+                    sv_dump_wave = env.render("initial begin\n"
+                                              "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
+                                              "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
+                                              " end ",
+                                              data);
+                }
+            }
+            else
+            {
+                FATAL("Unsupported simulator: %s\n", simulator.c_str());
+                return -1;
+            }
+            data["__CPP_FLAGS__"] = cpp_flags;
+            data["__SV_DUMP_WAVE__"] = sv_dump_wave;
+            data["__VERILAOTR_TRACE__"] = verilaotr_trace;
 
             // Render all files in src_dir to dst_dir
             if (!std::filesystem::create_directory(dst_dir))
@@ -177,49 +150,19 @@ namespace mcv
             return 0;
         }
 
-        void gen_main(int argc, char **argv)
+        void cpp(cxxopts::ParseResult opts, std::vector<sv_pin_member> pin)
         {
-            // config
-            // std::string src_dir = "./xdut_template/";
-            // std::string dst_dir = "./tmp/";
-            // std::string src_module_name = "Cache";
-            // std::string dst_module_name = "";
-            // std::string filename = "cache.v";
-            // assert file or dir exists
-
-            std::string file;
-
-            cxxopts::Options options("XDut Gen", "XDut Generate. \nConvert DUT(*.v) to C++ DUT libs.\n");
-
-            options.add_options()("f,file", "DUT .v file", cxxopts::value<std::string>(file));
-
-            options.add_options()("s,source_dir", "Template Files", cxxopts::value<std::string>());
-            options.add_options()("t,target_dir", "Gen Files in the target dir", cxxopts::value<std::string>());
-
-            options.add_options()("sdut,source_module_name", "Pick the module in DUT .v file", cxxopts::value<std::string>());
-            options.add_options()("tdut,target_module_name", "Set the module name and file name of target DUT", cxxopts::value<std::string>());
-
-            options.add_options()("v,vflag", "User defined verilator args, split by comma. Eg: -v -x-assign=fast,-Wall,--trace. Or a file contain params.",
-                                  cxxopts::value<std::string>());
-            options.add_options()("h,help", "Print usage");
-
-            auto opts = options.parse(argc, argv);
-            if (opts.count("help") || !opts.count("file") || !opts.count("source_dir") || !opts.count("target_dir"))
-            {
-                MESSAGE("%s", options.help().c_str());
-                exit(0);
-            }
-
             std::string filename = opts["file"].as<std::string>();
             std::string src_dir = opts["source_dir"].as<std::string>();
             std::string dst_dir = opts["target_dir"].as<std::string>();
             std::string src_module_name = opts["source_module_name"].as<std::string>();
             std::string dst_module_name = opts["target_module_name"].as<std::string>();
+            std::string wave_file_name = opts["wave_file_name"].as<std::string>();
+            std::string simulator = opts["sim"].as<std::string>();
+            std::string vflag = opts["vflag"].as<std::string>();
 
-            // parse
-            std::vector<sv_pin_member> pin = parse_sv_pin(filename, src_module_name);
             // gen
-            gen_dpi(pin, src_module_name, dst_module_name, src_dir, dst_dir);
+            gen_dpi(pin, src_module_name, dst_module_name, src_dir, dst_dir, wave_file_name, simulator, vflag);
             // copy verilog source
             std::filesystem::copy_file(filename, dst_dir + "/" + dst_module_name + ".v", std::filesystem::copy_options::overwrite_existing);
         }

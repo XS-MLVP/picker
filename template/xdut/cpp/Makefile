@@ -1,6 +1,8 @@
 #Makefile for {{__TOP_MODULE_NAME__}}
 
-CPPFLAGS = -I /usr/local/share/verilator/include -I /usr/local//share/verilator/include/vltstd/ -DVL_DEBUG=1
+CPPFLAGS = {{__CPP_FLAGS__}} 
+SIMULATOR = {{__SIMULATOR__}}
+
 
 all: release
 
@@ -16,13 +18,17 @@ lib{{__TOP_MODULE_NAME__}}.so: libV{{__TOP_MODULE_NAME__}}.a
 
 
 libV{{__TOP_MODULE_NAME__}}.a:
-	verilator --cc --prefix V{{__TOP_MODULE_NAME__}} --Mdir build/ -CFLAGS -fPIC  {{__TOP_MODULE_NAME__}}_top.sv {{__TOP_MODULE_NAME__}}.v --top-module {{__TOP_MODULE_NAME__}}_top 
+ifeq ($(SIMULATOR), verilator)
+	verilator {{__VERILAOTR_TRACE__}} --cc --prefix V{{__TOP_MODULE_NAME__}} --Mdir build/ -CFLAGS -fPIC  {{__TOP_MODULE_NAME__}}_top.sv {{__TOP_MODULE_NAME__}}.v --top-module {{__TOP_MODULE_NAME__}}_top 
 	cp cpp.mk build/
 	cd build/ && make -f cpp.mk
 	cp build/libV{{__TOP_MODULE_NAME__}}.a ./
 	cp build/V{{__TOP_MODULE_NAME__}}.h ./
 	cp build/V{{__TOP_MODULE_NAME__}}__Dpi.h ./
 	objdump -D libV{{__TOP_MODULE_NAME__}}.a > libV{{__TOP_MODULE_NAME__}}.S
+else ifeq ($(SIMULATOR), vcs)
+	vcs -full64 -sverilog -debug_all -f {{__TOP_MODULE_NAME__}}.f -l vcs.log
+endif
 
 simulate: compile
 	./{{__TOP_MODULE_NAME__}}
