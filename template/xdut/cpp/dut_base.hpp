@@ -3,8 +3,6 @@
 #include <svdpi.h>
 #include "data.hpp"
 
-#define USE_VERILATOR
-
 class DutBase
 {
 public:

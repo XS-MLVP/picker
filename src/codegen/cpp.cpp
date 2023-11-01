@@ -32,8 +32,8 @@ namespace mcv
                                                           "  endfunction\n\n";
 
             std::string hpp_logic_annotation_template = "    // {{logic_pin_type}} {{logic_pin_length}} {{logic_pin}}\n";
-            std::string hpp_logic_pin_template = "    dut::XData {{logic_pin}};\n";
-            std::string cpp_reinit_pins_template = "    this->{{logic_pin}}.ReInit({{logic_pin_length}}, dut::IOType::{{logic_pin_type}}, \"{{logic_pin}}\");\n";
+            std::string hpp_logic_pin_template = "    XData {{logic_pin}};\n";
+            std::string cpp_reinit_pins_template = "    this->{{logic_pin}}.ReInit({{logic_pin_length}}, IOType::{{logic_pin_type}}, \"{{logic_pin}}\");\n";
             std::string cpp_bind_pins_template = "    this->{{logic_pin}}.BindDPIRW(get_{{logic_pin}}, set_{{logic_pin}});\n";
 
             // Fill Codegen Segment Buffers
@@ -63,6 +63,8 @@ namespace mcv
                 dpi_function_implement = dpi_function_implement + env.render(dpi_function_implement_template, data);
             }
             // remove extra ','
+            if (pin_connect.length() == 0)
+                FATAL("指定文件中没有找到任何src_module的端口信息，请检查文件名或source module name是否正确\n");
             pin_connect.pop_back();
             pin_connect.pop_back();
 
@@ -97,11 +99,18 @@ namespace mcv
                 cpp_flags += "-I /usr/local/share/verilator/include "
                              "-I /usr/local//share/verilator/include/vltstd/ "
                              "-DVL_DEBUG=1 "
-                             "-DUSE_VERILAOTR ";
+                             "-DUSE_VERILATOR ";
                 if (wave_file_name.length() > 0)
                 {
-                    cpp_flags += "-DUSE_VCD ";
-                    verilaotr_trace = "--trace";
+                    verilaotr_trace = "--trace-fst";
+                    cpp_flags += "-DVL_TRACE ";
+                    if (wave_file_name.find(".fst") == std::string::npos)
+                        FATAL("Verilator trace file must be .fst format.\n");
+                    sv_dump_wave = env.render("initial begin\n"
+                                              "    $dumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
+                                              "    $dumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
+                                              " end ",
+                                              data);
                 }
             }
             else if (simulator == "vcs")
@@ -136,10 +145,12 @@ namespace mcv
                 {
                     std::string src_filename, dst_filename, dst_file_content;
                     src_filename = entry.path().filename().string();
+                    // 如果是sv或者v文件，则自动补全dst_filename
                     if (src_filename.compare("top.sv") == 0 || src_filename.compare("top.v") == 0)
-                        dst_filename = dst_dir + "/" + dst_module_name + "_" + src_filename;
+                        dst_filename = dst_module_name + "_" + src_filename;
                     else
-                        dst_filename = dst_dir + "/" + src_filename;
+                        dst_filename = src_filename;
+                    dst_filename = dst_dir + "/" + dst_filename;
                     MESSAGE("Render file: %s to %s\n", src_filename.c_str(), dst_filename.c_str());
                     dst_file_content = env.render_file(entry.path().string(), data);
                     write_file(dst_filename, dst_file_content);

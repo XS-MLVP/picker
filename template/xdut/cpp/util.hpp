@@ -2,8 +2,7 @@
 #include <bits/stdc++.h>
 #include <execinfo.h>
 
-namespace dut
-{
+
     void inline Traceback()
     {
         const int size = 200;
@@ -115,5 +114,3 @@ namespace dut
 
 #define likely(cond) __builtin_expect(cond, 1)
 #define unlikely(cond) __builtin_expect(cond, 0)
-
-}

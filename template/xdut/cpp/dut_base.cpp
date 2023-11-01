@@ -55,7 +55,6 @@ int DutVcsBase::finalize()
 #endif
 
 #if defined(USE_VERILATOR)
-#include "verilated_vcd_c.h"
 
 DutVerilatorBase::DutVerilatorBase(int argc, char **argv)
 {
@@ -73,11 +72,8 @@ DutVerilatorBase::DutVerilatorBase(int argc, char **argv)
     contextp->commandArgs(argc, argv);
     this->top = new V{{__TOP_MODULE_NAME__}} {contextp};
 
-#if defined(USE_VCD)
-    VerilatedVcdC *tfp = new VerilatedVcdC;
+#if defined(VL_TRACE)
     contextp->traceEverOn(true);
-    ((V{{__TOP_MODULE_NAME__}} *)(this->top))->trace(tfp, 0);
-    tfp->open("{{__WAVE_FILE_NAME__}}");
 #endif
 
     svSetScope(svGetScopeFromName("TOP.{{__TOP_MODULE_NAME__}}_top"));
