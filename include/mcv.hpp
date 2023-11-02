@@ -6,6 +6,7 @@
 #include <chrono>
 #include <regex>
 #include <set>
+#include <unistd.h>
 #include "codegen/cpp.hpp"
 #include "parser/sv.hpp"
 

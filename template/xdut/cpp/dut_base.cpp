@@ -35,7 +35,7 @@ int DutVcsBase::step()
     return DutVcsBase::step(1);
 };
 
-int DutVcsBase::step(int cycle)
+int DutVcsBase::step(uint64_t cycle)
 {
     // set cycle pointer
     this->cycle += cycle;

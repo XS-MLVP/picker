@@ -64,7 +64,7 @@ namespace mcv
             }
             // remove extra ','
             if (pin_connect.length() == 0)
-                FATAL("指定文件中没有找到任何src_module的端口信息，请检查文件名或source module name是否正确\n");
+                FATAL("No port information of src_module was found in the specified file. \nPlease check whether the file name or source module name is correct.");
             pin_connect.pop_back();
             pin_connect.pop_back();
 
@@ -94,6 +94,7 @@ namespace mcv
             std::string cpp_flags;
             std::string sv_dump_wave;
             std::string verilaotr_trace;
+            std::string vcs_trace;
             if (simulator == "verilator")
             {
                 cpp_flags += "-I /usr/local/share/verilator/include "
@@ -115,8 +116,15 @@ namespace mcv
             }
             else if (simulator == "vcs")
             {
+                cpp_flags += "-DUSE_VCS "
+                             "-I${VCS_HOME}/include -I${VCS_HOME}/linux64/lib/ "
+                             "-Wl,-rpath=${VCS_HOME}/linux64/lib -L${VCS_HOME}/linux64/lib "
+                             "";
                 if (wave_file_name.length() > 0)
                 {
+                    vcs_trace = "-debug_all ";
+                    if (wave_file_name.find(".fsdb") == std::string::npos)
+                        FATAL("VCS trace file must be .fsdb format.\n");
                     sv_dump_wave = env.render("initial begin\n"
                                               "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
                                               "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
@@ -132,6 +140,7 @@ namespace mcv
             data["__CPP_FLAGS__"] = cpp_flags;
             data["__SV_DUMP_WAVE__"] = sv_dump_wave;
             data["__VERILAOTR_TRACE__"] = verilaotr_trace;
+            data["__VCS_TRACE__"] = vcs_trace;
 
             // Render all files in src_dir to dst_dir
             if (!std::filesystem::create_directory(dst_dir))

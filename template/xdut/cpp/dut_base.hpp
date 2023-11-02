@@ -62,7 +62,7 @@ public:
     DutVcsBase(int argc, char **argv);
     ~DutVcsBase();
     int step();
-    int step(int cycle);
+    int step(uint64_t cycle);
     int finalize();
 };
 
