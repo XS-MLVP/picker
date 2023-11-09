@@ -21,13 +21,13 @@ else ifeq ($(SIMULATOR), vcs)
 endif
 
 libUT{{__TOP_MODULE_NAME__}}.so: libDPI{{__TOP_MODULE_NAME__}}.so
-	g++ $(CPPFLAGS) data.cpp UT{{__TOP_MODULE_NAME__}}.cpp \
+	g++ $(CPPFLAGS) data.cpp port.cpp util.cpp UT{{__TOP_MODULE_NAME__}}.cpp \
 		-L. -Wl,-rpath=./ -lDPI{{__TOP_MODULE_NAME__}} -shared -fPIC -o libUT{{__TOP_MODULE_NAME__}}.so
 
 libDPI{{__TOP_MODULE_NAME__}}.so:
 ifeq ($(SIMULATOR), verilator)
 # Generate Verilaotr DPI library files
-	verilator {{__VERILAOTR_TRACE__}} --cc --prefix V{{__TOP_MODULE_NAME__}} --Mdir build/ -CFLAGS -fPIC  {{__TOP_MODULE_NAME__}}_top.sv {{__TOP_MODULE_NAME__}}.v --top-module {{__TOP_MODULE_NAME__}}_top 
+	verilator {{__VERILATOR_TRACE__}} --cc --prefix V{{__TOP_MODULE_NAME__}} --Mdir build/ -CFLAGS -fPIC  {{__TOP_MODULE_NAME__}}_top.sv {{__TOP_MODULE_NAME__}}.v --top-module {{__TOP_MODULE_NAME__}}_top 
 	cp cpp.mk build/
 	cd build/ && make -f cpp.mk
 	cp build/libV{{__TOP_MODULE_NAME__}}.so ./libDPI{{__TOP_MODULE_NAME__}}.so
@@ -55,18 +55,15 @@ ifeq ($(SIMULATOR), vcs)
 endif
 	./{{__TOP_MODULE_NAME__}}
 
-release: simulate
+release: libDPI{{__TOP_MODULE_NAME__}}.so
 	mkdir UT{{__TOP_MODULE_NAME__}}
-	cp {{__TOP_MODULE_NAME__}} UT{{__TOP_MODULE_NAME__}}
 	cp libDPI{{__TOP_MODULE_NAME__}}.so UT{{__TOP_MODULE_NAME__}}
 	cp UT{{__TOP_MODULE_NAME__}}.hpp UT{{__TOP_MODULE_NAME__}}
 	cp UT{{__TOP_MODULE_NAME__}}.cpp UT{{__TOP_MODULE_NAME__}}
-	cp data.* UT{{__TOP_MODULE_NAME__}}
-	cp util.hpp UT{{__TOP_MODULE_NAME__}}
 	cp *.v UT{{__TOP_MODULE_NAME__}}
 	cp *.sv UT{{__TOP_MODULE_NAME__}}
 ifeq ($(SIMULATOR), verilator)
-	cp V{{__TOP_MODULE_NAME__}}__Dpi.h UT{{__TOP_MODULE_NAME__}}
+	cp V{{__TOP_MODULE_NAME__}}*.h UT{{__TOP_MODULE_NAME__}}
 else ifeq ($(SIMULATOR), vcs)
 	cp vc_hdrs.h UT{{__TOP_MODULE_NAME__}}
 	cp -r {{__TOP_MODULE_NAME__}}.daidir UT{{__TOP_MODULE_NAME__}}

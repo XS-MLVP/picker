@@ -1,7 +1,10 @@
 #pragma once
 #include <bits/stdc++.h>
 #include <svdpi.h>
-#include "data.hpp"
+#include "openvip/data.h"
+#include "openvip/port.h"
+
+using namespace ovip;
 
 class DutBase
 {
@@ -18,7 +21,7 @@ public:
     virtual int step() = 0;
 
     // Simulate N cycles
-    virtual int step(uint64_t cycle) = 0;
+    virtual int step(uint64_t cycle, bool dump) = 0;
     // Clean up and dump result
     virtual int finalize() = 0;
 };
@@ -36,7 +39,9 @@ public:
     DutVerilatorBase(int argc, char **argv);
     ~DutVerilatorBase();
     int step();
-    int step(uint64_t cycle);
+    int step_nodump();
+    int step(bool dump);
+    int step(uint64_t cycle, bool dump);
     int finalize();
 };
 
@@ -45,11 +50,10 @@ public:
 #if defined(USE_VCS)
 #include "vc_hdrs.h"
 
-extern "C"
-{
-    int VcsMain(int argc, char **argv);
-    void VcsInit();
-    void VcsSimUntil(int *);
+extern "C" {
+int VcsMain(int argc, char **argv);
+void VcsInit();
+void VcsSimUntil(int *);
 }
 
 class DutVcsBase : public DutBase

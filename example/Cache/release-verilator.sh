@@ -22,7 +22,7 @@ fi
 
 # run cache codegen
 rm -rf temp 
-./build/bin/mcv -f example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fst --sim verilator
+./build/bin/mcv -f example/Cache/Cache.v -s ./template/xdut/cpp -t ./temp -S Cache -T Cache  --sim verilator
 
 # build cache
 cd temp && make

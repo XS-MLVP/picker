@@ -12,17 +12,14 @@ then
     exit
 fi
 
-# rebuild mcv if with parameter --rebuild
-if [ "$1" == "--rebuild" ]; then
-    rm -rf build
-    cmake . -Bbuild
-    cd build && make -j`nproc` && cd ../
-fi
-
+# build mcv
+rm -rf build
+cmake . -Bbuild
+cd build && make -j`nproc` && cd ../
 
 # run cache codegen
 rm -rf temp 
-./build/bin/mcv -f example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fst --sim verilator
+./build/bin/mcv -f example/Cache/Cache.v -s ./template/xdut/cpp -t ./temp -S Cache -T Cache -w Cache.fsdb --sim vcs
 
 # build cache
 cd temp && make

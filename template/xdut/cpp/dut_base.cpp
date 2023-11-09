@@ -3,8 +3,8 @@
 DutBase::DutBase()
 {
     cycle = 0;
-    argc = 0;
-    argv = nullptr;
+    argc  = 0;
+    argv  = nullptr;
 }
 
 #if defined(USE_VCS)
@@ -23,7 +23,7 @@ DutVcsBase::DutVcsBase(int argc, char **argv)
     svSetScope(svGetScopeFromName("{{__TOP_MODULE_NAME__}}_top"));
 
     // set cycle pointer to 0
-    this->cycle = 0;
+    this->cycle       = 0;
     this->to_cycle[0] = 0;
 };
 
@@ -85,29 +85,52 @@ DutVerilatorBase::DutVerilatorBase(int argc, char **argv)
 DutVerilatorBase::~DutVerilatorBase()
 {
     // finalize Verilator context
-    delete (V{{__TOP_MODULE_NAME__}} *)(this->top);
+    this->finalize();
 };
 
 int DutVerilatorBase::step()
 {
     // push one more cycle
-    return DutVerilatorBase::step(1);
+    return DutVerilatorBase::step(1, 1);
 };
 
-int DutVerilatorBase::step(uint64_t cycle)
+int DutVerilatorBase::step_nodump()
+{
+    return DutVerilatorBase::step(1, 0);
+};
+
+int DutVerilatorBase::step(bool dump)
+{
+    return DutVerilatorBase::step(1, dump);
+};
+
+int DutVerilatorBase::step(uint64_t ncycle, bool dump)
 {
     // set cycle pointer
-    this->cycle += cycle;
+    this->cycle += ncycle;
 
     // run simulation
-    for (int i = 0; i < cycle; i++)
-        ((V{{__TOP_MODULE_NAME__}} *)(this->top))->eval();
+    if (dump) {
+        for (int i = 0; i < cycle; i++) {
+            ((V{{__TOP_MODULE_NAME__}} *)(this->top))->eval();
+            ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->timeInc(1);
+        }
+    } else {
+        assert(ncycle == 1);
+        ((V{{__TOP_MODULE_NAME__}} *)(this->top))->eval_step();
+    }
+
     return 0;
 };
 
 int DutVerilatorBase::finalize()
 {
     // finalize Verilator context
+    if (this->top != nullptr) {
+        ((V{{__TOP_MODULE_NAME__}} *)(this->top))->final();
+        delete (V{{__TOP_MODULE_NAME__}} *)(this->top);
+        this->top = nullptr;
+    }
     return 0;
 };
 
