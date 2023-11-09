@@ -132,10 +132,14 @@ namespace mcv { namespace codegen {
                          "-DVL_DEBUG=1 "
                          "-DUSE_VERILATOR ";
             if (wave_file_name.length() > 0) {
-                verilator_trace = "--trace-fst";
                 cpp_flags += "-DVL_TRACE ";
-                if (wave_file_name.find(".fst") == std::string::npos)
-                    FATAL("Verilator trace file must be .fst format.\n");
+                if (wave_file_name.find(".vcd") != std::string::npos)
+                    verilator_trace = "--trace";
+                else if (wave_file_name.find(".fst") != std::string::npos)
+                    verilator_trace = "--trace-fst";
+                else
+                    FATAL(
+                        "Verilator trace file must be .vcd or .fst format.\n");
                 sv_dump_wave = env.render(
                     "initial begin\n"
                     "    $dumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
