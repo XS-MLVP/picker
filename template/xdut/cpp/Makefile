@@ -29,7 +29,7 @@ ifeq ($(SIMULATOR), verilator)
 # Generate Verilaotr DPI library files
 	verilator {{__VERILATOR_TRACE__}} --cc --prefix V{{__TOP_MODULE_NAME__}} --Mdir build/ -CFLAGS -fPIC  {{__TOP_MODULE_NAME__}}_top.sv {{__TOP_MODULE_NAME__}}.v --top-module {{__TOP_MODULE_NAME__}}_top 
 	cp cpp.mk build/
-	cd build/ && make -f cpp.mk
+	cd build/ && make -f cpp.mk -j`nproc`
 	cp build/libV{{__TOP_MODULE_NAME__}}.so ./libDPI{{__TOP_MODULE_NAME__}}.so
 	cp build/V{{__TOP_MODULE_NAME__}}.h ./
 	cp build/V{{__TOP_MODULE_NAME__}}__Dpi.h ./

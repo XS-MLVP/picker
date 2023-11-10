@@ -17,20 +17,38 @@ namespace mcv { namespace parser {
                                       std::string &src_module_name)
     {
         // call verible-verilog-syntax
+        // get real filename without path
+        std::filesystem::path filepath = filename;
+        std::string raw_filename       = filepath.filename();
+
+        MESSAGE("start call!");
         std::string syntax_cmd =
-            "verible-verilog-syntax --export_json --printtokens " + filename;
-        std::string verible_result = exec(syntax_cmd.c_str());
+            "verible-verilog-syntax --export_json --printtokens " + filename
+            + "> /tmp/" + raw_filename + ".json";
+        exec(syntax_cmd.c_str());
+
+        // read verible-verilog-syntax result
+        auto verible_result = read_file("/tmp/" + raw_filename + ".json");
+
+        MESSAGE("start parse!");
 
         // nlohmann parse json
         nlohmann::json module_json = nlohmann::json::parse(verible_result);
 
         // filter json like 标点符号等
+        MESSAGE("start filter!");
         auto module_token = module_json[filename]["tokens"];
+        nlohmann::json res_token;
         for (auto it = module_token.begin(); it != module_token.end();) {
             auto itemV    = it.value();
             std::string a = itemV["tag"];
-            (a.size() < 5) ? (it = module_token.erase(it)) : (it++);
+            if (a.size() > 1) res_token.push_back(itemV);
+            it++;
         }
+        module_token = res_token;
+
+        MESSAGE("want module: %s", src_module_name.c_str());
+
         // 不指明解析的module名，则默认解析文件中最后一个module
         if (src_module_name.length() == 0) {
             std::vector<std::string> module_list;
@@ -44,28 +62,48 @@ namespace mcv { namespace parser {
         for (int j = 0; j < module_token.size(); j++)
             if (module_token[j]["tag"] == "module"
                 && module_token[j + 1]["text"] == src_module_name) {
-                for (int i = j; i < module_token.size(); i++) {
+                std::string pin_type, pin_high, pin_low;
+                for (int i = j + 2; i < module_token.size(); i++) {
+                    // printf("%s\n", module_token[i]["tag"].dump().c_str());
+                    // Record pin type
+
                     if (module_token[i]["tag"] == "input"
-                        || module_token[i]["tag"] == "output") {
-                        sv_pin_member tmp_pin;
-                        tmp_pin.logic_pin_type =
+                        || module_token[i]["tag"] == "output"
+                        || module_token[i]["tag"] == "inout") {
+                        pin_type =
                             capitalize_first_letter(module_token[i]["tag"]);
-                        if (module_token[i + 1]["tag"] == "SymbolIdentifier") {
-                            tmp_pin.logic_pin = module_token[i + 1]["text"];
-                            tmp_pin.logic_pin_length = 0;
-                        } else if (module_token[i + 1]["tag"]
-                                   == "TK_DecNumber") {
-                            std::string pin_high = module_token[i + 1]["text"];
-                            std::string pin_low  = module_token[i + 2]["text"];
-                            tmp_pin.logic_pin    = module_token[i + 3]["text"];
+
+                        if (module_token[i + 1]["tag"] == "TK_DecNumber") {
+                            // Vector pin
+                            pin_high = module_token[++i]["text"];
+                            pin_low  = module_token[++i]["text"];
+                        } else {
+                            // Noraml pin
+                            pin_high = "-1";
+                        }
+                        continue;
+                    }
+
+                    // If is pin
+                    sv_pin_member tmp_pin;
+                    tmp_pin.logic_pin_type = pin_type;
+                    
+                    // printf("%s\n", module_token[i]["tag"].dump().c_str());
+                    if (module_token[i]["tag"]
+                        == "SymbolIdentifier") { // Noraml pin
+                        tmp_pin.logic_pin = module_token[i]["text"];
+                        if (pin_high != "-1") {
                             tmp_pin.logic_pin_length =
                                 std::stoi(pin_high) - std::stoi(pin_low) + 1;
+                        } else {
+                            tmp_pin.logic_pin_length = 0;
                         }
-                        pin.push_back(tmp_pin);
-                    } else if (module_token[i]["tag"] == "endmodule")
-                        break;
+                    } else
+                        goto module_out;
+                    pin.push_back(tmp_pin);
                 }
             }
+    module_out:
         return pin;
     }
 
