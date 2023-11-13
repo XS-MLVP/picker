@@ -111,7 +111,7 @@ int DutVerilatorBase::step(uint64_t ncycle, bool dump)
 
     // run simulation
     if (dump) {
-        for (int i = 0; i < cycle; i++) {
+        for (int i = 0; i < ncycle; i++) {
             ((V{{__TOP_MODULE_NAME__}} *)(this->top))->eval();
             ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->timeInc(1);
         }
