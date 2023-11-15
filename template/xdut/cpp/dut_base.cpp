@@ -31,15 +31,25 @@ DutVcsBase::~DutVcsBase(){};
 
 int DutVcsBase::step()
 {
-    // push one more cycle
-    return DutVcsBase::step(1);
+    return DutVcsBase::step(1, 1);
 };
 
-int DutVcsBase::step(uint64_t cycle)
+int DutVcsBase::step_nodump()
+{
+    assert(0);
+    return 0;
+};
+
+int DutVcsBase::step(bool dump)
+{
+    return DutVcsBase::step(1, dump);
+};
+
+int DutVcsBase::step(uint64_t cycle, bool dump)
 {
     // set cycle pointer
     this->cycle += cycle;
-    this->to_cycle[1] = this->cycle;
+    this->to_cycle[0] = this->cycle;
 
     // run simulation
     VcsSimUntil(this->to_cycle);
