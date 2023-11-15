@@ -42,7 +42,7 @@ int DutVcsBase::step_nodump()
 
 int DutVcsBase::step(bool dump)
 {
-    return DutVcsBase::step(1, dump);
+    return DutVcsBase::step(dump, dump);
 };
 
 int DutVcsBase::step(uint64_t cycle, bool dump)
