@@ -66,7 +66,9 @@ public:
     DutVcsBase(int argc, char **argv);
     ~DutVcsBase();
     int step();
-    int step(uint64_t cycle);
+    int step_nodump();
+    int step(bool dump);
+    int step(uint64_t cycle, bool dump);
     int finalize();
 };
 
