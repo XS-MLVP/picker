@@ -5,15 +5,16 @@
 
 namespace mcv
 {
-    struct sv_pin_member
+    struct sv_signal_define
     {
         std::string logic_pin;
         std::string logic_pin_type;
-        int logic_pin_length;
+        int logic_pin_hb;
+        int logic_pin_lb;
     };
 
     namespace parser
     {
-        std::vector<sv_pin_member> sv(cxxopts::ParseResult opts);
+        int sv(cxxopts::ParseResult opts, std::vector<sv_signal_define> &external_pin, std::string &src_module_name);
     };
 }

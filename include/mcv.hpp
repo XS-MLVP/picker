@@ -8,7 +8,10 @@
 #include <set>
 #include <unistd.h>
 #include "codegen/cpp.hpp"
+#include "codegen/sv.hpp"
+#include "codegen/make.hpp"
 #include "parser/sv.hpp"
+#include "parser/internalcfg.hpp"
 
 namespace mcv {
 extern bool is_debug;

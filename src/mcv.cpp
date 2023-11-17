@@ -28,6 +28,11 @@ int main(int argc, char **argv)
         "Set the module name and file name of target DUT, default is the same as source",
         cxxopts::value<std::string>()->default_value(""));
 
+    options.add_options()(
+        "i,internal",
+        "Exported internal signal config file, default is empty, means no internal pin",
+        cxxopts::value<std::string>()->default_value(""));
+
     options.add_options()("w,wave_file_name",
                           "Wave file name, emtpy mean don't dump wave",
                           cxxopts::value<std::string>()->default_value(""));
@@ -47,8 +52,12 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    std::vector<mcv::sv_pin_member> sv_pin_result = mcv::parser::sv(opts);
+    std::vector<mcv::sv_signal_define> sv_pin_result, internal_sginal_result;
+    std::string src_module_name = opts["source_module_name"].as<std::string>();
+    mcv::parser::sv(opts, sv_pin_result, src_module_name);
+    mcv::parser::internal(opts, internal_sginal_result);
 
-    mcv::codegen::cpp(opts, sv_pin_result);
+    mcv::codegen::render(opts, src_module_name, sv_pin_result,
+                         internal_sginal_result);
     return 0;
 }

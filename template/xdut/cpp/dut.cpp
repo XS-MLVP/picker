@@ -6,16 +6,18 @@ UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(int argc, char **argv) : Du
 UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(int argc, char **argv) : DutVcsBase(argc, argv)
 #endif
 {
-{{__LOGIC_ANNOTATION__}}
+    /*
+{{__COMMENTS__}}
+    */
 
     // initialize {{__TOP_MODULE_NAME__}}
-{{__REINIT_PINS__}}
+{{__XDATA_REINIT__}}
 
     // bind {{__TOP_MODULE_NAME__}} pins
-{{__BIND_PINS__}}
+{{__XDATA_BIND__}}
 
     // add {{__TOP_MODULE_NAME__}} ports
-{{__ADD_PORTS__}}
+{{__XPORT_ADD__}}
 }
 
 #if defined(USE_VERILATOR)

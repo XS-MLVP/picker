@@ -10,13 +10,13 @@ class UT{{__TOP_MODULE_NAME__}} : public DutVcsBase
 #endif
 {
 public:
-{{__LOGIC_ANNOTATION__}}
+    /*
+{{__COMMENTS__}}
+    */
 
-    // {{__TOP_MODULE_NAME__}} INPUT
-{{__INPUT_PINS__}}
+    // {{__TOP_MODULE_NAME__}} 
+{{__XDATA_DECLARATION__}}
 
-    // {{__TOP_MODULE_NAME__}} OUTPUT
-{{__OUTPUT_PINS__}}
 
     XPort port;
 

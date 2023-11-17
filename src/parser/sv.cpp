@@ -4,17 +4,8 @@
 
 namespace mcv { namespace parser {
 
-    std::string capitalize_first_letter(const std::string &str)
-    {
-        if (str.empty()) return str;
-        std::string result = str;
-        if (result[0] >= 'a' && result[0] <= 'z')
-            result[0] = result[0] - 'a' + 'A';
-        return result;
-    };
-
-    std::vector<sv_pin_member> sv_pin(std::string &filename,
-                                      std::string &src_module_name)
+    std::vector<sv_signal_define> sv_pin(std::string &filename,
+                                         std::string &src_module_name)
     {
         // call verible-verilog-syntax
         // get real filename without path
@@ -58,7 +49,7 @@ namespace mcv { namespace parser {
             src_module_name = module_list.back();
         }
         // 解析module_token，将解析好的pin_name\pin_length\pin_type都push进pin数组并返回。
-        std::vector<sv_pin_member> pin;
+        std::vector<sv_signal_define> pin;
         for (int j = 0; j < module_token.size(); j++)
             if (module_token[j]["tag"] == "module"
                 && module_token[j + 1]["text"] == src_module_name) {
@@ -70,8 +61,7 @@ namespace mcv { namespace parser {
                     if (module_token[i]["tag"] == "input"
                         || module_token[i]["tag"] == "output"
                         || module_token[i]["tag"] == "inout") {
-                        pin_type =
-                            capitalize_first_letter(module_token[i]["tag"]);
+                        pin_type = module_token[i]["tag"];
 
                         if (module_token[i + 1]["tag"] == "TK_DecNumber") {
                             // Vector pin
@@ -85,18 +75,18 @@ namespace mcv { namespace parser {
                     }
 
                     // If is pin
-                    sv_pin_member tmp_pin;
+                    sv_signal_define tmp_pin;
                     tmp_pin.logic_pin_type = pin_type;
-                    
+
                     // printf("%s\n", module_token[i]["tag"].dump().c_str());
                     if (module_token[i]["tag"]
                         == "SymbolIdentifier") { // Noraml pin
                         tmp_pin.logic_pin = module_token[i]["text"];
                         if (pin_high != "-1") {
-                            tmp_pin.logic_pin_length =
-                                std::stoi(pin_high) - std::stoi(pin_low) + 1;
+                            tmp_pin.logic_pin_hb = std::stoi(pin_high);
+                            tmp_pin.logic_pin_lb = std::stoi(pin_low);
                         } else {
-                            tmp_pin.logic_pin_length = 0;
+                            tmp_pin.logic_pin_hb = -1;
                         }
                     } else
                         goto module_out;
@@ -107,12 +97,13 @@ namespace mcv { namespace parser {
         return pin;
     }
 
-    std::vector<sv_pin_member> sv(cxxopts::ParseResult opts)
+    int sv(cxxopts::ParseResult opts,
+           std::vector<sv_signal_define> &external_pin,
+           std::string &src_module_name)
     {
         std::string filename = opts["file"].as<std::string>();
-        std::string src_module_name =
-            opts["source_module_name"].as<std::string>();
 
-        return sv_pin(filename, src_module_name);
+        external_pin = sv_pin(filename, src_module_name);
+        return 0;
     }
 }} // namespace mcv::parser

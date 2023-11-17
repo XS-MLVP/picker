@@ -33,11 +33,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 # third
 # add_subdirectory(third/type_safe)
 # add_subdirectory(third/cppast)
+add_subdirectory(third/yaml-cpp)
 # LINK_LIBRARIES(cppast)
+LINK_LIBRARIES(yaml-cpp)
+
 
 # source
 add_subdirectory(src)
-# add_subdirectory(test)
+add_subdirectory(test)
 
 # install
 set(CMAKE_INSTALL_PREFIX /usr/local)
