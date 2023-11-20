@@ -20,13 +20,13 @@ namespace mcv { namespace codegen {
             "  export \"DPI-C\" function set_{{pin_func_name}};\n";
 
         static const std::string dpi_get_impl_template =
-            "  function get_{{pin_func_name}};\n"
+            "  function void get_{{pin_func_name}};\n"
             "    output logic {{logic_pin_length}} value;\n"
             "    value={{logic_pin}};\n"
             "  endfunction\n\n";
 
         static const std::string dpi_set_impl_template =
-            "  function set_{{pin_func_name}};\n"
+            "  function void set_{{pin_func_name}};\n"
             "    input logic {{logic_pin_length}} value;\n"
             "    {{logic_pin}}=value;\n"
             "  endfunction\n\n";
