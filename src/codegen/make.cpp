@@ -5,11 +5,64 @@
 #include "parser/sv.hpp"
 
 namespace mcv { namespace codegen {
-    int set_make_param(nlohmann::json &global_render_data,
+
+    void set_verilator(nlohmann::json &global_render_data,
+                       std::string &cpp_flags,
+                       const std::string &wave_file_name,
+                       std::string &sv_dump_wave, std::string &verilator_trace)
+    {
+        inja::Environment env;
+
+        cpp_flags += "-I /usr/local/share/verilator/include "
+                     "-I /usr/local//share/verilator/include/vltstd/ "
+                     "-DVL_DEBUG=1 "
+                     "-DUSE_VERILATOR ";
+        if (wave_file_name.length() > 0) {
+            cpp_flags += "-DVL_TRACE ";
+            if (wave_file_name.find(".vcd") != std::string::npos)
+                verilator_trace = "--trace";
+            else if (wave_file_name.find(".fst") != std::string::npos)
+                verilator_trace = "--trace-fst";
+            else
+                FATAL("Verilator trace file must be .vcd or .fst format.\n");
+            sv_dump_wave =
+                env.render("initial begin\n"
+                           "    $dumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
+                           "    $dumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
+                           " end ",
+                           global_render_data);
+        }
+    }
+
+    void set_vcs(nlohmann::json &global_render_data, std::string &cpp_flags,
+                 const std::string &wave_file_name, std::string &sv_dump_wave,
+                 std::string &vcs_trace)
+    {
+        inja::Environment env;
+        cpp_flags +=
+            "-DUSE_VCS "
+            "-I${VCS_HOME}/include -I${VCS_HOME}/linux64/lib/ "
+            "-Wl,-rpath=${VCS_HOME}/linux64/lib -L${VCS_HOME}/linux64/lib "
+            "";
+        if (wave_file_name.length() > 0) {
+            vcs_trace = "-debug_all ";
+            if (wave_file_name.find(".fsdb") == std::string::npos)
+                FATAL("VCS trace file must be .fsdb format.\n");
+            sv_dump_wave = env.render(
+                "initial begin\n"
+                "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
+                "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
+                " end ",
+                global_render_data);
+        }
+    }
+
+    void set_make_param(nlohmann::json &global_render_data,
                        const std::string &src_module_name,
-                       std::string &dst_module_name, std::string &src_dir,
-                       std::string &dst_dir, std::string &wave_file_name,
-                       std::string &simulator, std::string &vflag)
+                       std::string &dst_module_name, const std::string &src_dir,
+                       const std::string &dst_dir,
+                       const std::string &wave_file_name,
+                       const std::string &simulator, const std::string &vflag)
     {
         inja::Environment env;
         // dst_module_name为生成模板的module name，未指定时默认为src_module_name
@@ -22,51 +75,15 @@ namespace mcv { namespace codegen {
         global_render_data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
         // Render Simulator Related Files
-        std::string cpp_flags;
-        std::string sv_dump_wave;
-        std::string verilator_trace;
-        std::string vcs_trace;
+        std::string cpp_flags, sv_dump_wave, verilator_trace, vcs_trace;
         if (simulator == "verilator") {
-            cpp_flags += "-I /usr/local/share/verilator/include "
-                         "-I /usr/local//share/verilator/include/vltstd/ "
-                         "-DVL_DEBUG=1 "
-                         "-DUSE_VERILATOR ";
-            if (wave_file_name.length() > 0) {
-                cpp_flags += "-DVL_TRACE ";
-                if (wave_file_name.find(".vcd") != std::string::npos)
-                    verilator_trace = "--trace";
-                else if (wave_file_name.find(".fst") != std::string::npos)
-                    verilator_trace = "--trace-fst";
-                else
-                    FATAL(
-                        "Verilator trace file must be .vcd or .fst format.\n");
-                sv_dump_wave = env.render(
-                    "initial begin\n"
-                    "    $dumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
-                    "    $dumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
-                    " end ",
-                    global_render_data);
-            }
+            set_verilator(global_render_data, cpp_flags, wave_file_name,
+                          sv_dump_wave, verilator_trace);
         } else if (simulator == "vcs") {
-            cpp_flags +=
-                "-DUSE_VCS "
-                "-I${VCS_HOME}/include -I${VCS_HOME}/linux64/lib/ "
-                "-Wl,-rpath=${VCS_HOME}/linux64/lib -L${VCS_HOME}/linux64/lib "
-                "";
-            if (wave_file_name.length() > 0) {
-                vcs_trace = "-debug_all ";
-                if (wave_file_name.find(".fsdb") == std::string::npos)
-                    FATAL("VCS trace file must be .fsdb format.\n");
-                sv_dump_wave = env.render(
-                    "initial begin\n"
-                    "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
-                    "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
-                    " end ",
-                    global_render_data);
-            }
+            set_vcs(global_render_data, cpp_flags, wave_file_name, sv_dump_wave,
+                    vcs_trace);
         } else {
             FATAL("Unsupported simulator: %s\n", simulator.c_str());
-            return -1;
         }
         global_render_data["__CPP_FLAGS__"]       = cpp_flags;
         global_render_data["__SV_DUMP_WAVE__"]    = sv_dump_wave;

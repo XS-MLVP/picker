@@ -33,13 +33,25 @@ namespace codegen {
         static const std::string xdata_reinit_template =
             "    this->{{pin_func_name}}.ReInit({{logic_pin_length}}, IOType::{{logic_pin_type}}, \"{{logic_pin}}\");\n";
         static const std::string xdata_bindrw_template =
-            "    this->{{pin_func_name}}.BindDPIRW(get_{{pin_func_name}}, set_{{pin_func_name}});\n";
+            "    this->{{pin_func_name}}.BindDPIRW({{read_func_type}}get_{{pin_func_name}}, {{write_func_type}}set_{{pin_func_name}});\n";
         static const std::string xdata_bind_onlyr_template =
-            "    this->{{pin_func_name}}.BindDPIRW(get_{{pin_func_name}}, nullptr);\n";
+            "    this->{{pin_func_name}}.BindDPIRW({{read_func_type}}get_{{pin_func_name}}, {{write_func_type}}nullptr);\n";
         static const std::string xport_add_template =
             "    this->port.Add(this->{{pin_func_name}}.mName, this->{{pin_func_name}});\n";
         static const std::string comment_template =
             "    {{logic_pin_type}} {{logic_pin_length}} {{logic_pin}}\n";
+
+#define BIND_DPI_RW                                                            \
+    if (pin[i].logic_pin_hb == -1) {                                           \
+        data["logic_pin_length"] = 0;                                          \
+        data["read_func_type"]   = "(void (*)(void*))";                        \
+        data["write_func_type"]  = "(void (*)(const unsigned char))";          \
+    } else {                                                                   \
+        data["logic_pin_length"] =                                             \
+            pin[i].logic_pin_hb - pin[i].logic_pin_lb + 1;                     \
+        data["read_func_type"]  = "(void (*)(void*))";                         \
+        data["write_func_type"] = "(void (*)(const void*))";                   \
+    }
 
         /// @brief Export external pin for cpp render
         /// @param pin
@@ -65,6 +77,8 @@ namespace codegen {
                 // render
                 data["logic_pin_type"] =
                     capitalize_first_letter(pin[i].logic_pin_type);
+
+                BIND_DPI_RW;
                 data["logic_pin_length"] =
                     pin[i].logic_pin_hb == -1 ? // means not vector
                         0 :
@@ -113,10 +127,7 @@ namespace codegen {
 
                 // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
                 // render
-                data["logic_pin_length"] =
-                    pin[i].logic_pin_hb == -1 ? // means not vector
-                        0 :
-                        pin[i].logic_pin_hb - pin[i].logic_pin_lb + 1;
+                BIND_DPI_RW;
                 data["logic_pin_type"] = "Output";
 
                 xdata_declaration =
@@ -148,11 +159,12 @@ namespace codegen {
 
         // Generate External Pin
         cpp::render_external_pin(external_pin, xdata_declaration, xdata_reinit,
-                            xdata_bindrw, xport_add, comments);
+                                 xdata_bindrw, xport_add, comments);
 
         // Generate Internal Signal
-        cpp::render_internal_signal(internal_signal, xdata_declaration, xdata_reinit,
-                               xdata_bindrw, xport_add, comments);
+        cpp::render_internal_signal(internal_signal, xdata_declaration,
+                                    xdata_reinit, xdata_bindrw, xport_add,
+                                    comments);
 
         global_render_data["__XDATA_DECLARATION__"] = xdata_declaration;
         global_render_data["__XDATA_REINIT__"]      = xdata_reinit;
