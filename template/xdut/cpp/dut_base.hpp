@@ -36,6 +36,7 @@ class DutVerilatorBase : public DutBase
 public:
     // Verilator Context and Top Module
     void *top;
+    void init(int, char**);
     DutVerilatorBase(int argc, char **argv);
     DutVerilatorBase();
     DutVerilatorBase(char *filename);
@@ -67,6 +68,7 @@ protected:
     int to_cycle[2] = {0, 0};
 
 public:
+    void init(int, char**);
     DutVcsBase(int argc, char **argv);
     [[deprecated("VCS does not support no-args constructor")]] DutVcsBase();
     DutVcsBase(char *filename);
@@ -81,15 +83,3 @@ public:
 };
 
 #endif
-
-class DutUnifiedBase : public DutBase
-{
-public:
-    /// @brief initialize {{__TOP_MODULE_NAME__}}, FATAL if NON ARGS FOR VCS!
-    DutUnifiedBase();
-    DutUnifiedBase(int argc, char **argv);
-    DutUnifiedBase(char *filename);
-    DutUnifiedBase(char *filename, int argc, char **argv);
-    DutUnifiedBase(std::initializer_list<const char *> args);
-    ~DutUnifiedBase();
-};

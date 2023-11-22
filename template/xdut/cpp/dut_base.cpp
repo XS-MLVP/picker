@@ -11,7 +11,8 @@ DutBase::DutBase()
 
 DutVcsBase::DutVcsBase()
 {
-    FATAL("VCS does not support no-args constructor");
+    // FATAL("VCS does not support no-args constructor");
+    exit(-1);
 }
 
 DutVcsBase::DutVcsBase(char *filename)
@@ -33,7 +34,9 @@ DutVcsBase::DutVcsBase(char *filename, int argc, char **argv)
 DutVcsBase::DutVcsBase(std::initializer_list<const char *> args)
 {
     int argc    = args.size();
-    char **argv = (char **)malloc(sizeof(char *) * argc);
+    // Reserve heap space for VCS overflow ?
+    char **argv = (char **)malloc(sizeof(char *) * (argc+128));
+    memset(argv, -1, sizeof(char *) * (argc+128));
     int i       = 0;
     for (auto arg : args) {
         char *name = (char *)malloc(strlen(arg) + 1);
@@ -51,7 +54,7 @@ DutVcsBase::DutVcsBase(int argc, char **argv)
     this->init(argc, argv);
 };
 
-DutVcsBase::init(int argc, char **argv)
+void DutVcsBase::init(int argc, char **argv)
 {
     // initialize VCS context
     VcsMain(argc, argv);
@@ -63,7 +66,7 @@ DutVcsBase::init(int argc, char **argv)
     // set cycle pointer to 0
     this->cycle       = 0;
     this->to_cycle[0] = 0;
-}
+};
 
 DutVcsBase::~DutVcsBase(){};
 
@@ -146,7 +149,7 @@ DutVerilatorBase::DutVerilatorBase(int argc, char **argv)
     this->init(argc, argv);
 };
 
-DutVerilatorBase::init(int argc, char **argv)
+void DutVerilatorBase::init(int argc, char **argv)
 {
     // save argc and argv for debug
     this->argc = argc;

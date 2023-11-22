@@ -10,7 +10,11 @@ class DutUnifiedBase : public DutVcsBase
 #endif
 {
 public:
+    DutUnifiedBase();
     DutUnifiedBase(int argc, char **argv);
+    DutUnifiedBase(char *filename);
+    DutUnifiedBase(char *filename, int argc, char **argv);
+    DutUnifiedBase(std::initializer_list<const char *> args);
     ~DutUnifiedBase();
 };
 
@@ -28,6 +32,11 @@ public:
     XPort port;
 
     // {{__TOP_MODULE_NAME__}}
+    UT{{__TOP_MODULE_NAME__}}();
     UT{{__TOP_MODULE_NAME__}}(int argc, char **argv);
+    UT{{__TOP_MODULE_NAME__}}(char *filename);
+    UT{{__TOP_MODULE_NAME__}}(char *filename, int argc, char **argv);
+    UT{{__TOP_MODULE_NAME__}}(std::initializer_list<const char *> args);
+    void init();
     ~UT{{__TOP_MODULE_NAME__}}();
 };
