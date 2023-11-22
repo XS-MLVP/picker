@@ -9,12 +9,50 @@ DutBase::DutBase()
 
 #if defined(USE_VCS)
 
+DutVcsBase::DutVcsBase()
+{
+    FATAL("VCS does not support no-args constructor");
+}
+
+DutVcsBase::DutVcsBase(char *filename)
+{
+    char *name = (char *)malloc(strlen(filename) + 1);
+    strcpy(name, filename);
+    char *argv[] = {name};
+    this->init(1, argv);
+};
+
+DutVcsBase::DutVcsBase(char *filename, int argc, char **argv)
+{
+    char *name = (char *)malloc(strlen(filename) + 1);
+    strcpy(name, filename);
+    argv[0] = name;
+    this->init(argc, argv);
+};
+
+DutVcsBase::DutVcsBase(std::initializer_list<const char *> args)
+{
+    int argc    = args.size();
+    char **argv = (char **)malloc(sizeof(char *) * argc);
+    int i       = 0;
+    for (auto arg : args) {
+        char *name = (char *)malloc(strlen(arg) + 1);
+        strcpy(name, arg);
+        argv[i++] = name;
+    }
+    this->init(argc, argv);
+};
+
 DutVcsBase::DutVcsBase(int argc, char **argv)
 {
     // save argc and argv for debug
     this->argc = argc;
     this->argv = argv;
+    this->init(argc, argv);
+};
 
+DutVcsBase::init(int argc, char **argv)
+{
     // initialize VCS context
     VcsMain(argc, argv);
 
@@ -25,7 +63,7 @@ DutVcsBase::DutVcsBase(int argc, char **argv)
     // set cycle pointer to 0
     this->cycle       = 0;
     this->to_cycle[0] = 0;
-};
+}
 
 DutVcsBase::~DutVcsBase(){};
 
@@ -66,7 +104,49 @@ int DutVcsBase::finalize()
 
 #if defined(USE_VERILATOR)
 
+DutVerilatorBase::DutVerilatorBase()
+{
+    this->init(0, nullptr);
+}
+
+DutVerilatorBase::DutVerilatorBase(char *filename)
+{
+    char *name = (char *)malloc(strlen(filename) + 1);
+    strcpy(name, filename);
+    char *argv[] = {name};
+    this->init(1, argv);
+};
+
+DutVerilatorBase::DutVerilatorBase(char *filename, int argc, char **argv)
+{
+    char *name = (char *)malloc(strlen(filename) + 1);
+    strcpy(name, filename);
+    argv[0] = name;
+    this->init(argc, argv);
+};
+
+DutVerilatorBase::DutVerilatorBase(std::initializer_list<const char *> args)
+{
+    int argc    = args.size();
+    char **argv = (char **)malloc(sizeof(char *) * argc);
+    int i       = 0;
+    for (auto arg : args) {
+        char *name = (char *)malloc(strlen(arg) + 1);
+        strcpy(name, arg);
+        argv[i++] = name;
+    }
+    this->init(argc, argv);
+};
+
 DutVerilatorBase::DutVerilatorBase(int argc, char **argv)
+{
+    // save argc and argv for debug
+    this->argc = argc;
+    this->argv = argv;
+    this->init(argc, argv);
+};
+
+DutVerilatorBase::init(int argc, char **argv)
 {
     // save argc and argv for debug
     this->argc = argc;

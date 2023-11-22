@@ -58,11 +58,12 @@ namespace mcv { namespace codegen {
     }
 
     void set_make_param(nlohmann::json &global_render_data,
-                       const std::string &src_module_name,
-                       std::string &dst_module_name, const std::string &src_dir,
-                       const std::string &dst_dir,
-                       const std::string &wave_file_name,
-                       const std::string &simulator, const std::string &vflag)
+                        const std::string &src_module_name,
+                        std::string &dst_module_name,
+                        const std::string &src_dir, const std::string &dst_dir,
+                        const std::string &wave_file_name,
+                        const std::string &simulator,
+                        const std::string &simulator_flags)
     {
         inja::Environment env;
         // dst_module_name为生成模板的module name，未指定时默认为src_module_name
@@ -70,12 +71,13 @@ namespace mcv { namespace codegen {
 
         global_render_data["__WAVE_FILE_NAME__"]     = wave_file_name;
         global_render_data["__SIMULATOR__"]          = simulator;
-        global_render_data["__VFLAG__"]              = vflag;
+        global_render_data["__SIMULATOR_FLAGS__"]    = simulator_flags;
         global_render_data["__SOURCE_MODULE_NAME__"] = src_module_name;
         global_render_data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
         // Render Simulator Related Files
         std::string cpp_flags, sv_dump_wave, verilator_trace, vcs_trace;
+
         if (simulator == "verilator") {
             set_verilator(global_render_data, cpp_flags, wave_file_name,
                           sv_dump_wave, verilator_trace);
@@ -85,6 +87,7 @@ namespace mcv { namespace codegen {
         } else {
             FATAL("Unsupported simulator: %s\n", simulator.c_str());
         }
+
         global_render_data["__CPP_FLAGS__"]       = cpp_flags;
         global_render_data["__SV_DUMP_WAVE__"]    = sv_dump_wave;
         global_render_data["__VERILATOR_TRACE__"] = verilator_trace;

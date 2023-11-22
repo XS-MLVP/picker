@@ -27,7 +27,8 @@ libUT{{__TOP_MODULE_NAME__}}.so: libDPI{{__TOP_MODULE_NAME__}}.so
 libDPI{{__TOP_MODULE_NAME__}}.so:
 ifeq ($(SIMULATOR), verilator)
 # Generate Verilaotr DPI library files
-	verilator {{__VERILATOR_TRACE__}} --cc --prefix V{{__TOP_MODULE_NAME__}} --Mdir build/ -CFLAGS -fPIC  {{__TOP_MODULE_NAME__}}_top.sv {{__TOP_MODULE_NAME__}}.v --top-module {{__TOP_MODULE_NAME__}}_top 
+	verilator {{__VERILATOR_TRACE__}} --cc --prefix V{{__TOP_MODULE_NAME__}} --Mdir build/ {{__SIMULATOR_FLAGS__}} \
+		-CFLAGS -fPIC  {{__TOP_MODULE_NAME__}}_top.sv {{__TOP_MODULE_NAME__}}.v --top-module {{__TOP_MODULE_NAME__}}_top 
 	cp cpp.mk build/
 	cd build/ && make -f cpp.mk -j`nproc`
 	cp build/libV{{__TOP_MODULE_NAME__}}.so ./libDPI{{__TOP_MODULE_NAME__}}.so
@@ -37,6 +38,7 @@ else ifeq ($(SIMULATOR), vcs)
 	vcs -e VcsMain -slave {{__VCS_TRACE__}} -sverilog -lca -l compile.log \
 		{{__TOP_MODULE_NAME__}}_top.sv {{__TOP_MODULE_NAME__}}.v  -o libDPI{{__TOP_MODULE_NAME__}}.so \
 		+modelsave -LDFLAGS "-shared" -debug  \
+		{{__SIMULATOR_FLAGS__}}	\
 		-P ${VERDI_HOME}/share/PLI/VCS/LINUX64/novas.tab ${VERDI_HOME}/share/PLI/VCS/LINUX64/pli.a 
 endif
 # Generate  Debugging Information

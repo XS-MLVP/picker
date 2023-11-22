@@ -1,10 +1,14 @@
 #include "dut.hpp"
 
+
 #if defined(USE_VERILATOR)
-UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(int argc, char **argv) : DutVerilatorBase(argc, argv)
+DutUnifiedBase::DutUnifiedBase(int argc, char **argv) : DutVerilatorBase(argc, argv)
 #elif defined(USE_VCS)
-UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(int argc, char **argv) : DutVcsBase(argc, argv)
+DutUnifiedBase::DutUnifiedBase(int argc, char **argv) : DutVcsBase(argc, argv)
 #endif
+{};
+
+UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(int argc, char **argv) : DutUnifiedBase(argc, argv)
 {
     /*
 {{__COMMENTS__}}
@@ -20,11 +24,12 @@ UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(int argc, char **argv) : Du
 {{__XPORT_ADD__}}
 }
 
-#if defined(USE_VERILATOR)
+DutUnifiedBase::~DutUnifiedBase()
+{
+    // finalize {{__TOP_MODULE_NAME__}}
+}
+
 UT{{__TOP_MODULE_NAME__}}::~UT{{__TOP_MODULE_NAME__}}()
-#elif defined(USE_VCS)
-UT{{__TOP_MODULE_NAME__}}::~UT{{__TOP_MODULE_NAME__}}()
-#endif
 {
     // finalize {{__TOP_MODULE_NAME__}}
 }

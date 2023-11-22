@@ -3,11 +3,18 @@
 
 #if defined(USE_VERILATOR)
 #include "V{{__TOP_MODULE_NAME__}}__Dpi.h"
-class UT{{__TOP_MODULE_NAME__}} : public DutVerilatorBase
+class DutUnifiedBase : public DutVerilatorBase
 #elif defined(USE_VCS)
 #include "vc_hdrs.h"
-class UT{{__TOP_MODULE_NAME__}} : public DutVcsBase
+class DutUnifiedBase : public DutVcsBase
 #endif
+{
+public:
+    DutUnifiedBase(int argc, char **argv);
+    ~DutUnifiedBase();
+};
+
+class UT{{__TOP_MODULE_NAME__}}: public DutUnifiedBase
 {
 public:
     /*
