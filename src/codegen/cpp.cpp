@@ -140,6 +140,31 @@ namespace codegen {
                 xport_add = xport_add + env.render(xport_add_template, data);
             }
         };
+
+        void render_clock_period(std::string &vcs_clock_period_h,
+                                 std::string &vcs_clock_period_l,
+                                 const std::string &frequency)
+        {
+            // h,l with ps unit
+            uint64_t freq, period;
+            if (frequency.ends_with("KHz")) {
+                freq = std::stoull(frequency.substr(0, frequency.length() - 3));
+                period = 1000000000 / freq;
+            } else if (frequency.ends_with("MHz")) {
+                freq = std::stoull(frequency.substr(0, frequency.length() - 3));
+                period = 1000000 / freq;
+            } else if (frequency.ends_with("GHz")) {
+                freq = std::stoull(frequency.substr(0, frequency.length() - 3));
+                period = 1000 / freq;
+            } else if (frequency.ends_with("Hz")) {
+                freq = std::stoull(frequency.substr(0, frequency.length() - 2));
+                period = 1000000000000 / freq;
+            } else {
+                FATAL("Unsupported frequency unit: %s\n", frequency.c_str());
+            } // end if
+            vcs_clock_period_h = std::to_string((period >> 1) + (period & 1));
+            vcs_clock_period_l = std::to_string(period >> 1);
+        }
     } // namespace cpp
 
     /// @brief generate cpp wrapper class for verilog module, contains
@@ -151,7 +176,8 @@ namespace codegen {
     /// @return
     void set_cpp_param(nlohmann::json &global_render_data,
                        std::vector<sv_signal_define> external_pin,
-                       std::vector<sv_signal_define> internal_signal)
+                       std::vector<sv_signal_define> internal_signal,
+                       const std::string &frequency)
     {
         // Codegen Buffers
         std::string pin_connect, logic, wire, comments, dpi_export, dpi_impl,
@@ -171,6 +197,13 @@ namespace codegen {
         global_render_data["__XDATA_BIND__"]        = xdata_bindrw;
         global_render_data["__XPORT_ADD__"]         = xport_add;
         global_render_data["__COMMENTS__"]          = comments;
+
+        // Set clock period
+        std::string vcs_clock_period_h, vcs_clock_period_l;
+        cpp::render_clock_period(vcs_clock_period_h, vcs_clock_period_l,
+                                 frequency);
+        global_render_data["__VCS_CLOCK_PERIOD_HIGH__"] = vcs_clock_period_h;
+        global_render_data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
     }
 } // namespace codegen
 } // namespace mcv

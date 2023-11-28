@@ -64,9 +64,12 @@ void DutVcsBase::init(int argc, char **argv)
     svSetScope(svGetScopeFromName("{{__TOP_MODULE_NAME__}}_top"));
 
     // set cycle pointer to 0
-    this->cycle       = 0;
-    this->to_cycle[0] = 0;
-};
+    this->cycle    = 0;
+    this->cycle_hl = 0;
+    this->vcs_clock_period[0] = {{__VCS_CLOCK_PERIOD_HIGH__}};
+    this->vcs_clock_period[1] = {{__VCS_CLOCK_PERIOD_LOW__}};
+    this->vcs_clock_period[2] = {{__VCS_CLOCK_PERIOD_LOW__}} + {{__VCS_CLOCK_PERIOD_HIGH__}};
+}
 
 DutVcsBase::~DutVcsBase(){};
 
@@ -86,14 +89,24 @@ int DutVcsBase::step(bool dump)
     return DutVcsBase::step(dump, dump);
 };
 
-int DutVcsBase::step(uint64_t cycle, bool dump)
+int DutVcsBase::step(uint64_t ncycle, bool dump)
 {
+    if (!dump) {
+        assert(ncycle == 0);
+        VcsSimUntil(&cycle);
+        return 0;
+    }
+
     // set cycle pointer
-    this->cycle += cycle;
-    this->to_cycle[0] = this->cycle;
+    cycle_hl += ncycle;
+    if (likely(ncycle == 1))
+        cycle += vcs_clock_period[cycle_hl & 1];
+    else
+        cycle += (ncycle >> 1) * vcs_clock_period[2]
+                 + (ncycle & 1) * vcs_clock_period[cycle_hl & 1];
 
     // run simulation
-    VcsSimUntil(this->to_cycle);
+    VcsSimUntil(&cycle);
     return 0;
 };
 

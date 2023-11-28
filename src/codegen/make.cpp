@@ -113,11 +113,13 @@ namespace mcv { namespace codegen {
         std::string wave_file_name = opts["wave_file_name"].as<std::string>();
         std::string simulator      = opts["sim"].as<std::string>();
         std::string vflag          = opts["vflag"].as<std::string>();
+        std::string frequency      = opts["frequency"].as<std::string>();
 
         nlohmann::json global_render_data;
 
         set_sv_param(global_render_data, external_pin, internal_signal);
-        set_cpp_param(global_render_data, external_pin, internal_signal);
+        set_cpp_param(global_render_data, external_pin, internal_signal,
+                      frequency);
         set_make_param(global_render_data, src_module_name, dst_module_name,
                        src_dir, dst_dir, wave_file_name, simulator, vflag);
 

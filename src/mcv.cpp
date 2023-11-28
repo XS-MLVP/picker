@@ -10,7 +10,7 @@ int main(int argc, char **argv)
     cxxopts::Options options(
         "XDut Gen", "XDut Generate. \nConvert DUT(*.v) to C++ DUT libs.\n");
 
-    // 原始源文件
+    //
     options.add_options()("f,file", "DUT .v file",
                           cxxopts::value<std::string>(file));
 
@@ -32,6 +32,11 @@ int main(int argc, char **argv)
         "i,internal",
         "Exported internal signal config file, default is empty, means no internal pin",
         cxxopts::value<std::string>()->default_value(""));
+
+    options.add_options()(
+        "F,frequency",
+        "Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit",
+        cxxopts::value<std::string>()->default_value("100MHz"));
 
     options.add_options()("w,wave_file_name",
                           "Wave file name, emtpy mean don't dump wave",

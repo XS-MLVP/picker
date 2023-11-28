@@ -35,7 +35,7 @@ ifeq ($(SIMULATOR), verilator)
 	cp build/V{{__TOP_MODULE_NAME__}}.h ./
 	cp build/V{{__TOP_MODULE_NAME__}}__Dpi.h ./
 else ifeq ($(SIMULATOR), vcs)
-	vcs -e VcsMain -slave {{__VCS_TRACE__}} -sverilog -lca -l compile.log \
+	vcs -e VcsMain -slave {{__VCS_TRACE__}} -sverilog -lca -l compile.log -full64 -timescale=1ns/1ps \
 		{{__TOP_MODULE_NAME__}}_top.sv {{__TOP_MODULE_NAME__}}.v  -o libDPI{{__TOP_MODULE_NAME__}}.so \
 		+modelsave -LDFLAGS "-shared" -debug  \
 		{{__SIMULATOR_FLAGS__}}	\

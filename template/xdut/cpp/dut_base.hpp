@@ -9,7 +9,7 @@ using namespace ovip;
 class DutBase
 {
 public:
-    u_int64_t cycle;
+    uint64_t cycle;
     int argc;
     char **argv;
 
@@ -58,14 +58,14 @@ public:
 extern "C" {
 int VcsMain(int argc, char **argv);
 void VcsInit();
-void VcsSimUntil(int *);
+void VcsSimUntil(uint64_t *);
 }
 
 class DutVcsBase : public DutBase
 {
 protected:
-    // VCS SimUntil
-    int to_cycle[2] = {0, 0};
+    uint64_t cycle_hl;
+    uint64_t vcs_clock_period[3];
 
 public:
     void init(int, char**);
