@@ -21,9 +21,10 @@ fi
 
 
 # run cache codegen
-rm -rf temp 
-./build/bin/mcv -f example/Cache/Cache.v  -i example/Cache/Cache.yaml -s ./template/xdut/cpp -t ./temp -S Cache -T Cache -w cache.fst --sim verilator
+rm -rf mcv_out
+# mcv -f example/Cache/Cache.v -s ./template -t ./temp -S Cache -T Cache -w cache.fst --sim verilator
+mcv -f example/Cache/Cache.v -w cache.fst -e
 
 # build cache
-cd temp && make
-echo "build cache done, all you need has been generated in temp/release"
+# cd temp && make
+# echo "build cache done, all you need has been generated in temp/release"

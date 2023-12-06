@@ -8,7 +8,7 @@ DutBase::DutBase()
 }
 
 #if defined(USE_VCS)
-
+#include "vc_hdrs.h"
 DutVcsBase::DutVcsBase()
 {
     // FATAL("VCS does not support no-args constructor");
@@ -119,6 +119,9 @@ int DutVcsBase::finalize()
 #endif
 
 #if defined(USE_VERILATOR)
+#include "verilated.h"
+#include "V{{__TOP_MODULE_NAME__}}.h"
+#include "V{{__TOP_MODULE_NAME__}}__Dpi.h"
 
 DutVerilatorBase::DutVerilatorBase()
 {
@@ -241,3 +244,24 @@ int DutVerilatorBase::finalize()
 };
 
 #endif
+
+
+#if defined(USE_VERILATOR)
+DutUnifiedBase::DutUnifiedBase() : DutVerilatorBase() {};
+DutUnifiedBase::DutUnifiedBase(int argc, char **argv) : DutVerilatorBase(argc, argv){};
+DutUnifiedBase::DutUnifiedBase(char *filename) : DutVerilatorBase(filename) {};
+DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv) : DutVerilatorBase(filename, argc, argv) {};
+DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args) : DutVerilatorBase(args) {};
+
+#elif defined(USE_VCS)
+DutUnifiedBase::DutUnifiedBase() : DutVcsBase() {};
+DutUnifiedBase::DutUnifiedBase(int argc, char **argv) : DutVcsBase(argc, argv){};
+DutUnifiedBase::DutUnifiedBase(char *filename) : DutVcsBase(filename) {};
+DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv) : DutVcsBase(filename, argc, argv) {};
+DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args) : DutVcsBase(args) {};
+#endif
+
+DutUnifiedBase::~DutUnifiedBase()
+{
+    // finalize {{__TOP_MODULE_NAME__}}
+}

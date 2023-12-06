@@ -1,7 +1,5 @@
 #include <bits/stdc++.h>
-#include "mcv.hpp"
 #include "codegen/cpp.hpp"
-#include "parser/sv.hpp"
 
 namespace mcv {
 
@@ -17,17 +15,9 @@ std::string replace_all(std::string str, const std::string &from,
     return str;
 }
 
-std::string capitalize_first_letter(const std::string &str)
-{
-    if (str.empty()) return str;
-    std::string result = str;
-    if (result[0] >= 'a' && result[0] <= 'z') result[0] = result[0] - 'a' + 'A';
-    return result;
-};
-
 namespace codegen {
 
-    namespace cpp {
+    namespace cxx {
         static const std::string xdata_declaration_template =
             "    XData {{pin_func_name}};\n";
         static const std::string xdata_reinit_template =
@@ -75,8 +65,7 @@ namespace codegen {
 
                 // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
                 // render
-                data["logic_pin_type"] =
-                    capitalize_first_letter(pin[i].logic_pin_type);
+                data["logic_pin_type"] = first_upercase(pin[i].logic_pin_type);
 
                 BIND_DPI_RW;
                 data["logic_pin_length"] =
@@ -141,69 +130,46 @@ namespace codegen {
             }
         };
 
-        void render_clock_period(std::string &vcs_clock_period_h,
-                                 std::string &vcs_clock_period_l,
-                                 const std::string &frequency)
-        {
-            // h,l with ps unit
-            uint64_t freq, period;
-            if (frequency.ends_with("KHz")) {
-                freq = std::stoull(frequency.substr(0, frequency.length() - 3));
-                period = 1000000000 / freq;
-            } else if (frequency.ends_with("MHz")) {
-                freq = std::stoull(frequency.substr(0, frequency.length() - 3));
-                period = 1000000 / freq;
-            } else if (frequency.ends_with("GHz")) {
-                freq = std::stoull(frequency.substr(0, frequency.length() - 3));
-                period = 1000 / freq;
-            } else if (frequency.ends_with("Hz")) {
-                freq = std::stoull(frequency.substr(0, frequency.length() - 2));
-                period = 1000000000000 / freq;
-            } else {
-                FATAL("Unsupported frequency unit: %s\n", frequency.c_str());
-            } // end if
-            vcs_clock_period_h = std::to_string((period >> 1) + (period & 1));
-            vcs_clock_period_l = std::to_string(period >> 1);
-        }
-    } // namespace cpp
+    } // namespace cxx
 
-    /// @brief generate cpp wrapper class for verilog module, contains
-    /// __XDATA_DECLARATION__, __XDATA_REINIT__,  __XDATA_BIND__
-    /// __XPORT_ADD__, __COMMENTS__
-    /// @param global_render_data
-    /// @param external_pin
-    /// @param internal_signal
-    /// @return
-    void set_cpp_param(nlohmann::json &global_render_data,
-                       std::vector<sv_signal_define> external_pin,
-                       std::vector<sv_signal_define> internal_signal,
-                       const std::string &frequency)
+    void cpp(const cxxopts::ParseResult &opts, nlohmann::json &sync_opts,
+             std::vector<sv_signal_define> external_pin,
+             std::vector<sv_signal_define> internal_signal)
     {
+        //
+        std::string src_dir = opts["source_dir"].as<std::string>() + "/cpp";
+        std::string dst_dir = opts["target_dir"].as<std::string>() + "/cpp";
+        std::string src_module_name = sync_opts["src_module_name"];
+        std::string dst_module_name = sync_opts["dst_module_name"];
+
         // Codegen Buffers
         std::string pin_connect, logic, wire, comments, dpi_export, dpi_impl,
             xdata_declaration, xdata_reinit, xdata_bindrw, xport_add;
 
         // Generate External Pin
-        cpp::render_external_pin(external_pin, xdata_declaration, xdata_reinit,
+        cxx::render_external_pin(external_pin, xdata_declaration, xdata_reinit,
                                  xdata_bindrw, xport_add, comments);
-
         // Generate Internal Signal
-        cpp::render_internal_signal(internal_signal, xdata_declaration,
+        cxx::render_internal_signal(internal_signal, xdata_declaration,
                                     xdata_reinit, xdata_bindrw, xport_add,
                                     comments);
 
-        global_render_data["__XDATA_DECLARATION__"] = xdata_declaration;
-        global_render_data["__XDATA_REINIT__"]      = xdata_reinit;
-        global_render_data["__XDATA_BIND__"]        = xdata_bindrw;
-        global_render_data["__XPORT_ADD__"]         = xport_add;
-        global_render_data["__COMMENTS__"]          = comments;
 
-        // Set clock period
-        std::string vcs_clock_period_h, vcs_clock_period_l;
-        cpp::render_clock_period(vcs_clock_period_h, vcs_clock_period_l,
-                                 frequency);
-        global_render_data["__VCS_CLOCK_PERIOD_HIGH__"] = vcs_clock_period_h;
-        global_render_data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
+        // Set global render data
+        nlohmann::json data;
+
+        data["__SOURCE_MODULE_NAME__"] = sync_opts["src_module_name"];
+        data["__TOP_MODULE_NAME__"]    = sync_opts["dst_module_name"];
+
+        data["__XDATA_DECLARATION__"] = xdata_declaration;
+        data["__XDATA_REINIT__"]      = xdata_reinit;
+        data["__XDATA_BIND__"]        = xdata_bindrw;
+        data["__XPORT_ADD__"]         = xport_add;
+        data["__COMMENTS__"]          = comments;
+
+        // Render
+        inja::Environment env;
+        recursive_render(src_dir, dst_dir, data, env);
     }
 } // namespace codegen
 } // namespace mcv

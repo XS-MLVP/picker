@@ -7,13 +7,17 @@
 #include <regex>
 #include <set>
 #include <unistd.h>
+#include "json.hpp"
+#include "inja.hpp"
+#include "cxxopts.hpp"
 #include "codegen/cpp.hpp"
 #include "codegen/sv.hpp"
-#include "codegen/make.hpp"
+#include "codegen/lib.hpp"
 #include "parser/sv.hpp"
 #include "parser/internalcfg.hpp"
 
 namespace mcv {
+
 extern bool is_debug;
 #define OUTPUT(o, fmt, ...)                                                    \
     {                                                                          \
@@ -256,25 +260,6 @@ inline std::string find_file(std::vector<std::string> fs)
     return "";
 }
 
-inline std::string mcv_file(std::string fname)
-{
-    std::vector<std::string> search_path{".", "~/.mcv", "/etc/mcv"};
-    std::vector<std::string> search_file;
-    for (auto &p : search_path) {
-        search_file.push_back(path_join({p, fname}));
-    }
-    return find_file(search_file);
-}
-
-inline std::string template_rander(std::string tmp_file,
-                                   std::map<std::string, std::string> &kw)
-{
-    inja::Environment env;
-    kw["mcv_version"] = version();
-    kw["mcv_time"]    = fmtnow();
-    return env.render_file(tmp_file, kw);
-}
-
 inline bool write_file(std::string fname, std::string text);
 inline bool write_file(std::string fname, std::string text)
 {
@@ -323,36 +308,53 @@ inline std::string read_params(std::string fname)
     return ret;
 };
 
-// constant
-const std::string CFG_VERILATOR_INCLUDE = "CFG_VERILATOR_INCLUDE";
-const std::string CFG_VERILATOR_VERSION = "CFG_VERILATOR_VERSION";
-const std::string CFG_MODEL_NAME        = "CFG_MODEL_NAME";
-const std::string CFG_CPP_FLAGS         = "CFG_CPP_FLAGS";
-const std::string CFG_VERILOG_IO_VARS   = "CFG_VERILOG_IO_VARS";
+#if defined(WIN32) || defined(_WIN32)                                          \
+    || defined(__WIN32) && !defined(__CYGWIN__)
+#include <windows.h>
 
-// struct
-struct CMember {
-    std::string pclass;
-    std::string type; // inc, func, class or var
-    std::string name;
-    std::string define;
-};
+inline std::string get_executable_path()
+{
+    char buffer[MAX_PATH];
+    GetModuleFileName(NULL, buffer, MAX_PATH);
+    return std::string(buffer);
+}
 
-// export functions
-// gen python interface
-void gen_python(inja::json &cfg, std::vector<CMember> &var_and_fucs,
-                std::string target_dir);
-void gen_java(inja::json &cfg, std::vector<CMember> &var_and_fucs,
-              std::string target_dir);
-void gen_golang(inja::json &cfg, std::vector<CMember> &var_and_fucs,
-                std::string target_dir);
-void gen_cpp(inja::json &cfg, std::vector<CMember> &var_and_fucs,
-             std::string target_dir);
+#elif __APPLE__
+#include <mach-o/dyld.h>
 
-void print_cmembers(std::ostream &out, std::vector<CMember> &member);
-std::map<std::string, std::string> get_verilog_inoutput_type(std::string fname);
-std::map<std::string, std::string>
-gen_cpp_so(inja::json &cfg, std::vector<mcv::CMember> &var_and_fucs,
-           std::string target_dir, std::string &subdir);
+inline std::string get_executable_path()
+{
+    char buffer[1024];
+    uint32_t size = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &size) == 0)
+        return std::string(buffer);
+    else
+        return std::string("");
+}
 
+#elif __linux__
+#include <unistd.h>
+
+inline std::string get_executable_path()
+{
+    char buffer[1024];
+    ssize_t len = ::readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (len != -1) {
+        buffer[len] = '\0';
+        return std::string(buffer);
+    } else {
+        return std::string("");
+    }
+}
+
+#endif
+
+inline std::string get_template_path()
+{
+    auto path = get_executable_path();
+    path      = path.substr(0, path.find_last_of("/\\"));
+    path      = path.substr(0, path.find_last_of("/\\"));
+    path      = path + "/share/mcv/template";
+    return path;
+}
 } // namespace mcv

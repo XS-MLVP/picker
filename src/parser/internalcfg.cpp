@@ -58,14 +58,13 @@ namespace mcv { namespace parser {
     };
 
     int internal(cxxopts::ParseResult opts,
-                 std::vector<sv_signal_define> &internal_pin)
+                 std::vector<sv_signal_define> &internal_pin,
+                 nlohmann::json &sync_opts)
     {
         std::string internal_pin_filename = opts["internal"].as<std::string>();
-        if (internal_pin_filename.length() == 0) {
-            internal_pin = std::vector<sv_signal_define>();
-        } else {
-            internal_pin = internal(internal_pin_filename);
-        }
+        internal_pin = internal_pin_filename.length() == 0 ?
+                           std::vector<sv_signal_define>() :
+                           internal(internal_pin_filename);
         return 0;
     };
 

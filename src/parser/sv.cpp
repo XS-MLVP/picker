@@ -1,5 +1,4 @@
 #include "mcv.hpp"
-#include "codegen/json.hpp"
 #include "parser/sv.hpp"
 
 namespace mcv { namespace parser {
@@ -99,11 +98,17 @@ namespace mcv { namespace parser {
 
     int sv(cxxopts::ParseResult opts,
            std::vector<sv_signal_define> &external_pin,
-           std::string &src_module_name)
+           nlohmann::json &sync_opts)
     {
-        std::string filename = opts["file"].as<std::string>();
+        std::string filename        = opts["file"].as<std::string>(),
+                    src_module_name = opts["source_module_name"].as<std::string>(),
+                    dst_module_name = opts["target_module_name"].as<std::string>();
 
         external_pin = sv_pin(filename, src_module_name);
+
+        sync_opts["src_module_name"] = src_module_name;
+        sync_opts["dst_module_name"] =
+            dst_module_name.length() == 0 ? src_module_name : dst_module_name;
         return 0;
     }
 }} // namespace mcv::parser

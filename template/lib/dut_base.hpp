@@ -1,10 +1,6 @@
 #pragma once
 #include <bits/stdc++.h>
 #include <svdpi.h>
-#include "openvip/data.h"
-#include "openvip/port.h"
-
-using namespace ovip;
 
 class DutBase
 {
@@ -27,10 +23,6 @@ public:
 };
 
 #if defined(USE_VERILATOR)
-
-#include "verilated.h"
-#include "V{{__TOP_MODULE_NAME__}}.h"
-
 class DutVerilatorBase : public DutBase
 {
 public:
@@ -53,8 +45,6 @@ public:
 #endif
 
 #if defined(USE_VCS)
-#include "vc_hdrs.h"
-
 extern "C" {
 int VcsMain(int argc, char **argv);
 void VcsInit();
@@ -83,3 +73,18 @@ public:
 };
 
 #endif
+
+#if defined(USE_VERILATOR)
+class DutUnifiedBase : public DutVerilatorBase
+#elif defined(USE_VCS)
+class DutUnifiedBase : public DutVcsBase
+#endif
+{
+public:
+    DutUnifiedBase();
+    DutUnifiedBase(int argc, char **argv);
+    DutUnifiedBase(char *filename);
+    DutUnifiedBase(char *filename, int argc, char **argv);
+    DutUnifiedBase(std::initializer_list<const char *> args);
+    ~DutUnifiedBase();
+};

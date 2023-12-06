@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.11)
+
+set(ModuleName ${PROJECT})
+project(${ModuleName} VERSION 1.0)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+include(verilator)
+include(vcs)
+
+set_target_properties(
+	${ModuleName}
+	PROPERTIES CXX_STANDARD 20
+						 CXX_STANDARD_REQUIRED ON
+						 CXX_EXTENSIONS ON
+						 OUTPUT_NAME "UT${ModuleName}")
+
+# Create release directory and Copy output files
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/UT_${ModuleName})
+add_custom_command(
+	TARGET ${ModuleName}
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${ModuleName}> ${CMAKE_BINARY_DIR}/UT_${ModuleName}
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:DPI${ModuleName}> ${CMAKE_BINARY_DIR}/UT_${ModuleName}
+	COMMENT "Copying ${ModuleName} to ${CMAKE_BINARY_DIR}/UT_${ModuleName}")

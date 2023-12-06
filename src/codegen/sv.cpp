@@ -1,8 +1,5 @@
 #include <bits/stdc++.h>
-#include "mcv.hpp"
-#include "codegen/cpp.hpp"
 #include "codegen/sv.hpp"
-#include "parser/sv.hpp"
 
 namespace mcv { namespace codegen {
 
@@ -48,8 +45,7 @@ namespace mcv { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"] =
-                    replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
 
                 // Set empty or [hb:lb] for verilog render
                 data["logic_pin_length"] =
@@ -105,6 +101,50 @@ namespace mcv { namespace codegen {
                 dpi_impl = dpi_impl + env.render(dpi_get_impl_template, data);
             }
         };
+
+        void render_sv_waveform(const std::string &simulator,
+                                const std::string &wave_file_name,
+                                nlohmann::json &data)
+        {
+            inja::Environment env;
+            std::string sv_dump_wave, trace;
+            data["__WAVE_FILE_NAME__"] = wave_file_name;
+            if (simulator == "verilator") {
+                if (wave_file_name.length() > 0) {
+                    if (wave_file_name.ends_with(".vcd")
+                        || wave_file_name.ends_with(".fst"))
+                        sv_dump_wave = env.render(
+                            "initial begin\n"
+                            "    $dumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
+                            "    $dumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
+                            " end ",
+                            data);
+                    else
+                        FATAL(
+                            "Verilator trace file must be .vcd or .fst format.\n");
+                }
+            } else if (simulator == "vcs") {
+                if (wave_file_name.length() > 0) {
+                    if (wave_file_name.ends_with(".fsdb") == false)
+                        FATAL("VCS trace file must be .fsdb format.\n");
+                    sv_dump_wave = env.render(
+                        "initial begin\n"
+                        "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
+                        "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
+                        " end ",
+                        data);
+                }
+            } else {
+                FATAL("Unsupported simulator: %s\n", simulator.c_str());
+            }
+
+            data["__TRACE__"] =
+                sv_dump_wave.length() > 0 ?
+                    wave_file_name.substr(wave_file_name.find_last_of(".") + 1,
+                                          wave_file_name.length()) :
+                    "OFF";
+            data["__SV_DUMP_WAVE__"] = sv_dump_wave;
+        }
     } // namespace sv
     /// @brief generate system verilog wrapper file contains
     /// __PIN_CONNECT__ , __LOGIC_PIN_DECLARATION__ , __WIRE_PIN_DECLARATION__
@@ -112,18 +152,24 @@ namespace mcv { namespace codegen {
     /// @param global_render_data
     /// @param external_pin
     /// @param internal_signal
-    void set_sv_param(nlohmann::json &global_render_data,
+    void gen_sv_param(nlohmann::json &global_render_data,
                       const std::vector<sv_signal_define> &external_pin,
-                      const std::vector<sv_signal_define> &internal_signal)
+                      const std::vector<sv_signal_define> &internal_signal,
+                      const std::string &wave_file_name,
+                      const std::string &simulator)
     {
         std::string pin_connect, logic, wire, dpi_export, dpi_impl;
+
         sv::render_external_pin(external_pin, pin_connect, logic, wire,
                                 dpi_export, dpi_impl);
         sv::render_internal_signal(internal_signal, dpi_export, dpi_impl);
+        sv::render_sv_waveform(simulator, wave_file_name, global_render_data);
+
         global_render_data["__LOGIC_PIN_DECLARATION__"]  = logic;
         global_render_data["__WIRE_PIN_DECLARATION__"]   = wire;
         global_render_data["__PIN_CONNECT__"]            = pin_connect;
         global_render_data["__DPI_FUNCTION_EXPORT__"]    = dpi_export;
         global_render_data["__DPI_FUNCTION_IMPLEMENT__"] = dpi_impl;
     }
+
 }} // namespace mcv::codegen

@@ -30,13 +30,14 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
+#dependencies
+add_subdirectory(dependence/xcomm)
+
 # third
 # add_subdirectory(third/type_safe)
 # add_subdirectory(third/cppast)
 add_subdirectory(third/yaml-cpp)
-# LINK_LIBRARIES(cppast)
 LINK_LIBRARIES(yaml-cpp)
-
 
 # source
 add_subdirectory(src)
@@ -50,5 +51,5 @@ install(
     TARGETS mcv DESTINATION bin
 )
 install(
-    DIRECTORY template DESTINATION /etc/mcv
+    DIRECTORY template DESTINATION share/mcv
 )

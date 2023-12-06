@@ -2,21 +2,30 @@
 
 #### 介绍
 
-MCV是基于verilator的多语言转换工具，目标是将RTL设计验证模块(.v)，转换成 python(已支持), java（正在支持）, golang（待定）和 c++ (原生支持) 等编程语言接口。让用户可以基于现有的软件测试框架，例如 pytest, junit，TestNG, go test等，进行芯片验证。基于MCV进行验证具有如下优点：
+MCV是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.v/.scala/.sv)进行封装，并使用其他编程语言暴露Pin-Level的操作，未来计划支持自动化的Transaction-Level原语生成。
 
-1. 不泄露RTL设计。经过MCV转换后，原始的设计文件(.v)被转化成了二进制文件(.so)，脱离原始设计文件后，依旧可进行验证，且验证者无法获取源代码。
+其他编程语言包括 c++ (原生支持), python(已支持), java(todo), golang(todo) 等编程语言接口。
+
+该辅助工具让用户可以基于现有的软件测试框架，例如 pytest, junit，TestNG, go test等，进行芯片UT验证。
+
+基于MCV进行验证具有如下优点：
+
+1. 不泄露RTL设计。经过MCV转换后，原始的设计文件(.v)被转化成了二进制文件(.so)，脱离原始设计文件后，依旧可进行验证，且验证者无法获取RTL源代码。
 2. 减少编译时间。当DUT(Design Under Test)稳定时，只需要编译一次（打包成so）。
 3. 用户面广。提供的编程接口多，可覆盖不同语言的开发者（传统IC验证，只用System Verilog）。
 4. 可使用软件生态丰富。能使用python3, java, golang等生态。
 
-缺点：MCV需要后端仿真器提交控制权，暴露编程接口。目前只适配verilator。
+目前MCV支持以下几种模拟器：
+
+1. verilator
+2. synopsys vcs
 
 #### 使用方法
 
 1.安装
 
 **源码安装**
-确保依赖 cmake(>=3.11)，g++(支持 c17)，python3(>=3.8)，pybind11(>=2.11.1)，verilator(>=4.226) 已经安装
+确保依赖 cmake(>=3.11)，gcc(支持c++20)，python3(>=3.8)，verilator(==4.218) 已经安装
 
 ```
 # 下载源码
@@ -105,26 +114,34 @@ temp
 mcv命令参数说明如下：
 
 ```
-Multi-language-based Chip Verification. 
-Convert DUT(*.v) to other language libs.
+XDut Generate. 
+Convert DUT(*.v) to C++ DUT libs.
 
 Usage:
-  mcv [OPTION...] <dut_file_to_convert>
+  XDut Gen [OPTION...]
 
-  -l, --lang arg     Language to gen, select from [python, go, java, cpp], 
-                     split by comma. Eg: --lang go,java. Default all
-  -t, --target arg   Gen data in the target dir, default in current dir 
-                     like _mcv_<name>_Ymd_HMS
-  -n, --name arg     set mode name, default name is Lxx from lxx.v
-  -v, --vflag arg    User defined verilator args, split by comma. Eg: -v 
-                     -x-assign=fast,-Wall,--trace. Or a file contain 
-                     params.
-  -e, --exfiles arg  extend input files, split by comma. Eg: -e f1,f2.
-  -c, --cppflag arg  User defined CPPFLAGS, split by comma. Eg: -c 
-                     -Wall,-DVL_DEBUG. Or a file contain params.
-  -h, --help         Print usage
-  -d, --debug        Enable debuging
-  -k, --keep         keep intermediate files
-  -o, --overwrite    Force generate .cpp from .v
+  -f, --file arg                DUT .v file
+  -s, --source_dir arg          Template Files
+  -t, --target_dir arg          Gen Files in the target dir
+  -S, --source_module_name arg  Pick the module in DUT .v file, default is 
+                                the last module (default: "")
+  -T, --target_module_name arg  Set the module name and file name of target 
+                                DUT, default is the same as source 
+                                (default: "")
+  -i, --internal arg            Exported internal signal config file, 
+                                default is empty, means no internal pin 
+                                (default: "")
+  -F, --frequency arg           Set the frequency of the **only VCS** DUT, 
+                                default is 100MHz, use Hz, KHz, MHz, GHz as 
+                                unit (default: 100MHz)
+  -w, --wave_file_name arg      Wave file name, emtpy mean don't dump wave 
+                                (default: "")
+      --sim arg                 VCS or verilator as simulator, default is 
+                                verilator (default: verilator)
+  -V, --vflag arg               User defined simulator compile args, split 
+                                by comma. Eg: -v 
+                                -x-assign=fast,-Wall,--trace. Or a file 
+                                contain params. (default: "")
+  -h, --help                    Print usage
 
 ```
