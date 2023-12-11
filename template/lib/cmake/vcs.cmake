@@ -39,24 +39,14 @@ if(SIMULATOR STREQUAL "vcs")
 			-P ${VERDI_HOME}/share/PLI/VCS/LINUX64/novas.tab
 			${VERDI_HOME}/share/PLI/VCS/LINUX64/pli.a)
 
-	# Add VCS link options and libraries add_link_options( -Wl,-rpath=./ -L,./
-	# -Wl,-rpath=${VCS_HOME}/linux64/lib -L${VCS_HOME}/linux64/lib -no-pie
-	# -Wl,--no-as-needed -rdynamic -Wl,-whole-archive -lvcsucli
-	# -Wl,-no-whole-archive -lzerosoft_rt_stubs -luclinative -lvirsim -lerrorinf
-	# -lsnpsmalloc -lvfs -lvcsnew -lsimprofile -ldl -lc -lm -lpthread -lnuma)
-	# add_library(vcs_tls OBJECT IMPORTED) set_target_properties(vcs_tls
-	# PROPERTIES IMPORTED_OBJECTS ${VCS_HOME}/linux64/lib/vcs_tls.o)
-	# add_library(vcs_save_restore_new OBJECT IMPORTED) set_target_properties(
-	# vcs_save_restore_new PROPERTIES IMPORTED_OBJECTS
-	# ${VCS_HOME}/linux64/lib/vcs_save_restore_new.o)
-
 	link_directories(${CMAKE_CURRENT_SOURCE_DIR})
 	add_library(DPI${ModuleName} SHARED IMPORTED)
 	set_target_properties(DPI${ModuleName} PROPERTIES IMPORTED_LOCATION
 																										libDPI${ModuleName}.so)
-
+    include_directories(${CMAKE_CURRENT_BINARY_DIR})
 	add_library(${ModuleName} SHARED dut_base)
 	target_link_libraries(${ModuleName} PRIVATE DPI${ModuleName})
+	target_link_options(${ModuleName} PRIVATE -Wl,-rpath,./)
 
 	# Copy libDPI${ModuleName}.so.daidir directory to build directory
 	add_custom_command(
@@ -65,6 +55,10 @@ if(SIMULATOR STREQUAL "vcs")
 		COMMAND
 			${CMAKE_COMMAND} -E copy_directory
 			${CMAKE_CURRENT_BINARY_DIR}/libDPI${ModuleName}.so.daidir
-			${CMAKE_BINARY_DIR}/UT_${ModuleName}/libDPI${ModuleName}.so.daidir)
+			${CMAKE_BINARY_DIR}/UT_${ModuleName}/libDPI${ModuleName}.so.daidir
+		COMMAND 
+			${CMAKE_COMMAND} -E copy
+			${CMAKE_CURRENT_BINARY_DIR}/vc_hdrs.h
+			${CMAKE_BINARY_DIR}/UT_${ModuleName}/UT_${ModuleName}_dpi.hpp)
 
 endif()

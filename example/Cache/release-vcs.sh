@@ -12,15 +12,10 @@ then
     exit
 fi
 
-# build mcv
-rm -rf build
-cmake . -Bbuild
-cd build && make -j`nproc` && cd ../
-
 # run cache codegen
-rm -rf temp 
-./build/bin/mcv -f example/Cache/Cache.v -s ./template/xdut/cpp -t ./temp -S Cache -T Cache -w Cache.fsdb --sim vcs
+rm -rf mcv_out 
+mcv --sim vcs -f example/Cache/Cache.v -w cache.fsdb -e
 
 # build cache
-cd temp && make
-echo "build cache done, all you need has been generated in temp/release"
+cd mcv_out && make
+#echo "build cache done, all you need has been generated in temp/release"

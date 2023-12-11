@@ -23,7 +23,7 @@ fi
 # run cache codegen
 rm -rf mcv_out
 # mcv -f example/Cache/Cache.v -s ./template -t ./temp -S Cache -T Cache -w cache.fst --sim verilator
-mcv -f example/Cache/Cache.v -w cache.fst -e
+mcv -f example/Cache/Cache.v -w cache.fst 
 
 # build cache
 # cd temp && make

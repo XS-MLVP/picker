@@ -1,4 +1,5 @@
 #include "dut_base.hpp"
+#include "xspcomm/xutil.h"
 
 DutBase::DutBase()
 {

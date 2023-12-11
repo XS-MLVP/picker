@@ -2,7 +2,11 @@
 
 int main()
 {
+#if defined(USE_VCS)
+    UT{{__TOP_MODULE_NAME__}} *dut = new UT{{__TOP_MODULE_NAME__}}("libDPI{{__TOP_MODULE_NAME__}}.so");
+#elif defined(USE_VERILATOR)
     UT{{__TOP_MODULE_NAME__}} *dut = new UT{{__TOP_MODULE_NAME__}}();
+#endif
     dut->initClock(dut->clock);
     printf("Initialized UT{{__TOP_MODULE_NAME__}}\n");
     delete dut;
