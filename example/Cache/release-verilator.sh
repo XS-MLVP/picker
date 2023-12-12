@@ -12,19 +12,15 @@ then
     exit
 fi
 
-# rebuild mcv if with parameter --rebuild
-if [ "$1" == "--rebuild" ]; then
-    rm -rf build
-    cmake . -Bbuild
-    cd build && make -j`nproc` && cd ../
-fi
-
-
 # run cache codegen
 rm -rf mcv_out
 # mcv -f example/Cache/Cache.v -s ./template -t ./temp -S Cache -T Cache -w cache.fst --sim verilator
-mcv -f example/Cache/Cache.v -w cache.fst 
+if [ "$1" == "-e" ]; then
+    mcv -f example/Cache/Cache.v -w cache.fst --sim verilator -e
+else
+    mcv -f example/Cache/Cache.v -w cache.fst --sim verilator
+fi
 
 # build cache
-# cd temp && make
+cd mcv_out && make
 # echo "build cache done, all you need has been generated in temp/release"

@@ -31,19 +31,18 @@ MCV是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.v/.
 # 下载源码
 git clone <mcv_git_url> #例如：https://gitee.com/yaozhicheng/mcv.git
 
+# 安装
+make
+sudo make install
+```
+
 # 测试 examples
 cd mcv
-bash ./example/XDummyCache/release.sh
-
-# 安装
-# TBD, dont make install
-```
+./example/Cache/release-vcs.sh -e
 
 2.使用案例
 
-
 ```
-bash ./example/XDummyCache/release.sh
 
 # 查看结果
 tree temp
