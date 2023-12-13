@@ -4,6 +4,7 @@ set(ModuleName {{__TOP_MODULE_NAME__}})
 project(${ModuleName} VERSION 1.0)
 
 include(${ModuleName}.cmake)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines")
 add_library(example OBJECT example.cpp)
 XSPTarget(
 	RTL_MODULE_NAME
