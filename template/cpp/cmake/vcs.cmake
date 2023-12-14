@@ -41,16 +41,6 @@ function(XSPTarget)
 		message(FATAL_ERROR "Cannot find verdi, please install (verdi)")
 	endif()
 
-	# Add VCS link options and libraries
-	include_directories(${VCS_HOME}/include ${VCS_HOME}/linux64/lib/)
-	add_library(vcs_tls OBJECT IMPORTED)
-	set_target_properties(vcs_tls PROPERTIES IMPORTED_OBJECTS
-																					 ${VCS_HOME}/linux64/lib/vcs_tls.o)
-	add_library(vcs_save_restore_new OBJECT IMPORTED)
-	set_target_properties(
-		vcs_save_restore_new
-		PROPERTIES IMPORTED_OBJECTS ${VCS_HOME}/linux64/lib/vcs_save_restore_new.o)
-
 	# Build the cpp wrapper
 	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 	add_library(UT${RTLModuleName} SHARED IMPORTED)
@@ -60,6 +50,7 @@ function(XSPTarget)
 						 ${CMAKE_CURRENT_SOURCE_DIR}/libUT${RTLModuleName}.so)
 
 	# Workaround for VCS
+	include_directories(${VCS_HOME}/include ${VCS_HOME}/linux64/lib)
 	execute_process(
 		COMMAND
 			${CMAKE_COMMAND} -E copy
@@ -73,8 +64,7 @@ function(XSPTarget)
 
 	# Build the test executable
 	add_executable(${ExecutableName} UT_${RTLModuleName}.cpp)
-	target_link_libraries(${ExecutableName} UT${RTLModuleName} DPI${RTLModuleName} xspcomm vcs_tls
-												vcs_save_restore_new ${CustomLibs} ${CMAKE_DL_LIBS})
+	target_link_libraries(${ExecutableName} UT${RTLModuleName} DPI${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
 	target_link_options(
 		${ExecutableName}
 		PRIVATE

@@ -6,6 +6,7 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 
 	# 初始化
 	def __init__(self, *a, **kw):
+		super().__init__(*a, **kw)
 		self.xclock = xsp.XClock(self.step)
 		self.port  = xsp.XPort()
 		# self.event = self.xclock.getEvent()
@@ -21,7 +22,7 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 	def init_clock(self,name:str):
 		self.xclock.Add(self.port[name])
 	 
-	def step(self,i: int):
+	def Step(self,i: int):
 		return self.xclock.Step(i)
 	
 	def __getitem__(self, key):
@@ -40,4 +41,7 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 	async def runstep(self,i: int):
 		return self.xclock.RunSetp(i)
 
-	
+if __name__=="__main__":
+	dut=DUT{{__TOP_MODULE_NAME__}}()
+	dut.init_clock("clock")
+	dut.Step(1)

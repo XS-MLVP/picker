@@ -39,13 +39,22 @@ if(SIMULATOR STREQUAL "vcs")
 			-P ${VERDI_HOME}/share/PLI/VCS/LINUX64/novas.tab
 			${VERDI_HOME}/share/PLI/VCS/LINUX64/pli.a)
 
+	# Add VCS link options and libraries
+	add_library(vcs_tls OBJECT IMPORTED)
+	set_target_properties(vcs_tls PROPERTIES IMPORTED_OBJECTS
+																						${VCS_HOME}/linux64/lib/vcs_tls.o)
+	add_library(vcs_save_restore OBJECT IMPORTED)
+	set_target_properties(
+		vcs_save_restore
+		PROPERTIES IMPORTED_OBJECTS ${VCS_HOME}/linux64/lib/vcs_save_restore.o)
+
 	link_directories(${CMAKE_CURRENT_SOURCE_DIR})
 	add_library(DPI${ModuleName} SHARED IMPORTED)
 	set_target_properties(DPI${ModuleName} PROPERTIES IMPORTED_LOCATION
 																										libDPI${ModuleName}.so)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 	add_library(${ModuleName} SHARED dut_base)
-	target_link_libraries(${ModuleName} PRIVATE DPI${ModuleName})
+	target_link_libraries(${ModuleName} PRIVATE DPI${ModuleName} vcs_tls vcs_save_restore)
 	target_link_options(${ModuleName} PRIVATE -Wl,-rpath,./)
 
 	# Copy libDPI${ModuleName}.so.daidir directory to build directory

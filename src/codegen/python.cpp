@@ -10,7 +10,7 @@ namespace mcv { namespace codegen {
         static const std::string xdata_bindrw_template =
             "\t\tself.{{pin_func_name}}.BindDPIRW(DPIR{{pin_func_name}}, DPIW{{pin_func_name}})\n";
         static const std::string xport_add_template =
-            "\t\tself.port.Add(self.{{pin_func_name}})\n";
+            "\t\tself.port.Add(\"{{pin_func_name}}\", self.{{pin_func_name}})\n";
             // "\t\tself.port.Add(self.{{pin_func_name}}.getXData())\n";
         static const std::string swig_constantr_template =
             "\%constant {{read_func_type}} =  get_{{pin_func_name}};\n";
@@ -50,12 +50,8 @@ namespace mcv { namespace codegen {
             nlohmann::json data;
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
-                data["logic_pin_type"] = pin[i].logic_pin_type;
+                data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i')? "In" : "Out";
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
-
-                // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
-                // render
-                data["logic_pin_type"] = first_upercase(pin[i].logic_pin_type);
 
                 BIND_DPI_RW;
                 data["logic_pin_length"] =
@@ -106,7 +102,7 @@ namespace mcv { namespace codegen {
                 // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
                 // render
                 BIND_DPI_RW;
-                data["logic_pin_type"] = "Output";
+                data["logic_pin_type"] = "Out";
 
                 xdata_init = xdata_init + env.render(xdata_init_template, data);
                 xdata_bindrw =

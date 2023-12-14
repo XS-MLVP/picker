@@ -1,4 +1,5 @@
 all: compile
+	python3 ${TARGET}.py
 
 compile:
 	cmake . -Bbuild

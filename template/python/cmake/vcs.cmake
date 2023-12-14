@@ -11,6 +11,7 @@ function(XSPyTarget)
 		${ARGN}
 	)
 	add_definitions(-DUSE_VCS)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftls-model=global-dynamic")
 
 	if (NOT DEFINED XSP_RTL_MODULE_NAME)
 		message(FATAL_ERROR "RTL_MODULE_NAME not defined")
@@ -37,17 +38,8 @@ function(XSPyTarget)
 		message(FATAL_ERROR "Cannot find verdi, please install (verdi)")
 	endif()
 
-	# Add VCS link options and libraries
-	include_directories(${VCS_HOME}/include ${VCS_HOME}/linux64/lib/)
-	add_library(vcs_tls OBJECT IMPORTED)
-	set_target_properties(vcs_tls PROPERTIES IMPORTED_OBJECTS
-																					 ${VCS_HOME}/linux64/lib/vcs_tls.o)
-	add_library(vcs_save_restore OBJECT IMPORTED)
-	set_target_properties(
-		vcs_save_restore
-		PROPERTIES IMPORTED_OBJECTS ${VCS_HOME}/linux64/lib/vcs_save_restore.o)
-
 	# Build the cpp wrapper
+	include_directories(${VCS_HOME}/include ${VCS_HOME}/linux64/lib/)
 	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 	add_library(UT${RTLModuleName} SHARED IMPORTED)
 	set_property(
@@ -72,9 +64,7 @@ function(XSPyTarget)
 	set_property(SOURCE dut.i PROPERTY CPLUSPLUS ON)
 	swig_add_library(UT_${PROJECT_NAME} LANGUAGE python SOURCES dut.i)
 
-	target_link_libraries(UT_${PROJECT_NAME} PRIVATE xspcomm)
-
-	target_link_libraries(UT_${PROJECT_NAME} UT${RTLModuleName} DPI${RTLModuleName} xspcomm vcs_tls
+	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} DPI${RTLModuleName} xspcomm vcs_tls
 												vcs_save_restore ${CustomLibs} ${CMAKE_DL_LIBS})
 	target_link_options(
 		UT_${PROJECT_NAME}
