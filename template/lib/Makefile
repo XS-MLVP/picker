@@ -12,7 +12,7 @@ all: release
 
 compile:
 	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT)
-	cmake --build build --config Release --parallel `nproc`
+	cmake --build build --config Debug --parallel `nproc`
 
 release: compile
 	@cp -r build/${TARGET} .

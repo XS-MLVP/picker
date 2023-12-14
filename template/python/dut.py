@@ -42,6 +42,6 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 		return self.xclock.RunSetp(i)
 
 if __name__=="__main__":
-	dut=DUT{{__TOP_MODULE_NAME__}}()
+	dut=DUT{{__TOP_MODULE_NAME__}}("libDPI{{__TOP_MODULE_NAME__}}.so")
 	dut.init_clock("clock")
 	dut.Step(1)

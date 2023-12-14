@@ -2,6 +2,7 @@
 %module(directors="1") libUT_{{__TOP_MODULE_NAME__}}
 
 %feature("director") DutUnifiedBase;
+%ignore DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args);
 
 %{
 #include "dut_base.hpp"

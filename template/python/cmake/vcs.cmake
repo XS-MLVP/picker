@@ -64,8 +64,7 @@ function(XSPyTarget)
 	set_property(SOURCE dut.i PROPERTY CPLUSPLUS ON)
 	swig_add_library(UT_${PROJECT_NAME} LANGUAGE python SOURCES dut.i)
 
-	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} DPI${RTLModuleName} xspcomm vcs_tls
-												vcs_save_restore ${CustomLibs} ${CMAKE_DL_LIBS})
+	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} DPI${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
 	target_link_options(
 		UT_${PROJECT_NAME}
 		PRIVATE
