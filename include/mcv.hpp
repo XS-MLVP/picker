@@ -11,6 +11,7 @@
 #include "inja.hpp"
 #include "cxxopts.hpp"
 #include "codegen/cpp.hpp"
+#include "codegen/python.hpp"
 #include "codegen/sv.hpp"
 #include "codegen/lib.hpp"
 #include "parser/sv.hpp"

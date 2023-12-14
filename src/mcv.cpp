@@ -15,6 +15,10 @@ int main(int argc, char **argv)
     options.add_options()(
         "sim", "vcs or verilator as simulator, default is verilator",
         cxxopts::value<std::string>()->default_value("verilator"));
+    options.add_options()(
+        "l,language",
+        "Build example project, default is cpp, choose cpp or python",
+        cxxopts::value<std::string>()->default_value("cpp"));
 
     options.add_options()(
         "s,source_dir",
@@ -61,7 +65,7 @@ int main(int argc, char **argv)
 
     // Help Options
     options.add_options()("v,verbose", "Verbose mode");
-    options.add_options()("e,example", "Build example project");
+    options.add_options()("e,example", "Build example project, default is OFF");
     options.add_options()("h,help", "Print usage");
 
     cxxopts::ParseResult opts = options.parse(argc, argv);
@@ -79,5 +83,7 @@ int main(int argc, char **argv)
     //                      internal_sginal_result);
     mcv::codegen::lib(opts, sync_opts, sv_pin_result, internal_sginal_result);
     mcv::codegen::cpp(opts, sync_opts, sv_pin_result, internal_sginal_result);
+    mcv::codegen::python(opts, sync_opts, sv_pin_result,
+                         internal_sginal_result);
     return 0;
 }

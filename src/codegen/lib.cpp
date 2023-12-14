@@ -100,7 +100,7 @@ namespace mcv { namespace codegen {
         data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
         data["__VERBOSE__"] = opts["verbose"].as<bool>() ? "ON" : "OFF";
         data["__EXAMPLE__"] = opts["example"].as<bool>() ? "ON" : "OFF";
-
+        data["__TARGET_LANGUAGE__"] = opts["language"].as<std::string>();
         // Render lib files
         recursive_render(src_dir, dst_dir, data, env);
 

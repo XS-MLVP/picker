@@ -1,12 +1,12 @@
 #Makefile for {{__TOP_MODULE_NAME__}}
 
-SIMULATOR = {{__SIMULATOR__}}
-TRACE := {{__TRACE__}}
-PROJECT := {{__TOP_MODULE_NAME__}}
-TARGET := UT_{{__TOP_MODULE_NAME__}}
-VERBOSE := {{__VERBOSE__}}
-EXAMPLE := {{__EXAMPLE__}}
-
+export SIMULATOR = {{__SIMULATOR__}}
+export TRACE := {{__TRACE__}}
+export PROJECT := {{__TOP_MODULE_NAME__}}
+export TARGET := UT_{{__TOP_MODULE_NAME__}}
+export VERBOSE := {{__VERBOSE__}}
+export EXAMPLE := {{__EXAMPLE__}}
+export TLANG := {{__TARGET_LANGUAGE__}}
 
 all: release 
 
@@ -16,17 +16,8 @@ compile:
 
 release: compile
 	@cp -r build/${TARGET} .
-	@cp cpp/dut.cpp ${TARGET}/${TARGET}.cpp 
-	@cp cpp/dut.hpp ${TARGET}/${TARGET}.hpp
 	@cp dut_base.hpp ${TARGET}/dut_base.hpp
-
-ifneq ($(EXAMPLE), OFF)
-	@cp cpp/example.cpp ${TARGET}/example.cpp
-	@cp cpp/cmake/${SIMULATOR}.cmake ${TARGET}/${PROJECT}.cmake
-	@cp cpp/CMakeLists.txt ${TARGET}/CMakeLists.txt
-	@cp cpp/Makefile ${TARGET}/Makefile
-	cd ${TARGET} && make
-endif
+	@make -f mk/${TLANG}.mk
 
 ifneq ($(VERBOSE), OFF)
 	cp *.v *.sv ${TARGET}/

@@ -36,97 +36,45 @@ make
 sudo make install
 ```
 
-# 测试 examples
-cd mcv
-./example/Cache/release-vcs.sh -e
+
 
 2.使用案例
 
 ```
-
-# 查看结果
-tree temp
-temp
-├── build
-│   ├── cpp.mk
-│   ├── libVCache.a
-│   ├── VCache___024root__DepSet_h420baa86__0.cpp
-│   ├── VCache___024root__DepSet_h420baa86__0__Slow.cpp
-│   ├── VCache___024root__DepSet_hc6909642__0.cpp
-│   ├── VCache___024root__DepSet_hc6909642__0__Slow.cpp
-│   ├── VCache___024root.h
-│   ├── VCache___024root__Slow.cpp
-│   ├── VCache__ALL.a
-│   ├── VCache__ALL.cpp
-│   ├── VCache__ALL.d
-│   ├── VCache__ALL.o
-│   ├── VCache_classes.mk
-│   ├── VCache.cpp
-│   ├── VCache__Dpi.cpp
-│   ├── VCache__Dpi_Export__0.cpp
-│   ├── VCache__Dpi.h
-│   ├── VCache.h
-│   ├── VCache.mk
-│   ├── VCache__Syms.cpp
-│   ├── VCache__Syms.h
-│   ├── VCache__ver.d
-│   ├── VCache__verFiles.dat
-│   ├── verilated.d
-│   ├── verilated_dpi.d
-│   ├── verilated_dpi.o
-│   ├── verilated.o
-│   ├── verilated_threads.d
-│   └── verilated_threads.o
-├── Cache
-├── Cache_top.sv
-├── Cache_top.v
-├── Cache.v
-├── cpp.mk
-├── data.cpp
-├── data.hpp
-├── dut_base.cpp
-├── dut_base.hpp
-├── dut.cpp
-├── dut.hpp
-├── libCache.so
-├── libVCache.a
-├── libVCache.S
-├── Makefile
-├── release
-│   ├── Cache
-│   ├── Cache_top.sv
-│   ├── Cache_top.v
-│   ├── Cache.v
-│   ├── data.hpp
-│   ├── dut_base.hpp
-│   ├── dut.hpp
-│   ├── libCache.so
-│   └── util.hpp
-├── util.hpp
-├── VCache__Dpi.h
-├── VCache.h
-└── xdut_main.cpp
-
-1 directories, 2 files
+# 测试 examples
+cd mcv
+./example/Cache/release-verilator.sh -l cpp -e -v 
 ```
 
 mcv命令参数说明如下：
 
 ```
+
 XDut Generate. 
 Convert DUT(*.v) to C++ DUT libs.
 
 Usage:
   XDut Gen [OPTION...]
 
-  -f, --file arg                DUT .v file
-  -s, --source_dir arg          Template Files
-  -t, --target_dir arg          Gen Files in the target dir
+  -f, --file arg                DUT .v/.sv source file, contain the top 
+                                module
+      --sim arg                 vcs or verilator as simulator, default is 
+                                verilator (default: verilator)
+  -l, --language arg            Build example project, default is cpp, 
+                                choose cpp or python (default: cpp)
+  -s, --source_dir arg          Template Files Dir, default is 
+                                ${mcv_install_path}/../mcv/template 
+                                (default: /usr/local/share/mcv/template)
+  -t, --target_dir arg          Render files to target dir, default is 
+                                ./mcv_out (default: ./mcv_out)
   -S, --source_module_name arg  Pick the module in DUT .v file, default is 
-                                the last module (default: "")
-  -T, --target_module_name arg  Set the module name and file name of target 
-                                DUT, default is the same as source 
+                                the last module in the -f marked file 
                                 (default: "")
+  -T, --target_module_name arg  Set the module name and file name of target 
+                                DUT, default is the same as source. For 
+                                example, -T top, will generate UTtop.cpp 
+                                and UTtop.hpp with UTtop class (default: 
+                                "")
   -i, --internal arg            Exported internal signal config file, 
                                 default is empty, means no internal pin 
                                 (default: "")
@@ -135,12 +83,16 @@ Usage:
                                 unit (default: 100MHz)
   -w, --wave_file_name arg      Wave file name, emtpy mean don't dump wave 
                                 (default: "")
-      --sim arg                 VCS or verilator as simulator, default is 
-                                verilator (default: verilator)
   -V, --vflag arg               User defined simulator compile args, split 
                                 by comma. Eg: -v 
-                                -x-assign=fast,-Wall,--trace. Or a file 
-                                contain params. (default: "")
+                                -x-assign=fast,-Wall,--trace || -C vcs,-cc 
+                                -i filelist.txt  (default: "")
+  -C, --cflag arg               User defined gcc/clang compile command, 
+                                split by comma. 
+                                Eg:-O3,-std=c++17,-I./include 
+                                ||-O3,-std=c++17,-I./include (default: "")
+  -v, --verbose                 Verbose mode
+  -e, --example                 Build example project, default is OFF
   -h, --help                    Print usage
 
 ```

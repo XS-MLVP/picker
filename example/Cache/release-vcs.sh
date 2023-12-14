@@ -14,11 +14,8 @@ fi
 
 # run cache codegen
 rm -rf mcv_out 
-if [ "$1" == "-e" ]; then
-    mcv --sim vcs -f example/Cache/Cache.v -w cache.fsdb -e
-else
-    mcv --sim vcs -f example/Cache/Cache.v -w cache.fsdb
-fi
+# passthrough args
+mcv --sim vcs -f example/Cache/Cache.v -w cache.fsdb $@
 
 # build cache
 cd mcv_out && make

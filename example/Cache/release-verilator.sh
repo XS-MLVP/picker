@@ -15,11 +15,7 @@ fi
 # run cache codegen
 rm -rf mcv_out
 # mcv -f example/Cache/Cache.v -s ./template -t ./temp -S Cache -T Cache -w cache.fst --sim verilator
-if [ "$1" == "-e" ]; then
-    mcv -f example/Cache/Cache.v -w cache.fst --sim verilator -e
-else
-    mcv -f example/Cache/Cache.v -w cache.fst --sim verilator
-fi
+mcv -f example/Cache/Cache.v -w cache.fst --sim verilator $@
 
 # build cache
 cd mcv_out && make
