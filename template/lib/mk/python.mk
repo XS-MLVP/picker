@@ -3,7 +3,7 @@ default:
 	@cp python/CMakeLists.txt ${TARGET}/CMakeLists.txt
 	@cp python/Makefile ${TARGET}/Makefile
 	@cp python/dut.i ${TARGET}/dut.i
-	@cp python/dut.py ${TARGET}/${TARGET}.py
+	@cp python/dut.py ${TARGET}/__init__.py
 	@cp -r /usr/local/share/mcv/python/xspcomm ${TARGET}/xspcomm
 	cd ${TARGET} && make && make clean
 

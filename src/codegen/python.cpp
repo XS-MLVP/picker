@@ -5,13 +5,11 @@ namespace mcv { namespace codegen {
 
     namespace py {
         static const std::string xdata_init_template =
-            "\t\tself.{{pin_func_name}} = xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}})\n";
-            // "\t\tself.{{pin_func_name}} = xsp.XPin(xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}}), self.event)\n";
+            "\t\tself.{{pin_func_name}} = xsp.XPin(xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}}), self.event)\n";
         static const std::string xdata_bindrw_template =
             "\t\tself.{{pin_func_name}}.BindDPIRW(DPIR{{pin_func_name}}, DPIW{{pin_func_name}})\n";
         static const std::string xport_add_template =
-            "\t\tself.port.Add(\"{{pin_func_name}}\", self.{{pin_func_name}})\n";
-            // "\t\tself.port.Add(self.{{pin_func_name}}.getXData())\n";
+            "\t\tself.port.Add(\"{{pin_func_name}}\", self.{{pin_func_name}}.xdata)\n";
         static const std::string swig_constantr_template =
             "\%constant {{read_func_type}} =  get_{{pin_func_name}};\n";
         static const std::string swig_constantw_template =
