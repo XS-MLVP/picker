@@ -15,7 +15,7 @@ fi
 # run cache codegen
 rm -rf mcv_out 
 # passthrough args
-mcv --sim vcs -f example/Cache/Cache.v -w cache.fsdb $@
+mcv --sim vcs -f example/Cache/Test.v -w cache.fsdb $@ example/Cache/Cache.v
 
 # build cache
 cd mcv_out && make

@@ -17,6 +17,11 @@ if(SIMULATOR STREQUAL "verilator")
 		set(TRACE_FLAG "")
 	endif()
 
+	# Readf filelist from file
+	file(READ ${CMAKE_CURRENT_SOURCE_DIR}/filelist.f FILELIST)
+	# set filelist to variable
+	string(REGEX REPLACE "\n" ";" FILELIST "${FILELIST}")
+
 	set(VERILATE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/DPI${ModuleName})
 	include_directories(${VERILATE_DIRECTORY})
 	add_library(DPI${ModuleName} STATIC)
@@ -25,6 +30,9 @@ if(SIMULATOR STREQUAL "verilator")
 		SOURCES
 		${ModuleName}_top.sv
 		${ModuleName}.v
+		${FILELIST}
+		
+		
 		TOP_MODULE
 		${ModuleName}_top
 		PREFIX

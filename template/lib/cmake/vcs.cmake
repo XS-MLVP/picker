@@ -26,7 +26,7 @@ if(SIMULATOR STREQUAL "vcs")
 			"${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,stack-size=1048576")
 
 	# Copy all source files to build directory
-	file(GLOB_RECURSE SOURCES "*.sv" "*.v")
+	file(GLOB_RECURSE SOURCES "*.sv" "*.v" "*.f")
 	file(COPY ${SOURCES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 	# VCS compile
@@ -34,7 +34,7 @@ if(SIMULATOR STREQUAL "vcs")
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		COMMAND
 			vcs -e VcsMain -slave ${VCS_TRACE} -sverilog -lca -l compile.log -full64
-			-timescale=1ns/1ps ${ModuleName}_top.sv ${ModuleName}.v -o
+			-timescale=1ns/1ps ${ModuleName}_top.sv ${ModuleName}.v -f filelist.f -o
 			libDPI${ModuleName}.so +modelsave -LDFLAGS "-shared" ${SIMULATOR_FLAGS}
 			-P ${VERDI_HOME}/share/PLI/VCS/LINUX64/novas.tab
 			${VERDI_HOME}/share/PLI/VCS/LINUX64/pli.a)

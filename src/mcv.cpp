@@ -6,12 +6,18 @@
 int main(int argc, char **argv)
 {
     cxxopts::Options options(
-        "XDut Gen", "XDut Generate. \nConvert DUT(*.v) to C++ DUT libs.\n");
+        "XDut Gen", "XDut Generate. \nConvert DUT(*.v/*.sv) to C++ DUT libs. Notice that [file] option allow only one file.\n");
 
     // Basic Options
-    options.add_options()("f,file",
+
+    options.add_options()("file",
                           "DUT .v/.sv source file, contain the top module",
                           cxxopts::value<std::string>());
+    options.add_options()(
+        "f,filelist",
+        "DUT .v/.sv source files, contain the top module, split by comma.\n"
+        "Or use '*.txt' file  with one RTL file path per line to specify the file list",
+        cxxopts::value<std::string>()->default_value(""));
     options.add_options()(
         "sim", "vcs or verilator as simulator, default is verilator",
         cxxopts::value<std::string>()->default_value("verilator"));
@@ -40,7 +46,7 @@ int main(int argc, char **argv)
 
     // Extra Internal Signal Options
     options.add_options()(
-        "i,internal",
+        "internal",
         "Exported internal signal config file, default is empty, means no internal pin",
         cxxopts::value<std::string>()->default_value(""));
 
@@ -56,17 +62,21 @@ int main(int argc, char **argv)
     // Expert Options
     options.add_options()(
         "V,vflag",
-        "User defined simulator compile args, split by comma. Eg: -v -x-assign=fast,-Wall,--trace || -C vcs,-cc -i filelist.txt ",
+        "User defined simulator compile args, passthrough. Eg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'",
         cxxopts::value<std::string>()->default_value(""));
     options.add_options()(
         "C,cflag",
-        "User defined gcc/clang compile command, split by comma. Eg:-O3,-std=c++17,-I./include ||-O3,-std=c++17,-I./include",
+        "User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'",
         cxxopts::value<std::string>()->default_value(""));
 
     // Help Options
     options.add_options()("v,verbose", "Verbose mode");
     options.add_options()("e,example", "Build example project, default is OFF");
     options.add_options()("h,help", "Print usage");
+
+    // Parse positional arguments
+    options.parse_positional({"file"});
+    options.positional_help("[file]");
 
     cxxopts::ParseResult opts = options.parse(argc, argv);
     if (opts.count("help") || !opts.count("file")) {

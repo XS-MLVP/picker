@@ -49,15 +49,17 @@ cd mcv
 mcv命令参数说明如下：
 
 ```
-
 XDut Generate. 
-Convert DUT(*.v) to C++ DUT libs.
+Convert DUT(*.v/*.sv) to C++ DUT libs. Notice that [file] option allow only one file.
 
 Usage:
-  XDut Gen [OPTION...]
+  XDut Gen [OPTION...] [file]
 
-  -f, --file arg                DUT .v/.sv source file, contain the top 
-                                module
+  -f, --filelist arg            DUT .v/.sv source files, contain the top 
+                                module, split by comma.
+                                Or use '*.txt' file  with one RTL file path 
+                                per line to specify the file list (default: 
+                                "")
       --sim arg                 vcs or verilator as simulator, default is 
                                 verilator (default: verilator)
   -l, --language arg            Build example project, default is cpp, 
@@ -75,7 +77,7 @@ Usage:
                                 example, -T top, will generate UTtop.cpp 
                                 and UTtop.hpp with UTtop class (default: 
                                 "")
-  -i, --internal arg            Exported internal signal config file, 
+      --internal arg            Exported internal signal config file, 
                                 default is empty, means no internal pin 
                                 (default: "")
   -F, --frequency arg           Set the frequency of the **only VCS** DUT, 
@@ -83,14 +85,13 @@ Usage:
                                 unit (default: 100MHz)
   -w, --wave_file_name arg      Wave file name, emtpy mean don't dump wave 
                                 (default: "")
-  -V, --vflag arg               User defined simulator compile args, split 
-                                by comma. Eg: -v 
-                                -x-assign=fast,-Wall,--trace || -C vcs,-cc 
-                                -i filelist.txt  (default: "")
+  -V, --vflag arg               User defined simulator compile args, 
+                                passthrough. Eg: '-v -x-assign=fast -Wall 
+                                --trace' || '-C vcs -cc -f filelist.f' 
+                                (default: "")
   -C, --cflag arg               User defined gcc/clang compile command, 
-                                split by comma. 
-                                Eg:-O3,-std=c++17,-I./include 
-                                ||-O3,-std=c++17,-I./include (default: "")
+                                passthrough. Eg:'-O3 -std=c++17 
+                                -I./include' (default: "")
   -v, --verbose                 Verbose mode
   -e, --example                 Build example project, default is OFF
   -h, --help                    Print usage

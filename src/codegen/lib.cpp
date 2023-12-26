@@ -27,6 +27,39 @@ namespace mcv { namespace codegen {
         }
     }
 
+    void gen_filelist(const std::string &ifilelist, std::string &ofilelist)
+    {
+        std::vector<std::string> path_list;
+        if (ifilelist.ends_with(".txt")) { // read from file
+            std::ifstream ifs(ifilelist);
+            std::string line;
+            while (std::getline(ifs, line)) { path_list.push_back(line); }
+        } else { // split by comma
+            std::string line;
+            std::stringstream ss(ifilelist);
+            while (std::getline(ss, line, ',')) { path_list.push_back(line); }
+        }
+        for (auto &path : path_list) {
+            if (path.ends_with(".sv") || path.ends_with(".v")) { // single file
+                path = std::filesystem::absolute(path).string();
+                ofilelist += path + "\n";
+            } else if (path.ends_with("/")) { // directory
+                std::filesystem::recursive_directory_iterator iter(path);
+                for (const auto &entry : iter) {
+                    if (entry.is_regular_file()) {
+                        std::string filename = entry.path().filename().string();
+                        if (filename.ends_with(".sv")
+                            || filename.ends_with(".v")) {
+                            ofilelist += entry.path().string() + "\n";
+                        }
+                    }
+                }
+            } else {
+                FATAL("Unsupported file type: %s\n", path.c_str());
+            }
+        }
+    }
+
     void get_clock_period(std::string &vcs_clock_period_h,
                           std::string &vcs_clock_period_l,
                           const std::string &frequency)
@@ -77,8 +110,9 @@ namespace mcv { namespace codegen {
                     wave_file_name  = opts["wave_file_name"].as<std::string>(),
                     simulator       = opts["sim"].as<std::string>(),
                     vflag           = opts["vflag"].as<std::string>(),
-                    cflag = opts["cflag"].as<std::string>(), vcs_clock_period_h,
-                    vcs_clock_period_l;
+                    cflag           = opts["cflag"].as<std::string>(),
+                    ifilelist = opts["filelist"].as<std::string>(), ofilelist,
+                    vcs_clock_period_h, vcs_clock_period_l;
 
         // Build environment
         inja::Environment env;
@@ -96,11 +130,16 @@ namespace mcv { namespace codegen {
         get_clock_period(vcs_clock_period_h, vcs_clock_period_l,
                          opts["frequency"].as<std::string>());
 
+        // Render lib filelist
+        gen_filelist(ifilelist, ofilelist);
+
         data["__VCS_CLOCK_PERIOD_HIGH__"] = vcs_clock_period_h;
         data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
-        data["__VERBOSE__"] = opts["verbose"].as<bool>() ? "ON" : "OFF";
-        data["__EXAMPLE__"] = opts["example"].as<bool>() ? "ON" : "OFF";
+        data["__VERBOSE__"]         = opts["verbose"].as<bool>() ? "ON" : "OFF";
+        data["__EXAMPLE__"]         = opts["example"].as<bool>() ? "ON" : "OFF";
         data["__TARGET_LANGUAGE__"] = opts["language"].as<std::string>();
+        data["__FILELIST__"]        = ofilelist;
+
         // Render lib files
         recursive_render(src_dir, dst_dir, data, env);
 
