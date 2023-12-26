@@ -5,7 +5,10 @@ project(${ModuleName} VERSION 1.0)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # enable coroutines
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines -ftls-model=global-dynamic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines -ftls-model=global-dynamic $ENV{CFLAGS}")
+set(SIMULATOR_FLAGS "$ENV{SIMULATOR_FLAGS}")
+set(CFLAGS "$ENV{CFLAGS}")
+
 include(verilator)
 include(vcs)
 

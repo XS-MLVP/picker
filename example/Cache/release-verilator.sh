@@ -15,7 +15,7 @@ fi
 # run cache codegen
 rm -rf mcv_out
 # mcv -f example/Cache/Cache.v -s ./template -t ./temp -S Cache -T Cache -w cache.fst --sim verilator
-mcv -f example/Cache/Test.v -w cache.fst --sim verilator $@ example/Cache/Cache.v
+mcv example/Cache/Cache.v -f example/Cache/Test.v -w cache.fst --sim verilator $@ -C '-fPIC -O3' -V '--vpi'
 
 # build cache
 cd mcv_out && make

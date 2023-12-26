@@ -7,11 +7,14 @@ export TARGET := UT_{{__TOP_MODULE_NAME__}}
 export VERBOSE := {{__VERBOSE__}}
 export EXAMPLE := {{__EXAMPLE__}}
 export TLANG := {{__TARGET_LANGUAGE__}}
+export SIMULATOR_FLAGS := {{__VFLAG__}}
+export CFLAGS := {{__CFLAG__}}
 
 all: release 
 
 compile:
-	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT)
+	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) \
+		-DSIMULATOR_FLAGS=$(SIMULATOR_FLAGS) -DCFLAGS=$(CFLAGS)
 	cmake --build build --config Debug --parallel `nproc`
 
 release: compile

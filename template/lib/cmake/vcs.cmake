@@ -29,6 +29,15 @@ if(SIMULATOR STREQUAL "vcs")
 	file(GLOB_RECURSE SOURCES "*.sv" "*.v" "*.f")
 	file(COPY ${SOURCES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+	# CFLAGS Detect IF CFLAGS is not empty, add -cflags to VCS compile
+	separate_arguments(CFLAGS)
+	if(NOT "${CFLAGS}" STREQUAL "")
+		foreach(CFLAG ${CFLAGS})
+			set(SIMULATOR_FLAGS "${SIMULATOR_FLAGS} -cflags '${CFLAG}'")
+		endforeach()
+		message(STATUS "VCS CFLAGS: ${SIMULATOR_FLAGS}")
+	endif()
+
 	# VCS compile
 	execute_process(
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
@@ -42,19 +51,20 @@ if(SIMULATOR STREQUAL "vcs")
 	# Add VCS link options and libraries
 	add_library(vcs_tls OBJECT IMPORTED)
 	set_target_properties(vcs_tls PROPERTIES IMPORTED_OBJECTS
-																						${VCS_HOME}/linux64/lib/vcs_tls.o)
+																					 ${VCS_HOME}/linux64/lib/vcs_tls.o)
 	add_library(vcs_save_restore OBJECT IMPORTED)
 	set_target_properties(
-		vcs_save_restore
-		PROPERTIES IMPORTED_OBJECTS ${VCS_HOME}/linux64/lib/vcs_save_restore.o)
+		vcs_save_restore PROPERTIES IMPORTED_OBJECTS
+																${VCS_HOME}/linux64/lib/vcs_save_restore.o)
 
 	link_directories(${CMAKE_CURRENT_SOURCE_DIR})
 	add_library(DPI${ModuleName} SHARED IMPORTED)
 	set_target_properties(DPI${ModuleName} PROPERTIES IMPORTED_LOCATION
 																										libDPI${ModuleName}.so)
-    include_directories(${CMAKE_CURRENT_BINARY_DIR})
+	include_directories(${CMAKE_CURRENT_BINARY_DIR})
 	add_library(${ModuleName} SHARED dut_base)
-	target_link_libraries(${ModuleName} PRIVATE DPI${ModuleName} vcs_tls vcs_save_restore)
+	target_link_libraries(${ModuleName} PRIVATE DPI${ModuleName} vcs_tls
+																							vcs_save_restore)
 	target_link_options(${ModuleName} PRIVATE -Wl,-rpath,./)
 
 	# Copy libDPI${ModuleName}.so.daidir directory to build directory
@@ -65,9 +75,7 @@ if(SIMULATOR STREQUAL "vcs")
 			${CMAKE_COMMAND} -E copy_directory
 			${CMAKE_CURRENT_BINARY_DIR}/libDPI${ModuleName}.so.daidir
 			${CMAKE_BINARY_DIR}/UT_${ModuleName}/libDPI${ModuleName}.so.daidir
-		COMMAND 
-			${CMAKE_COMMAND} -E copy
-			${CMAKE_CURRENT_BINARY_DIR}/vc_hdrs.h
-			${CMAKE_BINARY_DIR}/UT_${ModuleName}/UT_${ModuleName}_dpi.hpp)
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/vc_hdrs.h
+						${CMAKE_BINARY_DIR}/UT_${ModuleName}/UT_${ModuleName}_dpi.hpp)
 
 endif()

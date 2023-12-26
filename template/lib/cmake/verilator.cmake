@@ -31,8 +31,6 @@ if(SIMULATOR STREQUAL "verilator")
 		${ModuleName}_top.sv
 		${ModuleName}.v
 		${FILELIST}
-		
-		
 		TOP_MODULE
 		${ModuleName}_top
 		PREFIX
@@ -44,8 +42,8 @@ if(SIMULATOR STREQUAL "verilator")
 		${TRACE_FLAG}
 		OPT_FAST
 		VERILATOR_ARGS
-		-Wno-fatal
-		-CFLAGS "-fPIC")
+		-Wno-fatal ${SIMULATOR_FLAGS}
+		-CFLAGS "-fPIC ${CFLAGS}")
 	message(STATUS "Verilator generated files in ${VERILATE_DIRECTORY}")
 	add_library(dut_base STATIC dut_base.cpp)
 	add_dependencies(dut_base DPI${ModuleName})
