@@ -21,6 +21,12 @@ if(SIMULATOR STREQUAL "verilator")
 	file(READ ${CMAKE_CURRENT_SOURCE_DIR}/filelist.f FILELIST)
 	# set filelist to variable
 	string(REGEX REPLACE "\n" ";" FILELIST "${FILELIST}")
+	# set coverage flags
+	if( ${COVERAGE} STREQUAL "ON")
+		set(COVERAGE_FLAG "COVERAGE")
+	else()
+		set(COVERAGE_FLAG "")
+	endif()
 
 	set(VERILATE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/DPI${ModuleName})
 	include_directories(${VERILATE_DIRECTORY})
@@ -39,6 +45,7 @@ if(SIMULATOR STREQUAL "verilator")
 		${CMAKE_CURRENT_SOURCE_DIR}
 		DIRECTORY
 		${VERILATE_DIRECTORY}
+		${COVERAGE_FLAG}
 		${TRACE_FLAG}
 		OPT_FAST
 		VERILATOR_ARGS

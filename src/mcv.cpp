@@ -58,6 +58,8 @@ int main(int argc, char **argv)
     options.add_options()("w,wave_file_name",
                           "Wave file name, emtpy mean don't dump wave",
                           cxxopts::value<std::string>()->default_value(""));
+    options.add_options()("c,coverage",
+                            "Enable coverage, default is not selected as OFF");
 
     // Expert Options
     options.add_options()(

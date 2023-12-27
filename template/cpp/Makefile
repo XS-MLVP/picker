@@ -8,4 +8,4 @@ compile:
 	cmake --build build --config Release --parallel `nproc`
 
 clean: 
-	rm -rf *.fst *.vcd *.fsdb *.log *.key
+	rm -rf *.fst *.vcd *.fsdb *.log *.key *.dat

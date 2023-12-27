@@ -9,12 +9,13 @@ export EXAMPLE := {{__EXAMPLE__}}
 export TLANG := {{__TARGET_LANGUAGE__}}
 export SIMULATOR_FLAGS := {{__VFLAG__}}
 export CFLAGS := {{__CFLAG__}}
+export COVERAGE := {{__COVERAGE__}}
 
 all: release 
 
 compile:
 	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) \
-		-DSIMULATOR_FLAGS=$(SIMULATOR_FLAGS) -DCFLAGS=$(CFLAGS)
+		-DSIMULATOR_FLAGS=$(SIMULATOR_FLAGS) -DCFLAGS=$(CFLAGS) -DCOVERAGE=$(COVERAGE)
 	cmake --build build --config Debug --parallel `nproc`
 
 release: compile
@@ -27,6 +28,7 @@ ifneq ($(VERBOSE), OFF)
 else
 # remove all files except UT_*
 	rm -rf $(shell ls |grep -v "UT_")
+	rm -rf ${TARGET}.cpp
 endif
 
 clean: 

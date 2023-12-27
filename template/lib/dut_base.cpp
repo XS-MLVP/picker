@@ -237,6 +237,7 @@ int DutVerilatorBase::finalize()
 {
     // finalize Verilator context
     if (this->top != nullptr) {
+        ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->coveragep()->write("V{{__TOP_MODULE_NAME__}}_coverage.dat");
         ((V{{__TOP_MODULE_NAME__}} *)(this->top))->final();
         delete (V{{__TOP_MODULE_NAME__}} *)(this->top);
         this->top = nullptr;
