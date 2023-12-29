@@ -1,0 +1,60 @@
+#include "UT_RandomGenerator.hpp"
+
+int64_t random_int64()
+{
+    static std::random_device rd;
+    static std::mt19937_64 generator(rd());
+    static std::uniform_int_distribution<int64_t> distribution(INT64_MIN,
+                                                               INT64_MAX);
+    return distribution(generator);
+}
+
+int main()
+{
+#if defined(USE_VCS)
+    UTRandomGenerator *dut = new UTRandomGenerator("libDPIAdder.so");
+#elif defined(USE_VERILATOR)
+    UTRandomGenerator *dut = new UTRandomGenerator();
+#endif
+    unsigned short seed = random_int64() & 0xffff;
+    printf("seed = 0x%x\n", seed);
+    dut->initClock(dut->clk);
+    dut->xclk.Step(10);
+    dut->reset = 1;
+    dut->seed = seed;
+    dut->xclk.Step(1);
+    dut->reset = 0;
+    dut->xclk.Step(1);
+    printf("Initialized UTRandomGenerator\n");
+
+    struct output_t {
+        uint64_t cout;
+    };
+
+    for (int c = 0; c < 114514; c++) {
+        
+        output_t o_dut, o_ref;
+
+        auto dut_cal = [&]() {
+            dut->xclk.Step(1);
+            o_dut.cout = (unsigned short)dut->random_number;
+        };
+
+        // as lfsr
+        auto ref_cal = [&]() { 
+            seed = (seed << 1) | ((seed >> 15) ^ (seed >> 14) & 1);
+            o_ref.cout = seed;
+        };
+
+        dut_cal();
+        ref_cal();
+        printf("[cycle %llu] ", dut->xclk.clk);
+        printf("DUT: cout=0x%x , ", o_dut.cout);
+        printf("REF: cout=0x%x\n", o_ref.cout);
+        Assert(o_dut.cout == o_ref.cout, "sum mismatch");
+    }
+
+    delete dut;
+    printf("Test Passed, destory UTRandomGenerator\n");
+    return 0;
+}

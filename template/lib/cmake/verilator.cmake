@@ -24,6 +24,7 @@ if(SIMULATOR STREQUAL "verilator")
 	# set coverage flags
 	if( ${COVERAGE} STREQUAL "ON")
 		set(COVERAGE_FLAG "COVERAGE")
+		add_definitions(-DVL_COVERAGE)
 	else()
 		set(COVERAGE_FLAG "")
 	endif()
