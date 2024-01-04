@@ -1,6 +1,14 @@
 
-from . import xspcomm as xsp
-from .libUT_{{__TOP_MODULE_NAME__}} import *
+if __package__ or "." in __name__:
+	from . import xspcomm as xsp
+else:
+	import xspcomm as xsp
+
+if __package__ or "." in __name__:
+	from .libUT_{{__TOP_MODULE_NAME__}} import *
+else:
+	from libUT_{{__TOP_MODULE_NAME__}} import *
+
 
 class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 
@@ -37,3 +45,7 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 
 	async def runstep(self,i: int):
 		return self.xclock.RunSetp(i)
+
+if __name__=="__main__":
+	dut=DUT{{__TOP_MODULE_NAME__}}("libDPI{{__TOP_MODULE_NAME__}}.so")
+	dut.Step(1)
