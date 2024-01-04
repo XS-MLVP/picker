@@ -17,4 +17,4 @@ install: build
 	cd build && make install
 
 clean:
-	rm -rf temp build
+	sudo rm -rf temp build
