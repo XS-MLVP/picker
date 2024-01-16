@@ -1,5 +1,5 @@
 
-#include <mcv/mcv.hpp>
+#include <picker/picker.hpp>
 
 int main(int argc, char **argv)
 {
@@ -8,6 +8,6 @@ int main(int argc, char **argv)
         {"mode_name","test_name"},
         {"body","<this is body>"},
     };
-    MESSAGE("render result:\n%s", mcv::template_rander("template/python/pybind11.cpp", ctx).c_str());
+    MESSAGE("render result:\n%s", picker::template_rander("template/python/pybind11.cpp", ctx).c_str());
     return 0;
 }

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <filesystem>
-#include "mcv.hpp"
+#include "picker.hpp"
 
 int main(int argc, char **argv)
 {
@@ -28,11 +28,11 @@ int main(int argc, char **argv)
 
     options.add_options()(
         "s,source_dir",
-        "Template Files Dir, default is ${mcv_install_path}/../mcv/template",
-        cxxopts::value<std::string>()->default_value(mcv::get_template_path()));
+        "Template Files Dir, default is ${picker_install_path}/../picker/template",
+        cxxopts::value<std::string>()->default_value(picker::get_template_path()));
     options.add_options()(
-        "t,target_dir", "Render files to target dir, default is ./mcv_out",
-        cxxopts::value<std::string>()->default_value("./mcv_out"));
+        "t,target_dir", "Render files to target dir, default is ./picker_out",
+        cxxopts::value<std::string>()->default_value("./picker_out"));
 
     // Extra Basic Options
     options.add_options()(
@@ -87,15 +87,15 @@ int main(int argc, char **argv)
     }
 
     nlohmann::json sync_opts;
-    std::vector<mcv::sv_signal_define> sv_pin_result, internal_sginal_result;
-    mcv::parser::sv(opts, sv_pin_result, sync_opts);
-    mcv::parser::internal(opts, internal_sginal_result, sync_opts);
+    std::vector<picker::sv_signal_define> sv_pin_result, internal_sginal_result;
+    picker::parser::sv(opts, sv_pin_result, sync_opts);
+    picker::parser::internal(opts, internal_sginal_result, sync_opts);
 
-    // mcv::codegen::render(opts, sync_opts, sv_pin_result,
+    // picker::codegen::render(opts, sync_opts, sv_pin_result,
     //                      internal_sginal_result);
-    mcv::codegen::lib(opts, sync_opts, sv_pin_result, internal_sginal_result);
-    mcv::codegen::cpp(opts, sync_opts, sv_pin_result, internal_sginal_result);
-    mcv::codegen::python(opts, sync_opts, sv_pin_result,
+    picker::codegen::lib(opts, sync_opts, sv_pin_result, internal_sginal_result);
+    picker::codegen::cpp(opts, sync_opts, sv_pin_result, internal_sginal_result);
+    picker::codegen::python(opts, sync_opts, sv_pin_result,
                          internal_sginal_result);
     return 0;
 }

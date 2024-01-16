@@ -1,10 +1,10 @@
 #pragma once
 
 #include <bits/stdc++.h>
-#include "mcv.hpp"
+#include "picker.hpp"
 #include "parser/sv.hpp"
 
-namespace mcv { namespace codegen {
+namespace picker { namespace codegen {
 
     /// @brief render all files in src_dir to dst_dir recursively
     /// @param src_dir
@@ -20,4 +20,4 @@ namespace mcv { namespace codegen {
     void lib(cxxopts::ParseResult opts, nlohmann::json &sync_opts,
              const std::vector<sv_signal_define> &external_pin,
              const std::vector<sv_signal_define> &internal_pin);
-}} // namespace mcv::codegen
+}} // namespace picker::codegen

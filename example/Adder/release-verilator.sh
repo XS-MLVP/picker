@@ -10,8 +10,8 @@ then
     exit
 fi
 
-rm -rf mcv_out_adder/
-mcv example/Adder/Adder.v -w Adder.fst -S Adder $@ -t mcv_out_adder
-cp example/Adder/example.cpp mcv_out_adder/cpp/
+rm -rf picker_out_adder/
+picker example/Adder/Adder.v -w Adder.fst -S Adder $@ -t picker_out_adder
+cp example/Adder/example.cpp picker_out_adder/cpp/
 
-cd mcv_out_adder && make
+cd picker_out_adder && make

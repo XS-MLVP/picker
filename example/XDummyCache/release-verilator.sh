@@ -12,7 +12,7 @@ then
     exit
 fi
 
-# rebuild mcv if with parameter --rebuild
+# rebuild picker if with parameter --rebuild
 if [ "$1" == "--rebuild" ]; then
     rm -rf build
     cmake . -Bbuild
@@ -22,7 +22,7 @@ fi
 
 # run cache codegen
 rm -rf temp 
-./build/bin/mcv -f example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fst --sim verilator
+./build/bin/picker -f example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fst --sim verilator
 
 # build cache
 cd temp && make

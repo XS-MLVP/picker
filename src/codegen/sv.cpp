@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include "codegen/sv.hpp"
 
-namespace mcv { namespace codegen {
+namespace picker { namespace codegen {
 
     namespace sv {
         static const std::string pin_connect_template =
@@ -172,4 +172,4 @@ namespace mcv { namespace codegen {
         global_render_data["__DPI_FUNCTION_IMPLEMENT__"] = dpi_impl;
     }
 
-}} // namespace mcv::codegen
+}} // namespace picker::codegen

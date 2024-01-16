@@ -1,6 +1,6 @@
 include_directories(../include)
 set(source_file 
-     mcv.cpp
+     picker.cpp
 )
 
 add_subdirectory(./codegen)

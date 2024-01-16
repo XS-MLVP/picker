@@ -1,7 +1,7 @@
-# cmake for mcv
+# cmake for picker
 
 cmake_minimum_required(VERSION 3.11)
-project(mcv VERSION 0.0.1)
+project(picker VERSION 0.0.1)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -48,8 +48,8 @@ set(CMAKE_INSTALL_PREFIX /usr/local)
 set(CMAKE_INSTALL_LOCAL_ONLY TRUE)
 
 install(
-    TARGETS mcv DESTINATION bin
+    TARGETS picker DESTINATION bin
 )
 install(
-    DIRECTORY template DESTINATION share/mcv
+    DIRECTORY template DESTINATION share/picker
 )

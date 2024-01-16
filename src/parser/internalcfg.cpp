@@ -1,6 +1,6 @@
 #include "parser/internalcfg.hpp"
 
-namespace mcv { namespace parser {
+namespace picker { namespace parser {
 
     void recursive_parse(YAML::Node node,
                          std::vector<sv_signal_define> &pin_list,
@@ -68,4 +68,4 @@ namespace mcv { namespace parser {
         return 0;
     };
 
-}} // namespace mcv::parser
+}} // namespace picker::parser

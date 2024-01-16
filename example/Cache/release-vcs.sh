@@ -13,10 +13,10 @@ then
 fi
 
 # run cache codegen
-rm -rf mcv_out 
+rm -rf picker_out 
 # passthrough args
-mcv example/Cache/Cache.v  --sim vcs -f example/Cache/Test.v -w cache.fsdb $@   -C '-fPIC -O3' -V '--vpi'
+picker example/Cache/Cache.v  --sim vcs -f example/Cache/Test.v -w cache.fsdb $@   -C '-fPIC -O3' -V '--vpi'
 
 # build cache
-cd mcv_out && make
+cd picker_out && make
 #echo "build cache done, all you need has been generated in temp/release"

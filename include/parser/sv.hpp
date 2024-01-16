@@ -1,9 +1,9 @@
 #pragma once
 
 #include <bits/stdc++.h>
-#include "mcv.hpp"
+#include "picker.hpp"
 
-namespace mcv {
+namespace picker {
 typedef struct sv_signal_define {
     std::string logic_pin;
     std::string logic_pin_type;
@@ -15,4 +15,4 @@ namespace parser {
            std::vector<sv_signal_define> &external_pin,
            nlohmann::json &sync_opts);
 };
-} // namespace mcv
+} // namespace picker

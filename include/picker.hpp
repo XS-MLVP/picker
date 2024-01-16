@@ -17,7 +17,7 @@
 #include "parser/sv.hpp"
 #include "parser/internalcfg.hpp"
 
-namespace mcv {
+namespace picker {
 
 extern bool is_debug;
 #define OUTPUT(o, fmt, ...)                                                    \
@@ -355,7 +355,7 @@ inline std::string get_template_path()
     auto path = get_executable_path();
     path      = path.substr(0, path.find_last_of("/\\"));
     path      = path.substr(0, path.find_last_of("/\\"));
-    path      = path + "/share/mcv/template";
+    path      = path + "/share/picker/template";
     return path;
 }
-} // namespace mcv
+} // namespace picker

@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include "codegen/cpp.hpp"
 
-namespace mcv {
+namespace picker {
 
 std::string replace_all(std::string str, const std::string &from,
                         const std::string &to)
@@ -172,4 +172,4 @@ namespace codegen {
         recursive_render(src_dir, dst_dir, data, env);
     }
 } // namespace codegen
-} // namespace mcv
+} // namespace picker

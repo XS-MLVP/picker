@@ -10,8 +10,8 @@ then
     exit
 fi
 
-rm -rf mcv_out_rmg/
-mcv example/RandomGenerator/RandomGenerator.v -w RandomGenerator.fst -S RandomGenerator $@ -t mcv_out_rmg
-cp example/RandomGenerator/example.cpp mcv_out_rmg/cpp/
+rm -rf picker_out_rmg/
+picker example/RandomGenerator/RandomGenerator.v -w RandomGenerator.fst -S RandomGenerator $@ -t picker_out_rmg
+cp example/RandomGenerator/example.cpp picker_out_rmg/cpp/
 
-cd mcv_out_rmg && make
+cd picker_out_rmg && make

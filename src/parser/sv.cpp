@@ -1,4 +1,4 @@
-#include "mcv.hpp"
+#include "picker.hpp"
 #include "parser/sv.hpp"
 #include "parser/exprtk.hpp"
 
@@ -9,7 +9,7 @@
 
 #define param_res(var) parameter_var.count(var) ? parameter_var[var] : var
 
-namespace mcv { namespace parser {
+namespace picker { namespace parser {
 
     std::vector<sv_signal_define> sv_pin(std::string &filename,
                                          std::string &src_module_name)
@@ -173,4 +173,4 @@ namespace mcv { namespace parser {
             dst_module_name.length() == 0 ? src_module_name : dst_module_name;
         return 0;
     }
-}} // namespace mcv::parser
+}} // namespace picker::parser

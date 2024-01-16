@@ -12,14 +12,14 @@ then
     exit
 fi
 
-# build mcv
+# build picker
 rm -rf build
 cmake . -Bbuild
 cd build && make -j`nproc` && cd ../
 
 # run cache codegen
 rm -rf temp 
-./build/bin/mcv -f example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fsdb --sim vcs
+./build/bin/picker -f example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fsdb --sim vcs
 
 # build cache
 cd temp && make

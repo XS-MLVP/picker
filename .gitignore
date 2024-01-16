@@ -36,4 +36,4 @@ build/
 log/
 logs/
 temp/
-mcv_out*
+picker_out*

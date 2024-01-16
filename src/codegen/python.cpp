@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include "codegen/python.hpp"
 
-namespace mcv { namespace codegen {
+namespace picker { namespace codegen {
 
     namespace py {
         static const std::string xdata_init_template =
@@ -157,4 +157,4 @@ namespace mcv { namespace codegen {
         inja::Environment env;
         recursive_render(src_dir, dst_dir, data, env);
     }
-}} // namespace mcv::codegen
+}} // namespace picker::codegen

@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include "codegen/lib.hpp"
 
-namespace mcv { namespace codegen {
+namespace picker { namespace codegen {
 
     void recursive_render(std::string &src_dir, std::string &dst_dir,
                           nlohmann::json &data, inja::Environment &env)
@@ -166,4 +166,4 @@ namespace mcv { namespace codegen {
         MESSAGE("Generate DPI files successfully!");
     }
 
-}} // namespace mcv::codegen
+}} // namespace picker::codegen

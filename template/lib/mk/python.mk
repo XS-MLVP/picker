@@ -4,7 +4,7 @@ default:
 	@cp python/Makefile ${TARGET}/Makefile
 	@cp python/dut.i ${TARGET}/dut.i
 	@cp python/dut.py ${TARGET}/__init__.py
-	@cp -r /usr/local/share/mcv/python/xspcomm ${TARGET}/xspcomm
+	@cp -r /usr/local/share/picker/python/xspcomm ${TARGET}/xspcomm
 	cd ${TARGET} && make && make clean
 
 ifeq ($(VERBOSE), OFF)
