@@ -18,7 +18,7 @@ CHECK_CXX_COMPILER_FLAG("-std=c++20" COMPILER_SUPPORTS_CXX20)
 if(COMPILER_SUPPORTS_CXX20)
     set(CMAKE_CXX_STANDARD 20 PARENT_SCOPE)
 	set(CMAKE_CXX_STANDARD_REQUIRED ON PARENT_SCOPE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -std=c++20 -fcoroutines -ftls-model=global-dynamic" PARENT_SCOPE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fcoroutines -ftls-model=global-dynamic" PARENT_SCOPE)
 	add_definitions(-DENABLE_XCOROUTINE=true)
 	set(ENABLE_XCOROUTINE true PARENT_SCOPE)
 else()
@@ -32,6 +32,13 @@ endif()
 endfunction()
 
 init_xspcomm()
+
+# Non-root install
+set(NON_ROOT_INC_DIR "$ENV{HOME}/.local/include")
+if(EXISTS ${NON_ROOT_INC_DIR})
+	include_directories(${NON_ROOT_INC_DIR})
+    link_directories("$ENV{HOME}/.local/lib")
+endif()
 
 # SWIG Initialization
 set(CMAKE_VERBOSE_MAKEFILE ON)

@@ -38,6 +38,10 @@ function(XSPTarget)
 						 ${CMAKE_CURRENT_SOURCE_DIR}/libUT${RTLModuleName}.so)
 	add_executable(${ExecutableName} UT_${RTLModuleName}.cpp)
 	target_link_libraries(${ExecutableName} UT${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
-	target_link_options(${ExecutableName} PRIVATE -Wl,-rpath=./ -Wl,-rpath=/usr/local/lib ${CustomLinkOptions})
+	target_link_options(${ExecutableName} PRIVATE 
+		-Wl,-rpath=./ 
+		-Wl,-rpath=~/.local/lib
+		-Wl,-rpath=/usr/local/lib  
+		${CustomLinkOptions})
 
 endfunction()

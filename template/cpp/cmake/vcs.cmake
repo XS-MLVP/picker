@@ -70,8 +70,9 @@ function(XSPTarget)
 		PRIVATE
 		-L./
 		-L${VCS_HOME}/linux64/lib
-		-Wl,-rpath=./
-		-Wl,-rpath=/usr/local/lib
+		-Wl,-rpath=./ 
+		-Wl,-rpath=~/.local/lib
+		-Wl,-rpath=/usr/local/lib 
 		-Wl,-rpath=${VCS_HOME}/linux64/lib
 		-no-pie
 		-Wl,--no-as-needed
