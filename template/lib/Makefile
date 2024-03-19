@@ -27,7 +27,7 @@ ifneq ($(VERBOSE), OFF)
 	cp *.v *.sv ${TARGET}/
 else
 # remove all files except UT_*
-	rm -rf $(shell ls |grep -v "UT_")
+	rm -rf $(shell ls |grep -v "UT_" |grep -v "example.*")
 	rm -rf ${TARGET}.cpp
 endif
 

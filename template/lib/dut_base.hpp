@@ -87,4 +87,5 @@ public:
     DutUnifiedBase(char *filename, int argc, char **argv);
     DutUnifiedBase(std::initializer_list<const char *> args);
     ~DutUnifiedBase();
+    int finalize();
 };

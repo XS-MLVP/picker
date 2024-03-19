@@ -44,7 +44,6 @@ add_subdirectory(src)
 add_subdirectory(test)
 
 # install
-set(CMAKE_INSTALL_PREFIX /usr/local)
 set(CMAKE_INSTALL_LOCAL_ONLY TRUE)
 
 install(

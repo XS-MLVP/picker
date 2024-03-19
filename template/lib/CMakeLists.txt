@@ -21,6 +21,17 @@ endif()
 include(verilator)
 include(vcs)
 
+# Add CUSTOM_INCLUDE_FILES as target
+if(NOT "${EXTRA_INC}" STREQUAL "")
+	message(STATUS "Using dynamic library include: ${EXTRA_INC}")
+	separate_arguments(EXTRA_INC_LIST NATIVE_COMMAND ${EXTRA_INC})
+	file(COPY ${EXTRA_INC_LIST} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+	# set_target_properties(
+	# 	CUSTOM_INCLUDE_FILES
+	# 	PROPERTIES  	
+	# 	"${EXTRA_INC_LIST}")
+endif()
+
 set_target_properties(
 	${ModuleName}
 	PROPERTIES CXX_STANDARD 20
@@ -37,4 +48,6 @@ add_custom_command(
 					${CMAKE_BINARY_DIR}/UT_${ModuleName}
 	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:DPI${ModuleName}>
 					${CMAKE_BINARY_DIR}/UT_${ModuleName}
+	# COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:CUSTOM_INCLUDE_FILES>
+	# 				${CMAKE_BINARY_DIR}/UT_${ModuleName}
 	COMMENT "Copying ${ModuleName} to ${CMAKE_BINARY_DIR}/UT_${ModuleName}")

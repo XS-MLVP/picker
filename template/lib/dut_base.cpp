@@ -256,13 +256,18 @@ DutUnifiedBase::DutUnifiedBase(int argc, char **argv) : DutVerilatorBase(argc, a
 DutUnifiedBase::DutUnifiedBase(char *filename) : DutVerilatorBase(filename) {};
 DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv) : DutVerilatorBase(filename, argc, argv) {};
 DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args) : DutVerilatorBase(args) {};
-
+int DutUnifiedBase::finalize() {
+    return DutVerilatorBase::finalize();
+}
 #elif defined(USE_VCS)
 DutUnifiedBase::DutUnifiedBase() : DutVcsBase() {};
 DutUnifiedBase::DutUnifiedBase(int argc, char **argv) : DutVcsBase(argc, argv){};
 DutUnifiedBase::DutUnifiedBase(char *filename) : DutVcsBase(filename) {};
 DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv) : DutVcsBase(filename, argc, argv) {};
 DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args) : DutVcsBase(args) {};
+int DutUnifiedBase::finalize() {
+    return DutVcsBase::finalize();
+}
 #endif
 
 DutUnifiedBase::~DutUnifiedBase()

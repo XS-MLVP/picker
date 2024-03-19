@@ -12,6 +12,11 @@ fi
 
 rm -rf picker_out_adder/
 picker example/Adder/Adder.v -w Adder.fst -S Adder $@ -t picker_out_adder
-cp example/Adder/example.cpp picker_out_adder/cpp/
+# if python in $@, then it will generate python binding
+if [[ $@ == *"python"* ]]; then
+    cp example/Adder/example.py picker_out_adder/
+else
+    cp example/Adder/example.cpp picker_out_adder/cpp/
+fi
 
 cd picker_out_adder && make

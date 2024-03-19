@@ -28,6 +28,10 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 		# Add2Port
 {{__XPORT_ADD__}}
 
+	def __del__(self):
+		super().__del__()
+		self.finalize()
+
 	def init_clock(self,name:str):
 		self.xclock.Add(self.port[name])
 

@@ -12,6 +12,11 @@ fi
 
 rm -rf picker_out_rmg/
 picker example/RandomGenerator/RandomGenerator.v -w RandomGenerator.fst -S RandomGenerator $@ -t picker_out_rmg
-cp example/RandomGenerator/example.cpp picker_out_rmg/cpp/
+# if python in $@, then it will generate python binding
+if [[ $@ == *"python"* ]]; then
+    cp example/RandomGenerator/example.py picker_out_rmg/
+else
+    cp example/RandomGenerator/example.cpp picker_out_rmg/cpp/
+fi
 
 cd picker_out_rmg && make

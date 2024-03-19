@@ -1,5 +1,6 @@
 all: compile
 	python3 __init__.py
+	cd ../ && python3 example.py || true
 
 compile:
 	cmake . -Bbuild
