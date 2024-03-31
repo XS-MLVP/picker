@@ -31,4 +31,18 @@ else
 	rm -rf ${TARGET}.cpp
 endif
 
+coverage:
+ifeq ($(COVERAGE), ON)
+ifeq ($(SIMULATOR), verilator)
+	rm -rf coverage/
+	verilator_coverage -write-info coverage.info ./${TARGET}/V${PROJECT}_coverage.dat
+	genhtml coverage.info --output-directory coverage
+else
+# TODO: add vcs?
+	echo $(SIMULATOR) TBD	
+endif
+else
+	echo coverage is not on
+endif
+
 clean: 
