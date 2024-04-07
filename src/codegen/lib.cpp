@@ -27,7 +27,7 @@ namespace picker { namespace codegen {
         }
     }
 
-    void gen_filelist(const std::string &ifilelist, std::string &ofilelist)
+    void gen_filelist(const std::string &source_file, const std::string &ifilelist, std::string &ofilelist)
     {
         std::vector<std::string> path_list;
         if (ifilelist.ends_with(".txt")) { // read from file
@@ -40,6 +40,10 @@ namespace picker { namespace codegen {
             while (std::getline(ss, line, ',')) { path_list.push_back(line); }
         }
         for (auto &path : path_list) {
+            if (path.starts_with("#")) { continue; } // skip comment line
+            path.substr(0, path.find_first_of("#")); // remove comment part
+            if (path == source_file)  { continue; } // skip source file
+
             if (path.ends_with(".sv") || path.ends_with(".v")) { // single file
                 path = std::filesystem::absolute(path).string();
                 ofilelist += path + "\n";
@@ -131,7 +135,7 @@ namespace picker { namespace codegen {
                          opts["frequency"].as<std::string>());
 
         // Render lib filelist
-        gen_filelist(ifilelist, ofilelist);
+        gen_filelist(filename, ifilelist, ofilelist);
 
         data["__VCS_CLOCK_PERIOD_HIGH__"] = vcs_clock_period_h;
         data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
