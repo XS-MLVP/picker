@@ -1,7 +1,7 @@
 all: clean build
 
 init:
-	git submodule update --init --recursive
+	git clone https://github.com/XS-MLVP/xcomm.git dependence/xcomm
 	
 build:
 	@if ! command -v verible-verilog-format ; then \

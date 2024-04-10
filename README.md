@@ -1,6 +1,8 @@
-# Multi-language-based Chip Verification （picker）
+# Picker
 
-#### 介绍
+> A codegen tool for chip verification, which can convert RTL design to C++/Python DUT lib.
+
+## 介绍
 
 picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.v/.scala/.sv)进行封装，并使用其他编程语言暴露Pin-Level的操作，未来计划支持自动化的Transaction-Level原语生成。
 
@@ -20,40 +22,53 @@ picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.
 1. verilator
 2. synopsys vcs
 
-#### 使用方法
+# 使用方法
 
-1.安装
+### 依赖安装
 
-**源码安装**
-确保依赖 cmake(>=3.11)，gcc(支持c++20)，python3(>=3.8)，verilator(==4.218) 已经安装
+1.  [cmake](https://cmake.org/download/) ( >=3.11 )
+2.  [gcc](https://gcc.gnu.org/) ( 支持c++20,至少为10, **最好为11及以上** )
+3.  [python3](https://www.python.org/downloads/) ( >=3.8 )
+4.  [verilator](https://verilator.org/guide/latest/install.html#git-quick-install) ( **==4.218** )
+5.  [verible-verilog-format](https://github.com/chipsalliance/verible) ( >=0.0-3428-gcfcbb82b )
+6.  [swig](http://www.swig.org/) ( >=**4.2.0**, 目前为master分支， 仅在需要python支持时使用 )
 
+> 请注意，请确保`verible-verilog-format`等工具的路径已经添加到环境变量`$PATH`中，可以直接命令行调用。
+
+### 下载源码
+
+```bash
+git clone https://github.com/XS-MLVP/picker.git
+git clone https://github.com/XS-MLVP/xcomm.git
+cd picker/dependence
+rmdir xcomm/
+ln -s ../../xcomm xcomm
 ```
-# 下载源码
-git clone <picker_git_url> #例如：https://gitee.com/yaozhicheng/picker.git
 
-# 安装
-make
-sudo make install
-```
+### 构建并安装
 
-
-
-2.使用案例
-
-```
-# 测试 examples
+```bash
 cd picker
-./example/Cache/release-verilator.sh -l cpp -e -v 
+export BUILD_XSPCOMM_SWIG=python # 仅在需要python支持时使用
+make
+sudo -E make install
 ```
 
-picker命令参数说明如下：
+> 默认的安装的目标路径是 `/usr/local`， 二进制文件被置于 `/usr/local/bin`，模板文件被置于 `/usr/local/share/picker`。  
+> 安装时会自动安装 `xspcomm` 基础库，该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**
+> 同时如果开启了python支持，还会安装 `xspcomm` 的python包，位于 `/usr/local/share/picker/python/xspcomm/`。 
 
-```
+### 安装测试
+
+执行命令并检查输出：
+
+```bash
+➜  picker git:(master) picker
 XDut Generate. 
 Convert DUT(*.v/*.sv) to C++ DUT libs. Notice that [file] option allow only one file.
 
 Usage:
-  XDut Gen [OPTION...] [file]
+  XDut Gen [file] [OPTION...] 
 
   -f, --filelist arg            DUT .v/.sv source files, contain the top 
                                 module, split by comma.
@@ -85,6 +100,8 @@ Usage:
                                 unit (default: 100MHz)
   -w, --wave_file_name arg      Wave file name, emtpy mean don't dump wave 
                                 (default: "")
+  -c, --coverage                Enable coverage, default is not selected as 
+                                OFF
   -V, --vflag arg               User defined simulator compile args, 
                                 passthrough. Eg: '-v -x-assign=fast -Wall 
                                 --trace' || '-C vcs -cc -f filelist.f' 
@@ -95,5 +112,23 @@ Usage:
   -v, --verbose                 Verbose mode
   -e, --example                 Build example project, default is OFF
   -h, --help                    Print usage
-
 ```
+
+#### 参数解释
+
+* `[file]`: 必需。DUT 的 Verilog 或 SystemVerilog 源文件，包含顶层模块
+* `--filelist, -f`: 可选。DUT 的 Verilog 或 SystemVerilog 源文件，逗号分隔。也可以使用 `*.txt` 文件，每行指定一个 RTL 文件路径，来指定文件列表。
+* `--sim`: 可选。模拟器类型，可以是 vcs 或 verilator，默认是 verilator。
+* `--language, -l`: 可选。构建示例项目的语言，可以是 cpp 或 python，默认是 cpp。
+* `--source_dir, -s`: 可选。模板文件目录，默认是 ${mcv_install_path}/../mcv/template。
+* `--target_dir, -t`: 可选。渲染文件的目标目录，默认是 ./mcv_out。
+* `--source_module_name, -S`: 可选。在 DUT 的 Verilog 文件中选择模块，默认是  标记的文件中的最后一个模块。
+* `--target_module_name, -T`: 可选。设置目标 DUT 的模块名和文件名，默认与源相同。例如，-T top 将生成 UTtop.cpp 和 UTtop.hpp，并包含 UTtop 类。
+* `--internal`: 可选。导出的内部信号配置文件，默认为空，表示没有内部引脚。
+* `--frequency, -F`: 可选。设置 仅 VCS DUT 的频率，默认是 100MHz，可以使用 Hz、KHz、MHz、GHz 作为单位。
+* `--wave_file_name, -w`: 可选。波形文件名，为空表示不导出波形。
+* `--vflag, -V`: 可选。用户定义的模拟器编译参数，透传。例如：'-v -x-assign=fast -Wall --trace' 或 '-f filelist.f'。
+* `--cflag, -C`: 可选。用户定义的 gcc/clang 编译参数，透传。例如：'-O3 -std=c++17 -I./include'。
+* `--verbose, -v`: 可选。详细模式，保留生成的中间文件。
+* `--example, -e`: 可选。构建示例项目，默认是 OFF。
+* `--help, -h`: 可选。打印使用帮助。
