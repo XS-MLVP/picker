@@ -39,10 +39,8 @@ picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.
 
 ```bash
 git clone https://github.com/XS-MLVP/picker.git
-git clone https://github.com/XS-MLVP/xcomm.git
-cd picker/dependence
-rmdir xcomm/
-ln -s ../../xcomm xcomm
+cd picker
+make init
 ```
 
 ### 构建并安装
