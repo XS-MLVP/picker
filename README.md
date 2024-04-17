@@ -1,4 +1,4 @@
-# Picker
+# Picker: Pick your favorite language to verify your chip.
 
 > A codegen tool for chip verification, which can convert RTL design to C++/Python DUT lib.
 
