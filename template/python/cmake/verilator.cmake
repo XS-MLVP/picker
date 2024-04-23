@@ -1,6 +1,7 @@
 add_definitions(-DUSE_VERILATOR)
 
 function(XSPyTarget)
+	set(CMAKE_BUILD_RPATH $ORIGIN)
 
 	cmake_parse_arguments(
 		XSP
@@ -36,9 +37,9 @@ function(XSPyTarget)
 
 	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
 	target_link_options(UT_${PROJECT_NAME} PRIVATE 
-		-Wl,-rpath=./ 
 		-Wl,-rpath=~/.local/lib
 		-Wl,-rpath=/usr/local/lib 
 		${CustomLinkOptions})
+
 
 endfunction()
