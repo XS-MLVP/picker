@@ -10,10 +10,6 @@ macro(get_git_hash _git_hash)
 	endif()
 endmacro()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/version.hpp.in
-							 ${CMAKE_CURRENT_BINARY_DIR}/include/version.hpp)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
-
 # get git branch
 macro(get_git_branch _git_branch)
 	find_package(Git QUIET)
@@ -50,3 +46,4 @@ get_git_dirty(GIT_DIRTY)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/version.hpp.in
 							 ${CMAKE_CURRENT_BINARY_DIR}/include/version.hpp)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
