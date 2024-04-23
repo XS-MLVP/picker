@@ -6,7 +6,8 @@
 int main(int argc, char **argv)
 {
     cxxopts::Options options(
-        "XDut Gen", "XDut Generate. \nConvert DUT(*.v/*.sv) to C++ DUT libs. Notice that [file] option allow only one file.\n");
+        "XDut Gen",
+        "XDut Generate. \nConvert DUT(*.v/*.sv) to C++ DUT libs. Notice that [file] option allow only one file.\n");
 
     // Basic Options
 
@@ -29,7 +30,8 @@ int main(int argc, char **argv)
     options.add_options()(
         "s,source_dir",
         "Template Files Dir, default is ${picker_install_path}/../picker/template",
-        cxxopts::value<std::string>()->default_value(picker::get_template_path()));
+        cxxopts::value<std::string>()->default_value(
+            picker::get_template_path()));
     options.add_options()(
         "t,target_dir", "Render files to target dir, default is ./picker_out",
         cxxopts::value<std::string>()->default_value("./picker_out"));
@@ -59,7 +61,7 @@ int main(int argc, char **argv)
                           "Wave file name, emtpy mean don't dump wave",
                           cxxopts::value<std::string>()->default_value(""));
     options.add_options()("c,coverage",
-                            "Enable coverage, default is not selected as OFF");
+                          "Enable coverage, default is not selected as OFF");
 
     // Expert Options
     options.add_options()(
@@ -73,6 +75,7 @@ int main(int argc, char **argv)
 
     // Help Options
     options.add_options()("v,verbose", "Verbose mode");
+    options.add_options()("version", "Print version");
     options.add_options()("e,example", "Build example project, default is OFF");
     options.add_options()("h,help", "Print usage");
 
@@ -81,10 +84,20 @@ int main(int argc, char **argv)
     options.positional_help("[file]");
 
     cxxopts::ParseResult opts = options.parse(argc, argv);
+
+    // if need version, print version
+    if (opts.count("version")) {
+        MESSAGE("version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
+        exit(0);
+    }
+
+    // if need help or no file specified without version option, print help
     if (opts.count("help") || !opts.count("file")) {
         MESSAGE("%s", options.help().c_str());
         exit(0);
     }
+
+
 
     nlohmann::json sync_opts;
     std::vector<picker::sv_signal_define> sv_pin_result, internal_sginal_result;
@@ -93,9 +106,11 @@ int main(int argc, char **argv)
 
     // picker::codegen::render(opts, sync_opts, sv_pin_result,
     //                      internal_sginal_result);
-    picker::codegen::lib(opts, sync_opts, sv_pin_result, internal_sginal_result);
-    picker::codegen::cpp(opts, sync_opts, sv_pin_result, internal_sginal_result);
-    picker::codegen::python(opts, sync_opts, sv_pin_result,
+    picker::codegen::lib(opts, sync_opts, sv_pin_result,
                          internal_sginal_result);
+    picker::codegen::cpp(opts, sync_opts, sv_pin_result,
+                         internal_sginal_result);
+    picker::codegen::python(opts, sync_opts, sv_pin_result,
+                            internal_sginal_result);
     return 0;
 }

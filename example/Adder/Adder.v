@@ -1,7 +1,7 @@
 // A verilog 128-bit full adder with carry in and carry out
 
 module Adder #(
-    parameter WIDTH = 64
+    parameter WIDTH = 256
 ) (
     input [WIDTH-1:0] a,
     input [WIDTH-1:0] b,
