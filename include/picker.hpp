@@ -10,6 +10,7 @@
 #include "json.hpp"
 #include "inja.hpp"
 #include "cxxopts.hpp"
+#include "version.hpp"
 #include "codegen/cpp.hpp"
 #include "codegen/python.hpp"
 #include "codegen/sv.hpp"

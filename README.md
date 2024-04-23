@@ -40,7 +40,6 @@ picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.
 
 ```bash
 git clone https://github.com/XS-MLVP/picker.git
-cd picker
 make init
 ```
 
@@ -109,6 +108,7 @@ Usage:
                                 passthrough. Eg:'-O3 -std=c++17 
                                 -I./include' (default: "")
   -v, --verbose                 Verbose mode
+      --version                 Print version
   -e, --example                 Build example project, default is OFF
   -h, --help                    Print usage
 ```
