@@ -34,6 +34,7 @@ endfunction()
 init_xspcomm()
 
 # Non-root install
+set(CMAKE_BUILD_RPATH $ORIGIN)
 set(NON_ROOT_INC_DIR "$ENV{HOME}/.local/include")
 if(EXISTS ${NON_ROOT_INC_DIR})
 	include_directories(${NON_ROOT_INC_DIR})

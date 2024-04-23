@@ -70,7 +70,6 @@ function(XSPyTarget)
 		PRIVATE
 		-L./
 		-L${VCS_HOME}/linux64/lib
-		-Wl,-rpath=./
 		-Wl,-rpath=~/.local/lib
 		-Wl,-rpath=/usr/local/lib
 		-Wl,-rpath=${VCS_HOME}/linux64/lib
