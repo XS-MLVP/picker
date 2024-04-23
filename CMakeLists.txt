@@ -3,7 +3,8 @@
 cmake_minimum_required(VERSION 3.11)
 project(picker VERSION 0.1.0)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+unset(CMAKE_MODULE_PATH)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(Utility)
 
 set(CMAKE_CXX_STANDARD 20)
