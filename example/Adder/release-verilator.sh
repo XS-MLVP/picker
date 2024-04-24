@@ -11,7 +11,7 @@ then
 fi
 
 rm -rf picker_out_adder/
-picker example/Adder/Adder.v -w Adder.fst -S Adder $@ -t picker_out_adder
+picker example/Adder/Adder.v --autobuild=false -w Adder.fst -S Adder $@ -t picker_out_adder
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/Adder/example.py picker_out_adder/

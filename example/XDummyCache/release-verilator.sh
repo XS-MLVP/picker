@@ -22,7 +22,7 @@ fi
 
 # run cache codegen
 rm -rf temp 
-./build/bin/picker -f example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fst --sim verilator
+./build/bin/picker --autobuild=false -f example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fst --sim verilator
 
 # build cache
 cd temp && make

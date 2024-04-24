@@ -15,7 +15,7 @@ fi
 # run cache codegen
 rm -rf picker_out 
 # passthrough args
-picker example/Cache/Cache.v  --sim vcs -f example/Cache/Test.v -w cache.fsdb $@   -C '-fPIC -O3' -V '--vpi'
+picker --autobuild=false  example/Cache/Cache.v  --sim vcs -f example/Cache/Test.v -w cache.fsdb $@   -C '-fPIC -O3' -V '--vpi'
 
 # build cache
 cd picker_out && make
