@@ -77,6 +77,9 @@ int main(int argc, char **argv)
     options.add_options()("v,verbose", "Verbose mode");
     options.add_options()("version", "Print version");
     options.add_options()("e,example", "Build example project, default is OFF");
+    options.add_options()("autobuild",
+                          "Auto build the generated project, default is true",
+                          cxxopts::value<bool>()->default_value("true"));
     options.add_options()("h,help", "Print usage");
 
     // Parse positional arguments
@@ -87,7 +90,8 @@ int main(int argc, char **argv)
 
     // if need version, print version
     if (opts.count("version")) {
-        MESSAGE("version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
+        MESSAGE("version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH,
+                GIT_DIRTY);
         exit(0);
     }
 
@@ -96,8 +100,6 @@ int main(int argc, char **argv)
         MESSAGE("%s", options.help().c_str());
         exit(0);
     }
-
-
 
     nlohmann::json sync_opts;
     std::vector<picker::sv_signal_define> sv_pin_result, internal_sginal_result;
@@ -112,5 +114,12 @@ int main(int argc, char **argv)
                          internal_sginal_result);
     picker::codegen::python(opts, sync_opts, sv_pin_result,
                             internal_sginal_result);
+
+    // build the result with make
+    if (opts["autobuild"].as<bool>()) {
+        const std::string cmd =
+            "cd " + opts["t"].as<std::string>() + " && make";
+        system(cmd.c_str());
+    }
     return 0;
 }

@@ -11,7 +11,8 @@ then
 fi
 
 rm -rf picker_out_rmg/
-picker example/RandomGenerator/RandomGenerator.v -w RandomGenerator.fst -S RandomGenerator $@ -t picker_out_rmg
+
+picker example/RandomGenerator/RandomGenerator.v --autobuild=false -w RandomGenerator.fst -S RandomGenerator $@ -t picker_out_rmg 
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/RandomGenerator/example.py picker_out_rmg/
