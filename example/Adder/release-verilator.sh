@@ -14,7 +14,7 @@ rm -rf picker_out_adder/
 picker example/Adder/Adder.v --autobuild=false -w Adder.fst -S Adder $@ -t picker_out_adder
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
-    cp example/Adder/example.py picker_out_adder/
+    cp example/Adder/example.py picker_out_adder/python/
 else
     cp example/Adder/example.cpp picker_out_adder/cpp/
 fi

@@ -23,19 +23,23 @@ release: compile
 	@cp dut_base.hpp ${TARGET}/dut_base.hpp
 	@make -f mk/${TLANG}.mk
 
-ifneq ($(VERBOSE), OFF)
-	cp *.v *.sv ${TARGET}/
-else
-# remove all files except UT_*
-	rm -rf $(shell ls |grep -v "UT_" |grep -v "example.*")
+ifeq ($(VERBOSE), OFF) # if VERBOSE is OFF
+
+ifeq ($(COVERAGE), OFF)
+	rm Makefile
+	rm *.v *.sv
+endif
+
+	rm -rf build cmake cpp mk python CMakeLists.txt dut_base.*
 	rm -rf ${TARGET}.cpp
+	mv ${TARGET}/*.v ${TARGET}/*.sv . || true
 endif
 
 coverage:
 ifeq ($(COVERAGE), ON)
 ifeq ($(SIMULATOR), verilator)
 	rm -rf coverage/
-	verilator_coverage -write-info coverage.info ./${TARGET}/V${PROJECT}_coverage.dat
+	verilator_coverage -write-info coverage.info ./V${PROJECT}_coverage.dat
 	genhtml coverage.info --output-directory coverage
 else
 # TODO: add vcs?

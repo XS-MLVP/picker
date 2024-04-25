@@ -1,7 +1,7 @@
 all: compile
 	cp build/UT{{__TOP_MODULE_NAME__}}_example .
 	rm -rf build
-	./UT{{__TOP_MODULE_NAME__}}_example || true
+	cd ../ && ./UT_{{__TOP_MODULE_NAME__}}/UT{{__TOP_MODULE_NAME__}}_example || true
 
 compile:
 	cmake . -Bbuild
