@@ -48,7 +48,7 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 		return self.xclock.ACondition(fc_cheker)
 
 	async def runstep(self,i: int):
-		return self.xclock.RunSetp(i)
+		return self.xclock.RunStep(i)
 
 if __name__=="__main__":
 	dut=DUT{{__TOP_MODULE_NAME__}}("libDPI{{__TOP_MODULE_NAME__}}.so")
