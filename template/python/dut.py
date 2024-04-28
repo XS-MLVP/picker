@@ -38,16 +38,22 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 	def Step(self,i: int):
 		return self.xclock.Step(i)
 
+	def StepRis(self, call_back, args=(), kwargs={}):
+		return self.xclock.StepRis(call_back, args, kwargs)
+
+	def StepFal(self, call_back, args=(), kwargs={}):
+		return self.xclock.StepFal(call_back, args, kwargs)
+
 	def __getitem__(self, key):
 		return xsp.XPin(self.port[key], self.event)
 
 	async def astep(self,i: int):
-		return self.xclock.AStep(i)
+		return await self.xclock.AStep(i)
 
 	async def acondition(self,fc_cheker):
-		return self.xclock.ACondition(fc_cheker)
+		return await self.xclock.ACondition(fc_cheker)
 
-	async def runstep(self,i: int):
+	def runstep(self,i: int):
 		return self.xclock.RunStep(i)
 
 if __name__=="__main__":
