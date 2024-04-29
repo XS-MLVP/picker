@@ -14,7 +14,7 @@ class output_t:
         self.cout = 0
 
 def random_int():
-    return random.randint(-(2**255), 2**255 - 1) & ((1 << 255) - 1)
+    return random.randint(-(2**127), 2**127 - 1) & ((1 << 127) - 1)
 
 def as_uint(x, nbits):
     return x & ((1 << nbits) - 1)

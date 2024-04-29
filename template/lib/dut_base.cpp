@@ -123,6 +123,10 @@ int DutVcsBase::finalize()
 #include "verilated.h"
 #include "V{{__TOP_MODULE_NAME__}}.h"
 #include "V{{__TOP_MODULE_NAME__}}__Dpi.h"
+#if defined(VL_TRACE)
+#include "V{{__TOP_MODULE_NAME__}}___024root.h"
+#include "V{{__TOP_MODULE_NAME__}}__Syms.h"
+#endif
 
 DutVerilatorBase::DutVerilatorBase()
 {
@@ -238,7 +242,11 @@ int DutVerilatorBase::finalize()
     // finalize Verilator context
     if (this->top != nullptr) {
 #if defined(VL_COVERAGE)
-        ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->coveragep()->write("V{{__TOP_MODULE_NAME__}}_coverage.dat");
+        VerilatedContext *contextp = ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp();
+        if (this->coverage_file_path.size() > 0)
+            contextp->coveragep()->write(this->coverage_file_path.c_str());
+        else
+            contextp->coveragep()->write("V{{__TOP_MODULE_NAME__}}_coverage.dat");
 #endif
         ((V{{__TOP_MODULE_NAME__}} *)(this->top))->final();
         delete (V{{__TOP_MODULE_NAME__}} *)(this->top);
@@ -246,6 +254,28 @@ int DutVerilatorBase::finalize()
     }
     return 0;
 };
+
+void DutVerilatorBase::set_waveform(const char *filename)
+{
+#if defined(VL_TRACE)
+    ((VAdder *)(this->top))->contextp()->dumpfile(filename);
+    ((VAdder *)this->top)->rootp->vlSymsp->_traceDumpOpen();
+#elif
+    std::cerr << "Verilator waveform is not enabled";
+    exit(-1);
+#endif
+};
+
+void DutVerilatorBase::set_coverage(const char *filename)
+{
+#if defined(VL_COVERAGE)
+    this->coverage_file_path = filename;
+#else
+    std::cerr << "Verilator coverage is not enabled";
+    exit(-1);
+#endif
+};
+
 
 #endif
 
@@ -259,6 +289,12 @@ DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args) : DutVe
 int DutUnifiedBase::finalize() {
     return DutVerilatorBase::finalize();
 }
+void DutUnifiedBase::set_waveform(const char *filename) {
+    return DutVerilatorBase::set_waveform(filename);
+}
+void DutUnifiedBase::set_coverage(const char *filename) {
+    return DutVerilatorBase::set_coverage(filename);
+}
 #elif defined(USE_VCS)
 DutUnifiedBase::DutUnifiedBase() : DutVcsBase() {};
 DutUnifiedBase::DutUnifiedBase(int argc, char **argv) : DutVcsBase(argc, argv){};
@@ -267,6 +303,12 @@ DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv) : DutVcsBa
 DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args) : DutVcsBase(args) {};
 int DutUnifiedBase::finalize() {
     return DutVcsBase::finalize();
+}
+void DutUnifiedBase::set_waveform(const char *filename) {
+    return DutVcsBase::set_waveform(filename);
+}
+void DutUnifiedBase::set_coverage(const char *filename) {
+    return DutVcsBase::set_coverage(filename);
 }
 #endif
 
