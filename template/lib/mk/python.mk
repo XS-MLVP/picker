@@ -1,4 +1,7 @@
 default:
+ifeq ($(EXAMPLE), ON)
+	@cp python/example.py ${TARGET}/../example.py
+endif
 	@cp python/cmake/${SIMULATOR}.cmake ${TARGET}/dut.cmake
 	@cp python/CMakeLists.txt ${TARGET}/CMakeLists.txt
 	@cp python/Makefile ${TARGET}/Makefile
@@ -6,10 +9,6 @@ default:
 	@cp python/dut.py ${TARGET}/__init__.py
 	@cp -r /usr/local/share/picker/python/xspcomm ${TARGET}/xspcomm
 	cd ${TARGET} && make && make clean
-
-ifeq ($(EXAMPLE), ON)
-	@cp python/example.py ${TARGET}/../example.py
-endif
 
 ifeq ($(VERBOSE), OFF)
 	cd ${TARGET} && rm -rf CMakeLists.txt dut* *.hpp build Makefile __pycache__ *.cmake

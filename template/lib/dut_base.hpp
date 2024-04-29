@@ -20,11 +20,18 @@ public:
     virtual int step(uint64_t cycle, bool dump) = 0;
     // Clean up and dump result
     virtual int finalize() = 0;
+
+    // Set waveform file path
+    virtual void set_waveform(const char *filename) = 0;
+    // Set coverage file path
+    virtual void set_coverage(const char *filename) = 0;
 };
 
 #if defined(USE_VERILATOR)
 class DutVerilatorBase : public DutBase
 {
+private:
+    std::string coverage_file_path;
 public:
     // Verilator Context and Top Module
     void *top;
@@ -40,6 +47,8 @@ public:
     int step(bool dump);
     int step(uint64_t cycle, bool dump);
     int finalize();
+    void set_waveform(const char *filename);
+    void set_coverage(const char *filename);
 };
 
 #endif
@@ -70,6 +79,8 @@ public:
     int step(bool dump);
     int step(uint64_t cycle, bool dump);
     int finalize();
+    void set_waveform(const char *filename);
+    void set_coverage(const char *filename);
 };
 
 #endif
@@ -88,4 +99,6 @@ public:
     DutUnifiedBase(std::initializer_list<const char *> args);
     ~DutUnifiedBase();
     int finalize();
+    void set_waveform(const char *filename); // Set waveform file path
+    void set_coverage(const char *filename); // Set coverage file path
 };
