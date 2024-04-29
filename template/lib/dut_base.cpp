@@ -258,8 +258,8 @@ int DutVerilatorBase::finalize()
 void DutVerilatorBase::set_waveform(const char *filename)
 {
 #if defined(VL_TRACE)
-    ((VAdder *)(this->top))->contextp()->dumpfile(filename);
-    ((VAdder *)this->top)->rootp->vlSymsp->_traceDumpOpen();
+    ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->dumpfile(filename);
+    ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->_traceDumpOpen();
 #elif
     std::cerr << "Verilator waveform is not enabled";
     exit(-1);
