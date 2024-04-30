@@ -260,7 +260,7 @@ void DutVerilatorBase::set_waveform(const char *filename)
 #if defined(VL_TRACE)
     ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->dumpfile(filename);
     ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->_traceDumpOpen();
-#elif
+#else
     std::cerr << "Verilator waveform is not enabled";
     exit(-1);
 #endif
