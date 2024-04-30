@@ -1,13 +1,13 @@
 
 # <image src="/image/picker-logo.png" width="32px" height="32px" />Picker: Pick your favorite language to verify your chip.
 
-> A codegen tool for chip verification, which can convert RTL design to C++/Python DUT lib.
+> A codegen tool for chip verification, which can provide C++/Python interfaces for the RTL designs.
 
 ## 介绍
 
 picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.v/.scala/.sv)进行封装，并使用其他编程语言暴露Pin-Level的操作，未来计划支持自动化的Transaction-Level原语生成。
 
-其他编程语言包括 c++ (原生支持), python(已支持), java(todo), golang(todo) 等编程语言接口。
+其他编程语言包括 c++ (原生支持), python(已支持), java/scala(正在进行中), golang(正在进行中) 等编程语言接口。
 
 该辅助工具让用户可以基于现有的软件测试框架，例如 pytest, junit，TestNG, go test等，进行芯片UT验证。
 
@@ -18,7 +18,7 @@ picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.
 3. 用户面广。提供的编程接口多，可覆盖不同语言的开发者（传统IC验证，只用System Verilog）。
 4. 可使用软件生态丰富。能使用python3, java, golang等生态。
 
-目前picker支持以下几种模拟器：
+目前picker支持的后端rtl仿真器如下：
 
 1. verilator
 2. synopsys vcs
@@ -28,11 +28,11 @@ picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.
 ### 依赖安装
 
 1.  [cmake](https://cmake.org/download/) ( >=3.11 )
-2.  [gcc](https://gcc.gnu.org/) ( 支持c++20,至少为10, **最好为11及以上** )
+2.  [gcc](https://gcc.gnu.org/) ( 需要支持c++20, 版本至少为10, **建议11及以上版本** )
 3.  [python3](https://www.python.org/downloads/) ( >=3.8 )
 4.  [verilator](https://verilator.org/guide/latest/install.html#git-quick-install) ( **==4.218** )
 5.  [verible-verilog-format](https://github.com/chipsalliance/verible) ( >=0.0-3428-gcfcbb82b )
-6.  [swig](http://www.swig.org/) ( >=**4.2.0**, 目前为master分支， 仅在需要python支持时使用 )
+6.  [swig](http://www.swig.org/) ( >=**4.2.0**, 多语言支持 )
 
 > 请注意，请确保`verible-verilog-format`等工具的路径已经添加到环境变量`$PATH`中，可以直接命令行调用。
 
@@ -47,13 +47,13 @@ make init
 
 ```bash
 cd picker
-export BUILD_XSPCOMM_SWIG=python # 仅在需要python支持时使用
+export BUILD_XSPCOMM_SWIG=python # 导出Python接口
 make
 sudo -E make install
 ```
 
 > 默认的安装的目标路径是 `/usr/local`， 二进制文件被置于 `/usr/local/bin`，模板文件被置于 `/usr/local/share/picker`。  
-> 安装时会自动安装 `xspcomm` 基础库，该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**
+> 安装时会自动安装 `xspcomm`基础库（[https://github.com/XS-MLVP/xcomm](https://github.com/XS-MLVP/xcomm)），该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**
 > 同时如果开启了python支持，还会安装 `xspcomm` 的python包，位于 `/usr/local/share/picker/python/xspcomm/`。 
 
 ### 安装测试
