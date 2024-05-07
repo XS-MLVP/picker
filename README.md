@@ -47,7 +47,6 @@ make init
 
 ```bash
 cd picker
-export BUILD_XSPCOMM_SWIG=python # 导出Python接口
 make
 sudo -E make install
 ```

@@ -1,3 +1,5 @@
+BUILD_XSPCOMM_SWIG?=python
+
 all: clean build
 
 init:
