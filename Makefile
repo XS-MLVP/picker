@@ -1,4 +1,4 @@
-BUILD_XSPCOMM_SWIG?=python
+export BUILD_XSPCOMM_SWIG?=python
 
 all: clean build
 
