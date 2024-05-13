@@ -3,47 +3,50 @@
 
 > A codegen tool for chip verification, which can provide C++/Python interfaces for the RTL designs.
 
-## 介绍
+English | [中文](README.zh.md)
 
-picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.v/.scala/.sv)进行封装，并使用其他编程语言暴露Pin-Level的操作，未来计划支持自动化的Transaction-Level原语生成。
+## Introduction
 
-其他编程语言包括 c++ (原生支持), python(已支持), java/scala(正在进行中), golang(正在进行中) 等编程语言接口。
+Picker is a chip verification auxiliary tool aimed at encapsulating RTL design verification modules (.v/.scala/.sv) and exposing Pin-Level operations through other programming languages, with plans to support automated Transaction-Level primitive generation in the future.
 
-该辅助工具让用户可以基于现有的软件测试框架，例如 pytest, junit，TestNG, go test等，进行芯片UT验证。
+Other programming languages include interfaces for C++ (natively supported), Python (supported), Java/Scala (in progress), and Golang (in progress).
 
-基于picker进行验证具有如下优点：
+This auxiliary tool allows users to perform chip UT verification based on existing software testing frameworks, such as pytest, junit, TestNG, go test, etc.
 
-1. 不泄露RTL设计。经过picker转换后，原始的设计文件(.v)被转化成了二进制文件(.so)，脱离原始设计文件后，依旧可进行验证，且验证者无法获取RTL源代码。
-2. 减少编译时间。当DUT(Design Under Test)稳定时，只需要编译一次（打包成so）。
-3. 用户面广。提供的编程接口多，可覆盖不同语言的开发者（传统IC验证，只用System Verilog）。
-4. 可使用软件生态丰富。能使用python3, java, golang等生态。
+The advantages of verifying with Picker include:
 
-目前picker支持的后端rtl仿真器如下：
+1. No leakage of RTL design. After conversion by Picker, the original design files (.v) are transformed into binary files (.so), allowing for verification without the original design files and preventing verifiers from accessing the RTL source code.
+2. Reduced compilation time. When the DUT (Design Under Test) is stable, it only needs to be compiled once (packaged into .so).
+3. Broad user base. The provided programming interfaces cover developers of different languages (traditional IC verification only uses System Verilog).
+4. Rich software ecosystem. It can utilize ecosystems like Python3, Java, Golang, etc.
 
-1. verilator
-2. synopsys vcs
+Currently, Picker supports the following backend RTL simulators:
 
-# 使用方法
+1. Verilator
+2. Synopsys VCS
 
-### 依赖安装
+## How to Use
 
-1.  [cmake](https://cmake.org/download/) ( >=3.11 )
-2.  [gcc](https://gcc.gnu.org/) ( 需要支持c++20, 版本至少为10, **建议11及以上版本** )
-3.  [python3](https://www.python.org/downloads/) ( >=3.8 )
-4.  [verilator](https://verilator.org/guide/latest/install.html#git-quick-install) ( **==4.218** )
-5.  [verible-verilog-format](https://github.com/chipsalliance/verible) ( >=0.0-3428-gcfcbb82b )
-6.  [swig](http://www.swig.org/) ( >=**4.2.0**, 多语言支持 )
+### Dependency Installation
 
-> 请注意，请确保`verible-verilog-format`等工具的路径已经添加到环境变量`$PATH`中，可以直接命令行调用。
+1. [CMake](https://cmake.org/download/) (>=3.11)
+2. [GCC](https://gcc.gnu.org/) (needs to support C++20, at least version 10, **recommended version 11 or above**)
+3. [Python3](https://www.python.org/downloads/) (>=3.8)
+4. [Verilator](https://verilator.org/guide/latest/install.html#git-quick-install) (**==4.218**)
+5. [Verible Verilog Format](https://github.com/chipsalliance/verible) (>=0.0-3428-gcfcbb82b)
+6. [SWIG](http://www.swig.org/) (>=**4.2.0**, multi-language support)
 
-### 下载源码
+> Please ensure that the path to tools like `verible-verilog-format` is added to the environment variable `$PATH` for direct command-line invocation.
+
+### Source Code Download
 
 ```bash
 git clone https://github.com/XS-MLVP/picker.git
+cd picker
 make init
 ```
 
-### 构建并安装
+### Build and Install
 
 ```bash
 cd picker
@@ -51,13 +54,14 @@ make
 sudo -E make install
 ```
 
-> 默认的安装的目标路径是 `/usr/local`， 二进制文件被置于 `/usr/local/bin`，模板文件被置于 `/usr/local/share/picker`。  
-> 安装时会自动安装 `xspcomm`基础库（[https://github.com/XS-MLVP/xcomm](https://github.com/XS-MLVP/xcomm)），该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**
-> 同时如果开启了python支持，还会安装 `xspcomm` 的python包，位于 `/usr/local/share/picker/python/xspcomm/`。 
+> The default installation path is `/usr/local`, with binary files placed in `/usr/local/bin` and template files in `/usr/local/share/picker`.  
+> The installation will automatically install the `xspcomm` base library (https://github.com/XS-MLVP/xcomm), which is used to encapsulate the basic types of `RTL` modules, located at `/usr/local/lib/libxspcomm.so`. **You may need to manually set the link directory parameters (-L) during compilation.**   
+> Additionally, if Python support is enabled (default), the `xspcomm` Python package will also be installed, located at `/usr/local/share/picker/python/xspcomm/`.  
 
-### 安装测试
 
-执行命令并检查输出：
+### Installation Test
+
+Run the command and check the output:
 
 ```bash
 ➜  picker git:(master) picker
@@ -65,7 +69,7 @@ XDut Generate.
 Convert DUT(*.v/*.sv) to C++ DUT libs. Notice that [file] option allow only one file.
 
 Usage:
-  XDut Gen [file] [OPTION...] 
+  XDut Gen [OPTION...] [file]
 
   -f, --filelist arg            DUT .v/.sv source files, contain the top 
                                 module, split by comma.
@@ -109,24 +113,7 @@ Usage:
   -v, --verbose                 Verbose mode
       --version                 Print version
   -e, --example                 Build example project, default is OFF
+      --autobuild               Auto build the generated project, default 
+                                is true (default: true)
   -h, --help                    Print usage
 ```
-
-#### 参数解释
-
-* `[file]`: 必需。DUT 的 Verilog 或 SystemVerilog 源文件，包含顶层模块
-* `--filelist, -f`: 可选。DUT 的 Verilog 或 SystemVerilog 源文件，逗号分隔。也可以使用 `*.txt` 文件，每行指定一个 RTL 文件路径，来指定文件列表。
-* `--sim`: 可选。模拟器类型，可以是 vcs 或 verilator，默认是 verilator。
-* `--language, -l`: 可选。构建示例项目的语言，可以是 cpp 或 python，默认是 cpp。
-* `--source_dir, -s`: 可选。模板文件目录，默认是 ${mcv_install_path}/../mcv/template。
-* `--target_dir, -t`: 可选。渲染文件的目标目录，默认是 ./mcv_out。
-* `--source_module_name, -S`: 可选。在 DUT 的 Verilog 文件中选择模块，默认是  标记的文件中的最后一个模块。
-* `--target_module_name, -T`: 可选。设置目标 DUT 的模块名和文件名，默认与源相同。例如，-T top 将生成 UTtop.cpp 和 UTtop.hpp，并包含 UTtop 类。
-* `--internal`: 可选。导出的内部信号配置文件，默认为空，表示没有内部引脚。
-* `--frequency, -F`: 可选。设置 仅 VCS DUT 的频率，默认是 100MHz，可以使用 Hz、KHz、MHz、GHz 作为单位。
-* `--wave_file_name, -w`: 可选。波形文件名，为空表示不导出波形。
-* `--vflag, -V`: 可选。用户定义的模拟器编译参数，透传。例如：'-v -x-assign=fast -Wall --trace' 或 '-f filelist.f'。
-* `--cflag, -C`: 可选。用户定义的 gcc/clang 编译参数，透传。例如：'-O3 -std=c++17 -I./include'。
-* `--verbose, -v`: 可选。详细模式，保留生成的中间文件。
-* `--example, -e`: 可选。构建示例项目，默认是 OFF。
-* `--help, -h`: 可选。打印使用帮助。
