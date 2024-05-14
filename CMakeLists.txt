@@ -16,10 +16,14 @@ else()
 endif()
 
 # check verilator
-execute_process(
-    COMMAND bash -c "verilator -V|grep ROOT|grep verilator|awk '{print $3}'"
-    OUTPUT_VARIABLE verilator_root
-)
+if ("$ENV{VERILATOR_ROOT}" STREQUAL "")
+    execute_process(
+        COMMAND bash -c "verilator -V|grep ROOT|grep verilator|awk '{print $3}'"
+        OUTPUT_VARIABLE verilator_root
+    )
+else()
+    set(verilator_root $ENV{VERILATOR_ROOT})
+endif()
 
 if (NOT "${verilator_root}" STREQUAL "")
     include_directories(${verilator_root})
