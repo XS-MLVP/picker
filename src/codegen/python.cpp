@@ -15,7 +15,7 @@ namespace picker { namespace codegen {
         static const std::string swig_constantw_template =
             "\%constant {{write_func_type}} = set_{{pin_func_name}};\n";
         static const std::string swig_constant_fake_template =
-            "\%constant {{write_func_type}} = nullptr;\n";
+            "\%constant {{write_func_type}} = NULL_DPI_{{null_write_func}};\n";
 
 #define BIND_DPI_RW                                                            \
     if (pin[i].logic_pin_hb == -1) {                                           \
@@ -23,12 +23,14 @@ namespace picker { namespace codegen {
         data["read_func_type"]   = "void (*DPIR{{pin_func_name}})(void*)";     \
         data["write_func_type"] =                                              \
             "void (*DPIW{{pin_func_name}})(const unsigned char)";              \
+        data["null_write_func"] = "LW";                                        \
     } else {                                                                   \
         data["logic_pin_length"] =                                             \
             pin[i].logic_pin_hb - pin[i].logic_pin_lb + 1;                     \
         data["read_func_type"] = "void (*DPIR{{pin_func_name}})(void*)";       \
         data["write_func_type"] =                                              \
             "void (*DPIW{{pin_func_name}})(const void*)";                      \
+        data["null_write_func"] = "VW";                                        \
     }
 
         /// @brief Export external pin for cpp render
