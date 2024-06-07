@@ -11,13 +11,20 @@
 
 namespace picker { namespace parser {
 
-    std::vector<sv_signal_define> sv_pin(std::string &filename,
+    std::vector<picker::sv_signal_define> sv_pin(std::string &filename,
                                          std::string &src_module_name)
     {
-        // call verible-verilog-syntax
-        // get real filename without path
-        std::filesystem::path filepath = filename;
-        std::string raw_filename       = filepath.filename();
+        std::string raw_filename;
+        try
+        {
+            std::filesystem::path filepath = filename;
+            raw_filename = filepath.filename();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+            return std::vector<picker::sv_signal_define>();
+        }
 
         MESSAGE("start call!");
         std::string syntax_cmd =
@@ -65,7 +72,7 @@ namespace picker { namespace parser {
 
         // 解析module_token，将解析好的pin_name\pin_length\pin_type都push进pin数组并返回。
         std::map<std::string, std::string> parameter_var;
-        std::vector<sv_signal_define> pin;
+        std::vector<picker::sv_signal_define> pin;
         for (int j = 0; j < module_token.size(); j++)
             if (module_token[j]["tag"] == "module"
                 && module_token[j + 1]["text"] == src_module_name) {
@@ -154,23 +161,19 @@ namespace picker { namespace parser {
             module_out:
                 return pin;
             }
+        pin.clear();
+        return pin;
     }
 
-    int sv(cxxopts::ParseResult opts,
-           std::vector<sv_signal_define> &external_pin,
-           nlohmann::json &sync_opts)
+    int sv(picker::exports_opts &opts, std::vector<picker::sv_signal_define> &external_pin)
     {
-        std::string filename = opts["file"].as<std::string>(),
-                    src_module_name =
-                        opts["source_module_name"].as<std::string>(),
-                    dst_module_name =
-                        opts["target_module_name"].as<std::string>();
+        std::string dst_module_name = opts.target_module_name;
 
-        external_pin = sv_pin(filename, src_module_name);
+        external_pin = sv_pin(opts.file, opts.source_module_name);
 
-        sync_opts["src_module_name"] = src_module_name;
-        sync_opts["dst_module_name"] =
-            dst_module_name.length() == 0 ? src_module_name : dst_module_name;
+        opts.target_module_name = opts.target_module_name.size() == 0 ?
+                                      opts.source_module_name :
+                                      opts.target_module_name;
         return 0;
     }
 }} // namespace picker::parser

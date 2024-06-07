@@ -35,7 +35,7 @@ namespace picker { namespace codegen {
         /// @param wire
         /// @param dpi_export
         /// @param dpi_impl
-        void render_external_pin(std::vector<sv_signal_define> pin,
+        void render_external_pin(std::vector<picker::sv_signal_define> pin,
                                  std::string &pin_connect, std::string &logic,
                                  std::string &wire, std::string &dpi_export,
                                  std::string &dpi_impl)
@@ -78,7 +78,7 @@ namespace picker { namespace codegen {
         /// @param pin
         /// @param dpi_export
         /// @param dpi_impl
-        void render_internal_signal(std::vector<sv_signal_define> pin,
+        void render_internal_signal(std::vector<picker::sv_signal_define> pin,
                                     std::string &dpi_export,
                                     std::string &dpi_impl)
         {
@@ -153,8 +153,8 @@ namespace picker { namespace codegen {
     /// @param external_pin
     /// @param internal_signal
     void gen_sv_param(nlohmann::json &global_render_data,
-                      const std::vector<sv_signal_define> &external_pin,
-                      const std::vector<sv_signal_define> &internal_signal,
+                      const std::vector<picker::sv_signal_define> &external_pin,
+                      const std::vector<picker::sv_signal_define> &internal_signal,
                       const std::string &wave_file_name,
                       const std::string &simulator)
     {

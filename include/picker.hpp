@@ -7,9 +7,10 @@
 #include <regex>
 #include <set>
 #include <unistd.h>
+#include "type.hpp"
 #include "json.hpp"
 #include "inja.hpp"
-#include "cxxopts.hpp"
+#include "CLI11.hpp"
 #include "version.hpp"
 #include "codegen/cpp.hpp"
 #include "codegen/python.hpp"
@@ -47,6 +48,7 @@ extern bool is_debug;
         OUTPUT(stderr, fmt, ##__VA_ARGS__);                                    \
         exit(-1);                                                              \
     }
+
 
 inline void vassert(bool c, std::string msg = "")
 {
@@ -359,4 +361,5 @@ inline std::string get_template_path()
     path      = path + "/share/picker/template";
     return path;
 }
+
 } // namespace picker

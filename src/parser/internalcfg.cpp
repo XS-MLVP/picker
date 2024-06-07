@@ -3,7 +3,7 @@
 namespace picker { namespace parser {
 
     void recursive_parse(YAML::Node node,
-                         std::vector<sv_signal_define> &pin_list,
+                         std::vector<picker::sv_signal_define> &pin_list,
                          std::string prefix)
     {
         if (node.IsMap()) {
@@ -49,22 +49,20 @@ namespace picker { namespace parser {
         }
     }
 
-    std::vector<sv_signal_define> internal(std::string internal_pin_filename)
+    std::vector<picker::sv_signal_define> internal(std::string internal_pin_filename)
     {
-        std::vector<sv_signal_define> pin_list;
+        std::vector<picker::sv_signal_define> pin_list;
         YAML::Node internal_pin_node = YAML::LoadFile(internal_pin_filename);
         recursive_parse(internal_pin_node, pin_list);
         return pin_list;
     };
 
-    int internal(cxxopts::ParseResult opts,
-                 std::vector<sv_signal_define> &internal_pin,
-                 nlohmann::json &sync_opts)
+    int internal(picker::exports_opts &opts,
+                 std::vector<picker::sv_signal_define> &internal_pin)
     {
-        std::string internal_pin_filename = opts["internal"].as<std::string>();
-        internal_pin = internal_pin_filename.length() == 0 ?
-                           std::vector<sv_signal_define>() :
-                           internal(internal_pin_filename);
+        internal_pin = opts.internal.length() == 0 ?
+                           std::vector<picker::sv_signal_define>() :
+                           internal(opts.internal);
         return 0;
     };
 

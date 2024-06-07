@@ -38,7 +38,7 @@ namespace picker { namespace codegen {
         /// @param xdata_bindrw
         /// @param xport_add
         /// @param comments
-        void render_external_pin(std::vector<sv_signal_define> pin,
+        void render_external_pin(std::vector<picker::sv_signal_define> pin,
                                  std::string &xdata_init,
                                  std::string &xdata_bindrw,
                                  std::string &xport_add,
@@ -47,8 +47,9 @@ namespace picker { namespace codegen {
             inja::Environment env;
             nlohmann::json data;
             for (int i = 0; i < pin.size(); i++) {
-                data["logic_pin"]      = pin[i].logic_pin;
-                data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i')? "In" : "Out";
+                data["logic_pin"] = pin[i].logic_pin;
+                data["logic_pin_type"] =
+                    (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
 
                 BIND_DPI_RW;
@@ -77,7 +78,7 @@ namespace picker { namespace codegen {
         /// @param xdata_bindrw
         /// @param xport_add
         /// @param comments
-        void render_internal_signal(std::vector<sv_signal_define> pin,
+        void render_internal_signal(std::vector<picker::sv_signal_define> pin,
                                     std::string &xdata_init,
                                     std::string &xdata_bindrw,
                                     std::string &xport_add,
@@ -117,16 +118,16 @@ namespace picker { namespace codegen {
 
     } // namespace py
 
-    void python(const cxxopts::ParseResult &opts, nlohmann::json &sync_opts,
-                std::vector<sv_signal_define> external_pin,
-                std::vector<sv_signal_define> internal_signal)
+    void python(picker::exports_opts &opts,
+                std::vector<picker::sv_signal_define> external_pin,
+                std::vector<picker::sv_signal_define> internal_signal)
     {
         //
-        std::string src_dir = opts["source_dir"].as<std::string>() + "/python";
-        std::string dst_dir = opts["target_dir"].as<std::string>() + "/python";
-        std::string src_module_name = sync_opts["src_module_name"];
-        std::string dst_module_name = sync_opts["dst_module_name"];
-        std::string simulator       = opts["sim"].as<std::string>();
+        std::string src_dir         = opts.source_dir + "/python";
+        std::string dst_dir         = opts.target_dir + "/python";
+        std::string src_module_name = opts.source_module_name;
+        std::string dst_module_name = opts.target_module_name;
+        std::string simulator       = opts.sim;
 
         // Codegen Buffers
         std::string xdata_init, xdata_bindrw, xport_add, swig_constant;
@@ -144,8 +145,8 @@ namespace picker { namespace codegen {
         // Set global render data
         nlohmann::json data;
 
-        data["__SOURCE_MODULE_NAME__"] = sync_opts["src_module_name"];
-        data["__TOP_MODULE_NAME__"]    = sync_opts["dst_module_name"];
+        data["__SOURCE_MODULE_NAME__"] = src_module_name;
+        data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
         data["__XDATA_INIT__"]    = xdata_init;
         data["__XDATA_BIND__"]    = xdata_bindrw;

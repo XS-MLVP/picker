@@ -50,7 +50,7 @@ namespace codegen {
         /// @param xdata_bindrw
         /// @param xport_add
         /// @param comments
-        void render_external_pin(std::vector<sv_signal_define> pin,
+        void render_external_pin(std::vector<picker::sv_signal_define> pin,
                                  std::string &xdata_declaration,
                                  std::string &xdata_reinit,
                                  std::string &xdata_bindrw,
@@ -91,7 +91,7 @@ namespace codegen {
         /// @param xdata_bindrw
         /// @param xport_add
         /// @param comments
-        void render_internal_signal(std::vector<sv_signal_define> pin,
+        void render_internal_signal(std::vector<picker::sv_signal_define> pin,
                                     std::string &xdata_declaration,
                                     std::string &xdata_reinit,
                                     std::string &xdata_bindrw,
@@ -132,15 +132,15 @@ namespace codegen {
 
     } // namespace cxx
 
-    void cpp(const cxxopts::ParseResult &opts, nlohmann::json &sync_opts,
-             std::vector<sv_signal_define> external_pin,
-             std::vector<sv_signal_define> internal_signal)
+    void cpp(picker::exports_opts &opts,
+             std::vector<picker::sv_signal_define> external_pin,
+             std::vector<picker::sv_signal_define> internal_signal)
     {
         //
-        std::string src_dir = opts["source_dir"].as<std::string>() + "/cpp";
-        std::string dst_dir = opts["target_dir"].as<std::string>() + "/cpp";
-        std::string src_module_name = sync_opts["src_module_name"];
-        std::string dst_module_name = sync_opts["dst_module_name"];
+        std::string src_dir = opts.source_dir + "/cpp";
+        std::string dst_dir = opts.target_dir + "/cpp";
+        std::string src_module_name = opts.source_module_name;
+        std::string dst_module_name = opts.target_module_name;
 
         // Codegen Buffers
         std::string pin_connect, logic, wire, comments, dpi_export, dpi_impl,
@@ -158,8 +158,8 @@ namespace codegen {
         // Set global render data
         nlohmann::json data;
 
-        data["__SOURCE_MODULE_NAME__"] = sync_opts["src_module_name"];
-        data["__TOP_MODULE_NAME__"]    = sync_opts["dst_module_name"];
+        data["__SOURCE_MODULE_NAME__"] = src_module_name;
+        data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
         data["__XDATA_DECLARATION__"] = xdata_declaration;
         data["__XDATA_REINIT__"]      = xdata_reinit;
