@@ -5,6 +5,8 @@
 
 picker::exports_opts exports_opts;
 
+picker::pack_opts pack_opts;
+
 int exports(CLI::App &top_app)
 {
     auto app = top_app.add_subcommand(
@@ -87,6 +89,12 @@ int exports(CLI::App &top_app)
         "-C,--cflag", exports_opts.cflag,
         "User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'");
 
+
+    
+    //app->add_option(
+    //    "-r,--rename", exports_opts.rename,
+    //    "User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'");    
+
     app->add_flag("--verbose", exports_opts.verbose, "Verbose mode");
     app->add_flag("--version", exports_opts.version, "Print version");
     app->add_flag("-e,--example", exports_opts.example,
@@ -101,6 +109,24 @@ int exports(CLI::App &top_app)
 int pack(CLI::App &top_app)
 {
     auto app = top_app.add_subcommand("pack");
+
+    // Set DUT RTL Source File, Required
+    app->add_flag(
+        "-e,--example", pack_opts.example,
+        "Build example project, default is OFF");
+    
+    app->add_flag(
+        "-c,--force", pack_opts.force,
+        "force delete folder when already has picker generate");
+    
+    app->add_option(
+        "-f,--files",pack_opts.files,
+        "sv source file, contain the transaction define");
+
+    app->add_option(
+        "-r,--rename",pack_opts.rename,
+        "rename transaction name in picker generate code");
+
     return 0;
 }
 
@@ -125,8 +151,8 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    // if need help or no file specified without version option, print help
-    if (exports_opts.file.empty() || false /*pack_opts.file.empty()*/) {
+    //if need help or no file specified without version option, print help
+    if (exports_opts.file.empty() && pack_opts.files.empty() /*pack_opts.file.empty()*/) {
         exit(0);
     }
 
@@ -159,6 +185,25 @@ int main(int argc, char **argv)
         }
     } else if (app.get_subcommand_ptr("pack")->parsed()) {
         // todo
+        picker::uvm_transaction_define uvm_transaction;
+        std::string filepath,filename,macro_define;
+        //std::queue<std::string> rnames = pack_opts.rname;
+        int i = 0;
+        if (pack_opts.files.size() != 0) {
+            for(auto& path :pack_opts.files){
+                picker::parser::uvm(pack_opts,path, filename, uvm_transaction);
+                if(i< pack_opts.rename.size()){
+                    filename = pack_opts.rename[i];
+                    uvm_transaction.name = pack_opts.rename[i];
+                    i++;
+                }
+                picker::codegen::gen_uvm_param(pack_opts,uvm_transaction, filename);
+                
+
+            }
+            exit(0);
+        }
+        
     }
 
     nlohmann::json sync_opts;
