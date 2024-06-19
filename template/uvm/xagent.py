@@ -8,7 +8,7 @@
 class {{className}}:
     def __init__(self, msg):
         {%for data in variables -%}
-        {{data.name}} = 0
+        {{data.name}} = XData({{data.bit_count}},XData.In)
         {%endfor -%}
         self.from_msg(msg)
 
@@ -16,17 +16,17 @@ class {{className}}:
         def convert_msg(self, {%for data in variables -%} {{data.name}}{%if not loop.is_last -%}, {%endif -%}{%endfor -%}):
             {%for data in variables -%}
             {%if data.nums == 1 -%}
-            low_x_bits = int(''.join(format({{data.name}}, '08b') ), 2) & ((1 << {{data.numsorigin}}) - 1)
-            self.{{data.name}} = bin(low_x_bits)[2:].zfill({{data.numsorigin}})
+            low_x_bits = int(''.join(format({{data.name}}, '08b') ), 2) & ((1 << {{data.bit_count}}) - 1)
+            self.{{data.name}} = bin(low_x_bits)[2:].zfill({{data.bit_count}})
             {%else -%}
-            low_x_bits = int(''.join(format(byte, '08b') for byte in {{data.name}}), 2) & ((1 << {{data.numsorigin}}) - 1)
-            self.{{data.name}} = bin(low_x_bits)[2:].zfill({{data.numsorigin}})
+            low_x_bits = int(''.join(format(byte, '08b') for byte in {{data.name}}), 2) & ((1 << {{data.bit_count}}) - 1)
+            self.{{data.name}}.value = bin(low_x_bits)[2:].zfill({{data.bit_count}})
             {%endif -%}
             {%endfor %}
         
         {%for data in variables -%}
         {%if data.macro == 1 -%}
-        {{data.macro_name}} = {{data.numsorigin}}
+        {{data.macro_name}} = {{data.bit_count}}
         {%endif -%}
         {%endfor -%}
         {% set counter =  0 -%}
@@ -40,12 +40,14 @@ class {{className}}:
                 bytes = '0'*padding + bytes
             return bytes
         {%for data in variables -%}
-        {{data.name}} = add_zero(self.{{data.name}})
+        {{data.name}} = add_zero(self.{{data.name}}.value)
         {%endfor -%}
         byte_str = {%for data in variables%} {{data.name}} {%if not loop.is_last -%}+ {%endif -%}{%endfor%}
         byte_list = [int(byte_str[i:i+8],2).to_bytes(1,'big') for i in range(0,len(byte_str),8)]
         byte_stream = b''.join(byte_list)
-        return byte_stream
+        uvm_message = u.tlm_msg()
+        uvm_message.from_bytes(byte_stream)
+        return uvm_message
 
 class {{className}}_list:
     def __init__(self,message):

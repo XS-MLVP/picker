@@ -46,7 +46,7 @@ namespace picker { namespace codegen {
         for (int i = 0; i<transaction.parameters.size(); i++){
             inja::json parameter;
             parameter["nums"] = transaction.parameters[i].byte_count;
-            parameter["numsorigin"] = transaction.parameters[i].bit_count;
+            parameter["bit_count"] = transaction.parameters[i].bit_count;
             parameter["macro"] = transaction.parameters[i].is_marcro;
             parameter["name"] = transaction.parameters[i].name;
             parameter["macro_name"] = transaction.parameters[i].macro_name;

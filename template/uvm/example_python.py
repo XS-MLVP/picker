@@ -20,10 +20,7 @@ def subscribe_message(message,publish):
 
 
 def publish_message({{className}},publish):
-    uvm_message = u.tlm_msg()
-    byte_stream = {{className}}.to_msg()
-    print("python sub tr ",byte_stream)
-    uvm_message .from_bytes(byte_stream)
+    uvm_message = {{className}}.to_msg()
     publish.SendMsg(uvm_message)
     
 

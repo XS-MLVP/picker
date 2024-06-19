@@ -73,17 +73,17 @@ class {{className}}_xmonitor extends uvm_monitor;
         {% set counter = counter + 1 -%}
         end        
         {%else -%}
-        remaining_bits = {{data.numsorigin}} % 8;
+        remaining_bits = {{data.bit_count}} % 8;
         if(remaining_bits != 0) begin
             myByte = 8'b00000000; 
             for(int i = 0;i<remaining_bits;i++)begin
-                myByte[remaining_bits -i-1] = {{className}}item.{{data.name}}[{{data.numsorigin}}-1-i];
+                myByte[remaining_bits -i-1] = {{className}}item.{{data.name}}[{{data.bit_count}}-1-i];
             end
             transport_tr = {transport_tr,myByte};
         end
         
-        for(int i = 0;i < {{data.numsorigin}}/8;i++) begin
-            transport_tr = {transport_tr,{{className}}item.{{data.name}}[({{data.numsorigin}} - 1 - remaining_bits -i*8)-:8]};
+        for(int i = 0;i < {{data.bit_count}}/8;i++) begin
+            transport_tr = {transport_tr,{{className}}item.{{data.name}}[({{data.bit_count}} - 1 - remaining_bits -i*8)-:8]};
         {% set counter = counter + 1 -%}
         end
         {%endif -%}
@@ -122,17 +122,17 @@ class {{className}}_xmonitor extends uvm_monitor;
         {% set counter = counter + 1 -%}
         end        
         {%else -%}
-        remaining_bits = {{data.numsorigin}} % 8;
+        remaining_bits = {{data.bit_count}} % 8;
         if(remaining_bits != 0) begin
             myByte = 8'b00000000; 
             for(int i = 0;i<remaining_bits;i++)begin
-                myByte[remaining_bits -i-1] = {{className}}item.{{data.name}}[{{data.numsorigin}}-1-i];
+                myByte[remaining_bits -i-1] = {{className}}item.{{data.name}}[{{data.bit_count}}-1-i];
             end
             transport_tr = {transport_tr,myByte};
         end
         
-        for(int i = 0;i < {{data.numsorigin}}/8;i++) begin
-            transport_tr = {transport_tr,{{className}}item.{{data.name}}[({{data.numsorigin}} - 1 - remaining_bits -i*8)-:8]};
+        for(int i = 0;i < {{data.bit_count}}/8;i++) begin
+            transport_tr = {transport_tr,{{className}}item.{{data.name}}[({{data.bit_count}} - 1 - remaining_bits -i*8)-:8]};
         {% set counter = counter + 1 -%}
         end
         {%endif -%}
