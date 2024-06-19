@@ -17,7 +17,7 @@ class {{className}}:
             {%for data in variables -%}
             {%if data.nums == 1 -%}
             low_x_bits = int(''.join(format({{data.name}}, '08b') ), 2) & ((1 << {{data.bit_count}}) - 1)
-            self.{{data.name}} = bin(low_x_bits)[2:].zfill({{data.bit_count}})
+            self.{{data.name}}.value = bin(low_x_bits)[2:].zfill({{data.bit_count}})
             {%else -%}
             low_x_bits = int(''.join(format(byte, '08b') for byte in {{data.name}}), 2) & ((1 << {{data.bit_count}}) - 1)
             self.{{data.name}}.value = bin(low_x_bits)[2:].zfill({{data.bit_count}})
