@@ -7,7 +7,7 @@
 
 ## 介绍
 
-picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.v/.scala/.sv)进行封装，并使用其他编程语言暴露Pin-Level的操作，未来计划支持自动化的Transaction-Level原语生成。
+picker是一个芯片验证辅助工具，有两个功能，其一是将RTL设计验证模块(.v/.scala/.sv)进行封装，并使用其他编程语言暴露Pin-Level的操作，未来计划支持自动化的Transaction-Level原语生成。其二是将UVM的的的transaction打包为一个uvm的agent和一个python类，通过xcomm和生成的文件可以实现UVM和Python的通信
 
 其他编程语言包括 c++ (原生支持), python(已支持), java/scala(正在进行中), golang(正在进行中) 等编程语言接口。
 
@@ -19,7 +19,7 @@ picker是一个芯片验证辅助工具，其目标是将RTL设计验证模块(.
 2. 减少编译时间。当DUT(Design Under Test)稳定时，只需要编译一次（打包成so）。
 3. 用户面广。提供的编程接口多，可覆盖不同语言的开发者（传统IC验证，只用System Verilog）。
 4. 可使用软件生态丰富。能使用python3, java, golang等生态。
-
+5. 自动化的打包UVM的transaction,实现UVM和Python的通信
 目前picker支持的后端rtl仿真器如下：
 
 1. verilator

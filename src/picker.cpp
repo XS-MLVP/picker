@@ -108,7 +108,9 @@ int exports(CLI::App &top_app)
 
 int pack(CLI::App &top_app)
 {
-    auto app = top_app.add_subcommand("pack");
+    auto app = top_app.add_subcommand(
+         "pack",
+         "pack uvm transaction as a uvm agent and python class");
 
     // Set DUT RTL Source File, Required
     app->add_flag(
