@@ -59,65 +59,58 @@ sudo -E make install
 
 ### 安装测试
 
-执行命令并检查输出：
+当前picker有pack和exports两个子命令，你可以运行如下两条命令来检查他们的输出：
 
 ```bash
-➜  picker git:(master) picker
-XDut Generate. 
-Convert DUT(*.v/*.sv) to C++ DUT libs. Notice that [file] option allow only one file.
+➜  picker git:(master) picker -h exports
+Export RTL Projects Sources as Software libraries such as C++/Python
+Usage: picker exports [OPTIONS]
 
-Usage:
-  XDut Gen [OPTION...] [file]
+Options:
+  -h,--help                   Print this help message and exit
+  -f,--file TEXT REQUIRED     DUT .v/.sv source file, contain the top module
+  --fs,--filelist TEXT        DUT .v/.sv source files, contain the top module, split by comma.
+                              Or use '*.txt' file  with one RTL file path per line to specify the file list
+  --sim TEXT [verilator]      vcs or verilator as simulator, default is verilator
+  --lang,--language TEXT [python] 
+                              Build example project, default is cpp, choose cpp or python
+  --sdir,--source_dir TEXT [/usr/local/share/picker/template] 
+                              Template Files Dir, default is ${picker_install_path}/../picker/template
+  --tdir,--target_dir TEXT [./picker_out] 
+                              Codegen render files to target dir, default is ./picker_out
+  --sname,--source_module_name TEXT
+                              Pick the module in DUT .v file, default is the last module in the -f marked file
+  --tname,--target_module_name TEXT
+                              Set the module name and file name of target DUT, default is the same as source. For example, -T top, will generate UTtop.cpp and UTtop.hpp with UTtop class
+  --internal TEXT             Exported internal signal config file, default is empty, means no internal pin
+  -F,--frequency TEXT [100MHz] 
+                              Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit
+  -w,--wave_file_name TEXT    Wave file name, emtpy mean don't dump wave
+  -c,--coverage               Enable coverage, default is not selected as OFF
+  -V,--vflag TEXT             User defined simulator compile args, passthrough. Eg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'
+  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'
+  --verbose                   Verbose mode
+  --version                   Print version
+  -e,--example                Build example project, default is OFF
+  --autobuild [1]             Auto build the generated project, default is true
+```
 
-  -f, --filelist arg            DUT .v/.sv source files, contain the top 
-                                module, split by comma.
-                                Or use '*.txt' file  with one RTL file path 
-                                per line to specify the file list (default: 
-                                "")
-      --sim arg                 vcs or verilator as simulator, default is 
-                                verilator (default: verilator)
-  -l, --language arg            Build example project, default is cpp, 
-                                choose cpp or python (default: cpp)
-  -s, --source_dir arg          Template Files Dir, default is 
-                                ${picker_install_path}/../picker/template 
-                                (default: /usr/local/share/picker/template)
-  -t, --target_dir arg          Render files to target dir, default is 
-                                ./picker_out (default: ./picker_out)
-  -S, --source_module_name arg  Pick the module in DUT .v file, default is 
-                                the last module in the -f marked file 
-                                (default: "")
-  -T, --target_module_name arg  Set the module name and file name of target 
-                                DUT, default is the same as source. For 
-                                example, -T top, will generate UTtop.cpp 
-                                and UTtop.hpp with UTtop class (default: 
-                                "")
-      --internal arg            Exported internal signal config file, 
-                                default is empty, means no internal pin 
-                                (default: "")
-  -F, --frequency arg           Set the frequency of the **only VCS** DUT, 
-                                default is 100MHz, use Hz, KHz, MHz, GHz as 
-                                unit (default: 100MHz)
-  -w, --wave_file_name arg      Wave file name, emtpy mean don't dump wave 
-                                (default: "")
-  -c, --coverage                Enable coverage, default is not selected as 
-                                OFF
-  -V, --vflag arg               User defined simulator compile args, 
-                                passthrough. Eg: '-v -x-assign=fast -Wall 
-                                --trace' || '-C vcs -cc -f filelist.f' 
-                                (default: "")
-  -C, --cflag arg               User defined gcc/clang compile command, 
-                                passthrough. Eg:'-O3 -std=c++17 
-                                -I./include' (default: "")
-  -v, --verbose                 Verbose mode
-      --version                 Print version
-  -e, --example                 Build example project, default is OFF
-      --autobuild               Auto build the generated project, default 
-                                is true (default: true)
-  -h, --help                    Print usage
+```bash
+➜  picker git:(master) picker -h pack
+pack uvm transaction as a uvm agent and python class
+Usage: picker pack [OPTIONS]
+
+Options:
+  -h,--help                   Print this help message and exit
+  -e,--example                generate example project based on transaction, default is OFF
+  -c,--force                  force delete folder when the code has already generated by picker 
+  -f,--files TEXT ...         sv source file, contain the transaction define
+  -r,--rename TEXT ...        rename transaction name in picker generate code
+
 ```
 
 #### 参数解释
-
+export: 
 * `[file]`: 必需。DUT 的 Verilog 或 SystemVerilog 源文件，包含顶层模块
 * `--filelist, -f`: 可选。DUT 的 Verilog 或 SystemVerilog 源文件，逗号分隔。也可以使用 `*.txt` 文件，每行指定一个 RTL 文件路径，来指定文件列表。
 * `--sim`: 可选。模拟器类型，可以是 vcs 或 verilator，默认是 verilator。
@@ -135,3 +128,10 @@ Usage:
 * `--example, -e`: 可选。构建示例项目，默认是 OFF。
 * `--autobuild`: 可选。自动构建生成的项目，默认是 true。
 * `--help, -h`: 可选。打印使用帮助。
+
+pack: 
+* `-f`: 必需。待解析的UVM transaction文件
+* `--example, -e`: 可选。根据UVM的transaction生成示例项目。
+* `--force， -c`: 可选。若以存在picker根据当前transaction解析出的文件，通过该命令可强制删除该文件，并重新生成
+* `--rename, -r`: 可选。配置生成文件以及生成的agent的名称，默认为transactio名。
+
