@@ -6,12 +6,11 @@
 #include "yaml-cpp/yaml.h"
 
 namespace picker { namespace parser {
-    std::vector<sv_signal_define> internal(std::string internal_pin_filename);
-    int internal(cxxopts::ParseResult opts,
-                 std::vector<sv_signal_define> &internal_pin,
-                 nlohmann::json &sync_opts);
+    std::vector<picker::sv_signal_define> internal(std::string internal_pin_filename);
+    int internal(picker::exports_opts &opts,
+                 std::vector<picker::sv_signal_define> &internal_pin);
     void recursive_parse(YAML::Node node,
-                         std::vector<sv_signal_define> &pin_list,
+                         std::vector<picker::sv_signal_define> &pin_list,
                          std::string prefix = "");
 
 }; } // namespace picker::parser

@@ -101,29 +101,29 @@ namespace picker { namespace codegen {
         std::string verilaotr_coverage, vcs_coverage;
     }
 
-    void lib(cxxopts::ParseResult opts, nlohmann::json &sync_opts,
-             const std::vector<sv_signal_define> &external_pin,
-             const std::vector<sv_signal_define> &internal_pin)
+    void lib(picker::exports_opts &opts,
+             const std::vector<picker::sv_signal_define> &external_pin,
+             const std::vector<picker::sv_signal_define> &internal_pin)
     {
         // Parse Options
-        std::string filename = opts["file"].as<std::string>(),
-                    src_dir  = opts["source_dir"].as<std::string>() + "/lib",
-                    dst_dir  = opts["target_dir"].as<std::string>(),
-                    src_module_name = sync_opts["src_module_name"],
-                    dst_module_name = sync_opts["dst_module_name"],
-                    wave_file_name  = opts["wave_file_name"].as<std::string>(),
-                    simulator       = opts["sim"].as<std::string>(),
-                    vflag           = opts["vflag"].as<std::string>(),
-                    cflag           = opts["cflag"].as<std::string>(),
-                    ifilelist = opts["filelist"].as<std::string>(), ofilelist,
+        std::string filename = opts.file,
+                    src_dir  = opts.source_dir + "/lib",
+                    dst_dir  = opts.target_dir,
+                    src_module_name = opts.source_module_name,
+                    dst_module_name = opts.target_module_name,
+                    wave_file_name  = opts.wave_file_name,
+                    simulator       = opts.sim,
+                    vflag           = opts.vflag,
+                    cflag           = opts.cflag,
+                    ifilelist = opts.filelist, ofilelist,
                     vcs_clock_period_h, vcs_clock_period_l;
 
         // Build environment
         inja::Environment env;
         nlohmann::json data;
 
-        data["__SOURCE_MODULE_NAME__"] = sync_opts["src_module_name"];
-        data["__TOP_MODULE_NAME__"]    = sync_opts["dst_module_name"];
+        data["__SOURCE_MODULE_NAME__"] = src_module_name;
+        data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
         gen_sv_param(data, external_pin, internal_pin, wave_file_name,
                      simulator);
@@ -131,18 +131,19 @@ namespace picker { namespace codegen {
                   env, data);
 
         // Set clock period
+        printf("Frequency: %s\n", opts.frequency.c_str());
         get_clock_period(vcs_clock_period_h, vcs_clock_period_l,
-                         opts["frequency"].as<std::string>());
+                            opts.frequency);    
 
         // Render lib filelist
         gen_filelist(filename, ifilelist, ofilelist);
 
         data["__VCS_CLOCK_PERIOD_HIGH__"] = vcs_clock_period_h;
         data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
-        data["__VERBOSE__"]         = opts["verbose"].as<bool>() ? "ON" : "OFF";
-        data["__EXAMPLE__"]         = opts["example"].as<bool>() ? "ON" : "OFF";
-        data["__COVERAGE__"]        = opts["coverage"].as<bool>() ? "ON" : "OFF";
-        data["__TARGET_LANGUAGE__"] = opts["language"].as<std::string>();
+        data["__VERBOSE__"]         = opts.verbose ? "ON" : "OFF";
+        data["__EXAMPLE__"]         = opts.example ? "ON" : "OFF";
+        data["__COVERAGE__"]        = opts.coverage ? "ON" : "OFF";
+        data["__TARGET_LANGUAGE__"] = opts.language;
         data["__FILELIST__"]        = ofilelist;
 
         // Render lib files

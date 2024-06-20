@@ -6,6 +6,7 @@ set(source_file
      python.cpp
      sv.cpp
      lib.cpp
+     uvm.cpp
 )
 
 add_library(codegen ${source_file})

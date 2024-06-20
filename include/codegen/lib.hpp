@@ -16,8 +16,9 @@ namespace picker { namespace codegen {
 
     /// @brief render all svdpi files, build related files and copy other files
     /// @param opts
-    /// @param sync_opts
-    void lib(cxxopts::ParseResult opts, nlohmann::json &sync_opts,
-             const std::vector<sv_signal_define> &external_pin,
-             const std::vector<sv_signal_define> &internal_pin);
+    /// @param external_pin
+    /// @param internal_pin
+    void lib(picker::exports_opts &opts,
+             const std::vector<picker::sv_signal_define> &external_pin,
+             const std::vector<picker::sv_signal_define> &internal_pin);
 }} // namespace picker::codegen

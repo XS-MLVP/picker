@@ -7,9 +7,10 @@
 #include <regex>
 #include <set>
 #include <unistd.h>
+#include "type.hpp"
 #include "json.hpp"
 #include "inja.hpp"
-#include "cxxopts.hpp"
+#include "CLI11.hpp"
 #include "version.hpp"
 #include "codegen/cpp.hpp"
 #include "codegen/python.hpp"
@@ -47,6 +48,7 @@ extern bool is_debug;
         OUTPUT(stderr, fmt, ##__VA_ARGS__);                                    \
         exit(-1);                                                              \
     }
+
 
 inline void vassert(bool c, std::string msg = "")
 {
@@ -358,5 +360,25 @@ inline std::string get_template_path()
     path      = path.substr(0, path.find_last_of("/\\"));
     path      = path + "/share/picker/template";
     return path;
+}
+inline std::string extract_name(const std::string& input, char delimiter,int isFirst) {
+    size_t pos = input.find(delimiter);
+    if(pos != std::string::npos){
+        if (isFirst == 1) {
+            return input.substr(0, pos);
+        }else{
+            return input.substr(pos + 1);
+        }
+    }
+    return input; // 如果没有找到分隔符，则返回整个字符串
+}
+
+inline std::string getCurrentTime() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::tm now_tm = *std::localtime(&now_c);
+    std::ostringstream oss;
+    oss << std::put_time(&now_tm, "%Y-%m-%d %H:%M:%S");
+    return oss.str();
 }
 } // namespace picker
