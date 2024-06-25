@@ -20,3 +20,8 @@ else
 fi
 
 cd picker_out_adder && make
+
+if [[ $@ == *"java"* ]]; then
+    cd ..
+    java -cp picker_out_adder/UT_Adder/UT_Adder.jar:picker_out_adder/UT_Adder/xspcomm-java.jar -ea example/Adder/example.java
+fi

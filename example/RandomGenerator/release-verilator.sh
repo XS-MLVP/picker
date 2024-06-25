@@ -12,7 +12,7 @@ fi
 
 rm -rf picker_out_rmg/
 
-picker exports -f example/RandomGenerator/RandomGenerator.v --autobuild=false -w RandomGenerator.fst -S RandomGenerator $@ -t picker_out_rmg 
+picker exports -f example/RandomGenerator/RandomGenerator.v --autobuild=false -w RandomGenerator.fst $@ --tdir picker_out_rmg
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/RandomGenerator/example.py picker_out_rmg/
@@ -21,3 +21,8 @@ else
 fi
 
 cd picker_out_rmg && make
+
+if [[ $@ == *"java"* ]]; then
+    cd ..
+    java -cp picker_out_rmg/UT_RandomGenerator/UT_RandomGenerator.jar:picker_out_rmg/UT_RandomGenerator/xspcomm-java.jar -ea example/RandomGenerator/example.java
+fi
