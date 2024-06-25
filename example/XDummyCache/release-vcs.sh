@@ -19,7 +19,7 @@ cd build && make -j`nproc` && cd ../
 
 # run cache codegen
 rm -rf temp 
-./build/bin/picker exports --autobuild=false -f example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fsdb --sim vcs
+./build/bin/picker export --autobuild=false example/XDummyCache/Cache.sv -s ./template/xdut/cpp -t ./temp -S XDumyCache -T Cache -w Cache.fsdb --sim vcs
 
 # build cache
 cd temp && make
