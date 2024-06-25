@@ -1,12 +1,15 @@
 all: compile
-	python3 __init__.py
-	cd ../ && python3 example.py || true
+	@python3 __init__.py
+	@echo "--------------Comple Success Test Step DUT--------------------"
+	@cd ../ && python3 example.py || true
+	@echo "--------------------------------------------------------------"
 
 compile:
+	@cp -r {{__XSPCOMM_PYTHON__}} xspcomm
 	cmake . -Bbuild
 	cmake --build build --config Debug --parallel `nproc`
-	cp build/_${TARGET}.so .
-	cp build/lib${TARGET}.py .
+	@cp build/_${TARGET}.so .
+	@cp build/lib${TARGET}.py .
 
 clean:
-	rm -rf *.fst *.vcd *.fsdb *.log *.key
+	@rm -rf *.fst *.vcd *.fsdb *.log *.key

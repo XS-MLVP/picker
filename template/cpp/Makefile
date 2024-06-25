@@ -1,11 +1,13 @@
 all: compile
-	cp build/UT{{__TOP_MODULE_NAME__}}_example .
-	rm -rf build
-	cd ../ && ./UT_{{__TOP_MODULE_NAME__}}/UT{{__TOP_MODULE_NAME__}}_example || true
+	@cp build/UT{{__TOP_MODULE_NAME__}}_example .
+	@rm -rf build
+	@echo "--------------Comple Success Test Step DUT--------------------"
+	@cd ../ && ./UT_{{__TOP_MODULE_NAME__}}/UT{{__TOP_MODULE_NAME__}}_example || true
+	@echo "--------------------------------------------------------------"
 
 compile:
-	cmake . -Bbuild
-	cmake --build build --config Release --parallel `nproc`
+	@cmake . -Bbuild
+	@cmake --build build --config Release --parallel `nproc`
 
-clean: 
-	rm -rf *.fst *.vcd *.fsdb *.log *.key *.dat
+clean:
+	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.dat
