@@ -5,7 +5,7 @@ all: clean build
 init:
 	rm -rf dependence/xcomm
 	git clone https://github.com/XS-MLVP/xcomm.git dependence/xcomm
-	cd dependence/xcomm && git checkout da4849
+	cd dependence/xcomm && git checkout master
 	
 build:
 	@if ! command -v verible-verilog-format ; then \
