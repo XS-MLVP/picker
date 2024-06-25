@@ -1,4 +1,4 @@
-package example.RandomGenerator;
+package com.ut;
 
 import com.ut.UT_RandomGenerator;
 

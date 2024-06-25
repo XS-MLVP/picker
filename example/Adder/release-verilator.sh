@@ -11,17 +11,14 @@ then
 fi
 
 rm -rf picker_out_adder/
-picker exports -f example/Adder/Adder.v --autobuild=false -w Adder.fst --sname Adder $@ --tdir picker_out_adder
+./build/bin/picker export example/Adder/Adder.v --autobuild=false -w Adder.fst --sname Adder $@ --tdir picker_out_adder
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/Adder/example.py picker_out_adder/python/
+elif [[ $@ == *"java"* ]]; then
+    cp example/Adder/example.java picker_out_adder/java/
 else
     cp example/Adder/example.cpp picker_out_adder/cpp/
 fi
 
-cd picker_out_adder && make
-
-if [[ $@ == *"java"* ]]; then
-    cd ..
-    java -cp picker_out_adder/UT_Adder/UT_Adder.jar:picker_out_adder/UT_Adder/xspcomm-java.jar -ea example/Adder/example.java
-fi
+cd picker_out_adder && make EXAMPLE=ON
