@@ -48,12 +48,12 @@ function(XSJavaTarget)
 
 	# copy file
 	add_custom_command(
-		OUTPUT ${JAR_SOURCE_DIR}/simple_step.java
+		OUTPUT ${JAR_SOURCE_DIR}/example.java
 		COMMAND ${CMAKE_COMMAND} -E copy
 				${CMAKE_CURRENT_BINARY_DIR}/*.java
 				${JAR_SOURCE_DIR}/
 		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/../java/simple_step.java
+				${CMAKE_CURRENT_SOURCE_DIR}/../java/example.java
 				${JAR_SOURCE_DIR}/
 		COMMAND ${CMAKE_COMMAND} -E copy
 				${CMAKE_CURRENT_SOURCE_DIR}/../java/dut.java
@@ -68,7 +68,7 @@ function(XSJavaTarget)
     _DummyTarget_create_${PROJECT_NAME} ALL
         COMMAND ${Java_JAR_EXECUTABLE} cfm UT_${PROJECT_NAME}.jar MANIFEST.MF -C ${JAR_SOURCE_DIR} .
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS ${JAR_SOURCE_DIR}/simple_step.java
+        DEPENDS ${JAR_SOURCE_DIR}/example.java
 	)
 
 endfunction()
