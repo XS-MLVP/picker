@@ -1,5 +1,12 @@
 # Prerequisites
 *.d
+*.fst
+*.vcd
+*.dat
+*.fsdb
+*.log
+*.jar
+*.key
 
 # Compiled Object files
 *.slo
