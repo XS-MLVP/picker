@@ -57,13 +57,35 @@ sudo -E make install
 > 安装时会自动安装 `xspcomm`基础库（[https://github.com/XS-MLVP/xcomm](https://github.com/XS-MLVP/xcomm)），该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**  
 > 同时如果开启了python支持，还会安装 `xspcomm` 的python包，位于 `/usr/local/share/picker/python/xspcomm/`。 
 
+安装完成后，执行`picker`命令可以得到以下输出:
+
+```
+XDut Generate. 
+Convert DUT(*.v/*.sv) to C++ DUT libs.
+
+Usage: picker [OPTIONS] [SUBCOMMAND]
+
+Options:
+  -h,--help                   Print this help message and exit
+  -v,--version                Print version
+  --show_default_template_path
+                              Print default template path
+  --lib_location_cpp          Print xspcomm lib and include location
+  --lib_location_java         Print xspcomm-java.jar location
+  --lib_location_python       Print python module xspcomm location
+
+Subcommands:
+  export                      Export RTL Projects Sources as Software libraries such as C++/Python
+  pack                        Pack uvm transaction as a uvm agent and python class
+```
+
 ### 安装测试
 
 当前picker有pack和export两个子命令，你可以运行如下两条命令来检查他们的输出：
 
 ```bash
 Export RTL Projects Sources as Software libraries such as C++/Python
-Usage: ./build/bin/picker export [OPTIONS] file
+Usage: picker export [OPTIONS] file
 
 Positionals:
   file TEXT REQUIRED          DUT .v/.sv source file, contain the top module
