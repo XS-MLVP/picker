@@ -165,7 +165,7 @@ namespace picker { namespace parser {
         return pin;
     }
 
-    int sv(picker::exports_opts &opts, std::vector<picker::sv_signal_define> &external_pin)
+    int sv(picker::export_opts &opts, std::vector<picker::sv_signal_define> &external_pin)
     {
         std::string dst_module_name = opts.target_module_name;
 

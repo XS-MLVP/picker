@@ -101,7 +101,7 @@ namespace picker { namespace codegen {
         std::string verilaotr_coverage, vcs_coverage;
     }
 
-    void lib(picker::exports_opts &opts,
+    void lib(picker::export_opts &opts,
              const std::vector<picker::sv_signal_define> &external_pin,
              const std::vector<picker::sv_signal_define> &internal_pin)
     {

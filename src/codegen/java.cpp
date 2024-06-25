@@ -130,7 +130,7 @@ namespace picker { namespace codegen {
 
     } // namespace java
 
-    void java(picker::exports_opts &opts,
+    void java(picker::export_opts &opts,
                 std::vector<picker::sv_signal_define> external_pin,
                 std::vector<picker::sv_signal_define> internal_signal)
     {
@@ -156,6 +156,12 @@ namespace picker { namespace codegen {
         // Set global render data
         nlohmann::json data;
 
+        std::string erro_message;
+        auto java_location = picker::get_xcomm_lib("java/xspcomm-java.jar", erro_message);
+        if (java_location.empty()) {
+            FATAL("%s\n", erro_message.c_str());
+        }
+        data["__XSPCOMM_JAR__"] = java_location;
         data["__SOURCE_MODULE_NAME__"] = src_module_name;
         data["__TOP_MODULE_NAME__"]    = dst_module_name;
 

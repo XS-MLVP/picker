@@ -57,7 +57,7 @@ namespace picker { namespace parser {
         return pin_list;
     };
 
-    int internal(picker::exports_opts &opts,
+    int internal(picker::export_opts &opts,
                  std::vector<picker::sv_signal_define> &internal_pin)
     {
         internal_pin = opts.internal.length() == 0 ?

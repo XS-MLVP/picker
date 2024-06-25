@@ -7,6 +7,7 @@
 #include <regex>
 #include <set>
 #include <unistd.h>
+#include <filesystem>
 #include "type.hpp"
 #include "json.hpp"
 #include "inja.hpp"
@@ -213,6 +214,11 @@ inline std::string get_path(std::string str)
     return str.substr(0, found);
 }
 
+inline std::string normal_path(std::string path)
+{
+    return std::filesystem::absolute(path).lexically_normal().string();
+}
+
 inline std::string path_join(std::initializer_list<std::string> args)
 {
     std::string path, value;
@@ -227,7 +233,7 @@ inline std::string path_join(std::initializer_list<std::string> args)
         v      = trim(v, "\\");
         path.append("/" + v);
     }
-    return path;
+    return normal_path(path);
 }
 
 inline std::string current_path()
@@ -354,13 +360,45 @@ inline std::string get_executable_path()
 
 #endif
 
+inline std::string get_xcomm_location(){
+    auto path = get_executable_path();
+    path      = path.substr(0, path.find_last_of("/\\"));
+    path      = path.substr(0, path.find_last_of("/\\"));
+    for (auto &l: {"/dependence/xcomm", "/share/picker"}){
+        auto lib_path = path_join({path, l});
+        if(file_exists(lib_path)){
+            return lib_path;
+        }
+    }
+    return "";
+}
+
+inline std::string get_xcomm_lib(std::string lib_name, std::string & message){
+    auto path = get_xcomm_location();
+    if(path.empty()){
+        message = "xcomm lib not found";
+        return "";
+    }
+    auto lib = path_join({path, lib_name});
+    if(file_exists(lib)){
+        return lib;
+    }
+    message = lib + " not found";
+    return "";
+}
+
 inline std::string get_template_path()
 {
     auto path = get_executable_path();
     path      = path.substr(0, path.find_last_of("/\\"));
     path      = path.substr(0, path.find_last_of("/\\"));
-    path      = path + "/share/picker/template";
-    return path;
+    for (auto &l: {"../template", "/share/picker/template"}){
+        auto lib_path = path_join({path, l});
+        if(file_exists(lib_path)){
+            return lib_path;
+        }
+    }
+    return "";
 }
 inline std::string extract_name(const std::string& input, char delimiter,int isFirst) {
     size_t pos = input.find(delimiter);

@@ -132,7 +132,7 @@ namespace codegen {
 
     } // namespace cxx
 
-    void cpp(picker::exports_opts &opts,
+    void cpp(picker::export_opts &opts,
              std::vector<picker::sv_signal_define> external_pin,
              std::vector<picker::sv_signal_define> internal_signal)
     {

@@ -120,7 +120,7 @@ namespace picker { namespace codegen {
 
     } // namespace py
 
-    void python(picker::exports_opts &opts,
+    void python(picker::export_opts &opts,
                 std::vector<picker::sv_signal_define> external_pin,
                 std::vector<picker::sv_signal_define> internal_signal)
     {
@@ -146,6 +146,13 @@ namespace picker { namespace codegen {
                        [](unsigned char c) { return std::toupper(c); });
         // Set global render data
         nlohmann::json data;
+
+        std::string erro_message;
+        auto python_location = picker::get_xcomm_lib("python/xspcomm", erro_message);
+        if (python_location.empty()) {
+            FATAL("%s\n", erro_message.c_str());
+        }
+        data["__XSPCOMM_PYTHON__"] = python_location;
 
         data["__SOURCE_MODULE_NAME__"] = src_module_name;
         data["__TOP_MODULE_NAME__"]    = dst_module_name;

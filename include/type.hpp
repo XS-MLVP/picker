@@ -2,7 +2,17 @@
 #include <bits/stdc++.h>
 
 namespace picker {
-typedef struct exports_opts {
+
+typedef struct main_opts {
+    bool version;
+    bool show_default_template_path;
+    bool show_xcom_lib_location_cpp;
+    bool show_xcom_lib_location_java;
+    bool show_xcom_lib_location_python;
+} main_opts;
+
+
+typedef struct export_opts {
     std::string file;
     std::string filelist;
     std::string sim;
@@ -18,12 +28,11 @@ typedef struct exports_opts {
     std::string vflag;
     std::string cflag;
     bool verbose;
-    bool version;
     bool example;
     bool autobuild;
     std::vector<std::string> transaction;
     std::string rname;
-} exports_opts;
+} export_opts;
 
 
 typedef struct pack_opts {

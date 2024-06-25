@@ -5,7 +5,7 @@
 #include "parser/sv.hpp"
 
 namespace picker { namespace codegen {
-    void java(picker::exports_opts &opts,
+    void java(picker::export_opts &opts,
                 std::vector<picker::sv_signal_define> external_pin,
                 std::vector<picker::sv_signal_define> internal_signal);
 }} // namespace picker::codegen
