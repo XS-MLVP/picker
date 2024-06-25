@@ -124,3 +124,8 @@ bash example/RandomGenerator/release-verilator.sh --lang cpp
 bash example/RandomGenerator/release-verilator.sh --lang python
 bash example/RandomGenerator/release-verilator.sh --lang java
 ```
+
+
+### More Documents
+
+For guidance on chip verification with picker, please refer to: [https://open-verify.cc/mlvp/en/docs/](https://open-verify.cc/mlvp/en/docs/)

@@ -147,3 +147,7 @@ bash example/RandomGenerator/release-verilator.sh --lang cpp
 bash example/RandomGenerator/release-verilator.sh --lang python
 bash example/RandomGenerator/release-verilator.sh --lang java
 ```
+
+### 参考材料
+
+如何基于picker进行芯片验证，可参考：[https://open-verify.cc/mlvp/docs/](https://open-verify.cc/mlvp/docs/)
