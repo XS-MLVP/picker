@@ -112,3 +112,15 @@ Options:
   -r,--rename TEXT ...        Rename transaction name in picker generate code
 
 ```
+
+### Test Examples
+After picker compilation, execute the following commands in the picker directory to test the examples:
+
+```
+bash example/Adder/release-verilator.sh --lang cpp
+bash example/Adder/release-verilator.sh --lang python
+bash example/Adder/release-verilator.sh --lang java
+bash example/RandomGenerator/release-verilator.sh --lang cpp
+bash example/RandomGenerator/release-verilator.sh --lang python
+bash example/RandomGenerator/release-verilator.sh --lang java
+```

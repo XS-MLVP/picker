@@ -136,3 +136,14 @@ pack:
 * `--force， -c`: 可选。若以存在picker根据当前transaction解析出的文件，通过该命令可强制删除该文件，并重新生成
 * `--rename, -r`: 可选。配置生成文件以及生成的agent的名称，默认为transactio名。
 
+### 测试Examples
+
+编译完成后，在picker目录执行以下命令，进行测试：
+```
+bash example/Adder/release-verilator.sh --lang cpp
+bash example/Adder/release-verilator.sh --lang python
+bash example/Adder/release-verilator.sh --lang java
+bash example/RandomGenerator/release-verilator.sh --lang cpp
+bash example/RandomGenerator/release-verilator.sh --lang python
+bash example/RandomGenerator/release-verilator.sh --lang java
+```
