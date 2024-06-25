@@ -14,6 +14,7 @@
 #include "version.hpp"
 #include "codegen/cpp.hpp"
 #include "codegen/python.hpp"
+#include "codegen/java.hpp"
 #include "codegen/sv.hpp"
 #include "codegen/lib.hpp"
 #include "parser/sv.hpp"

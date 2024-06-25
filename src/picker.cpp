@@ -32,7 +32,7 @@ int exports(CLI::App &top_app)
     // Set DUT RTL Language, Optional, default is python
     app->add_option(
            "--lang,--language", exports_opts.language,
-           "Build example project, default is cpp, choose cpp or python")
+           "Build example project, default is python, choose cpp, java or python")
         ->default_val("python");
 
     // Set DUT RTL Source Dir, Optional, default is
@@ -175,6 +175,8 @@ int main(int argc, char **argv)
         picker::codegen::cpp(exports_opts, sv_pin_result,
                              internal_sginal_result);
         picker::codegen::python(exports_opts, sv_pin_result,
+                                internal_sginal_result);
+        picker::codegen::java(exports_opts, sv_pin_result,
                                 internal_sginal_result);
         // build the result with make
         if (exports_opts.autobuild) {
