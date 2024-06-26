@@ -107,7 +107,7 @@ int set_options_pack_message(CLI::App &top_app)
 {
     auto app = top_app.add_subcommand(
          "pack",
-         "Pack uvm transaction as a uvm agent and python class");
+         "Pack UVM transaction as a UVM agent and Python class");
 
     // Set DUT RTL Source File, Required
     app->add_flag(
