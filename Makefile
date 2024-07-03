@@ -20,5 +20,10 @@ build:
 install: build
 	cd build && make install
 
+test: build
+	./build/bin/picker -h
+	./build/bin/picker pack -h
+	./build/bin/picker exports -h
+
 clean:
 	sudo rm -rf temp build

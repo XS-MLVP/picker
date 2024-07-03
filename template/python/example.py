@@ -6,4 +6,4 @@ if __name__ == "__main__":
 
     dut.Step(1)
 
-    dut.finalize()
+    dut.finished()

@@ -91,8 +91,8 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public void stepFal(Consumer<java.math.BigInteger> callback){
         this.xclock.StepFal(new CbXClockStep(callback));
     }
-    public void xFinalize(){
-        this.dut.xfinalize();
+    public void finished(){
+        this.dut.finished();
     }
     public void initClock(String clock_name){
         this.xclock.Add(this.port.Get(clock_name));

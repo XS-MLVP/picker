@@ -12,19 +12,19 @@ else:
 
 class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 
-	# 初始化
-	def __init__(self, waveform_filename=None, coverage_filename=None, *a, **kw):
-		super().__init__(*a, **kw)
+	# initialize
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 		self.xclock = xsp.XClock(self.step)
 		self.port  = xsp.XPort()
 		self.xclock.Add(self.port)
 		self.event = self.xclock.getEvent()
 
 		# set output files
-		if waveform_filename:
-			super().set_waveform(waveform_filename)
-		if coverage_filename:
-			super().set_coverage(coverage_filename)
+		if kwargs.get("waveform_filename"):
+			super().set_waveform(kwargs.get("waveform_filename"))
+		if kwargs.get("coverage_filename"):
+			super().set_coverage(kwargs.get("coverage_filename"))
 
 		# all Pins
 {{__XDATA_INIT__}}
@@ -36,7 +36,7 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 
 	def __del__(self):
 		super().__del__()
-		self.finalize()
+		self.finished()
 
 	def init_clock(self,name:str):
 		self.xclock.Add(self.port[name])

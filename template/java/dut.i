@@ -15,10 +15,6 @@
 #include "UT_{{__TOP_MODULE_NAME__}}_dpi.hpp"
 %}
 
-%rename(xfinalize) DutBase::finalize;
-%rename(xfinalize) DutVerilatorBase::finalize;
-%rename(xfinalize) DutUnifiedBase::finalize;
-
 %define {{__USE_SIMULATOR__}}
 %enddef
 
