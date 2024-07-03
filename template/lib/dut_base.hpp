@@ -1,12 +1,14 @@
 #pragma once
 #include <bits/stdc++.h>
 #include <svdpi.h>
+#include <dlfcn.h>
 
 class DutBase
 {
 public:
     uint64_t cycle;
     int argc;
+    void *lib_handle;
     char **argv;
 
     // Initialize
@@ -19,7 +21,8 @@ public:
     // Simulate N cycles
     virtual int step(uint64_t cycle, bool dump) = 0;
     // Clean up and dump result
-    virtual int finalize() = 0;
+    virtual int finished() = 0;
+    virtual uint64_t get_dpi_handle(char* name, int towards) = 0;
 
     // Set waveform file path
     virtual void set_waveform(const char *filename) = 0;
@@ -46,7 +49,8 @@ public:
     int step_nodump();
     int step(bool dump);
     int step(uint64_t cycle, bool dump);
-    int finalize();
+    int finished();
+    uint64_t get_dpi_handle(char* name, int towards);
     void set_waveform(const char *filename);
     void set_coverage(const char *filename);
 };
@@ -78,7 +82,7 @@ public:
     int step_nodump();
     int step(bool dump);
     int step(uint64_t cycle, bool dump);
-    int finalize();
+    int finished();
     void set_waveform(const char *filename);
     void set_coverage(const char *filename);
 };
@@ -98,7 +102,8 @@ public:
     DutUnifiedBase(char *filename, int argc, char **argv);
     DutUnifiedBase(std::initializer_list<const char *> args);
     ~DutUnifiedBase();
-    int finalize();
+    int finished();
+    uint64_t get_dpi_handle(char* name, int towards);
     void set_waveform(const char *filename); // Set waveform file path
     void set_coverage(const char *filename); // Set coverage file path
 };

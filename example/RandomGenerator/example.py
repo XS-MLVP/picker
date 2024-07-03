@@ -31,4 +31,4 @@ if __name__ == "__main__":
         ref.step()
 
     print("Test Passed, destroy UT_RandomGenerator")
-    dut.finalize()
+    dut.finished()

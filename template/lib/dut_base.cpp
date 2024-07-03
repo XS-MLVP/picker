@@ -111,9 +111,9 @@ int DutVcsBase::step(uint64_t ncycle, bool dump)
     return 0;
 };
 
-int DutVcsBase::finalize()
+int DutVcsBase::finished()
 {
-    // finalize VCS context
+    // finished VCS context
     return 0;
 };
 
@@ -122,7 +122,6 @@ int DutVcsBase::finalize()
 #if defined(USE_VERILATOR)
 #include "verilated.h"
 #include "V{{__TOP_MODULE_NAME__}}.h"
-#include "V{{__TOP_MODULE_NAME__}}__Dpi.h"
 #if defined(VL_TRACE)
 #include "V{{__TOP_MODULE_NAME__}}___024root.h"
 #include "V{{__TOP_MODULE_NAME__}}__Syms.h"
@@ -130,7 +129,7 @@ int DutVcsBase::finalize()
 
 DutVerilatorBase::DutVerilatorBase()
 {
-    this->init(0, nullptr);
+    Warn("No-args constructor is not supported for Verilator");
 }
 
 DutVerilatorBase::DutVerilatorBase(char *filename)
@@ -164,6 +163,7 @@ DutVerilatorBase::DutVerilatorBase(std::initializer_list<const char *> args)
 
 DutVerilatorBase::DutVerilatorBase(int argc, char **argv)
 {
+    Warn("Shared DPI Library is required for Verilator");
     // save argc and argv for debug
     this->argc = argc;
     this->argv = argv;
@@ -176,21 +176,45 @@ void DutVerilatorBase::init(int argc, char **argv)
     this->argc = argc;
     this->argv = argv;
 
-    // initialize Verilator context
-    Verilated::commandArgs(argc, argv);
+    // load DPI library
+    this->lib_handle = dlmopen(LM_ID_NEWLM, "libDPI{{__TOP_MODULE_NAME__}}.so",  RTLD_NOW | RTLD_DEEPBIND);
+    if (!this->lib_handle) {
+        Fatal("Failed to load DPI library: %s", dlerror());
+    }
+    Debug("Loaded DPI library: %s", "libDPI{{__TOP_MODULE_NAME__}}.so");
+    Lmid_t lmid;
+    dlinfo(this->lib_handle, RTLD_DI_LMID, &lmid);
 
     // create top module
     VerilatedContext *contextp = new VerilatedContext;
     contextp->randReset(2);
     contextp->debug(0);
     contextp->commandArgs(argc, argv);
-    this->top = new V{{__TOP_MODULE_NAME__}} {contextp};
+    
+    // due to dlmopen, the verilator context is in another namespace
+    // so we need to use dlsym to get the function pointer
+    typedef svScope (*svSetScopeFunc)(svScope);
+    typedef svScope (*svGetScopeFromNameFunc)(const char*);
+    typedef V{{__TOP_MODULE_NAME__}}* (*dlcreatesFunc)(VerilatedContext* vc);
+
+    dlcreatesFunc _dlcreates = reinterpret_cast<dlcreatesFunc>(dlsym(this->lib_handle, "dlcreates"));
+    if (!_dlcreates) {
+        Fatal("Failed to load dlcreates function");
+    }
+    this->top = _dlcreates(contextp);
 
 #if defined(VL_TRACE)
     contextp->traceEverOn(true);
 #endif
-
-    svSetScope(svGetScopeFromName("TOP.{{__TOP_MODULE_NAME__}}_top"));
+    
+    // set simulation scope
+    svSetScopeFunc _svSetScope = reinterpret_cast<svSetScopeFunc>(dlsym(this->lib_handle, "svSetScope"));
+    svGetScopeFromNameFunc _svGetScopeFromName = reinterpret_cast<svGetScopeFromNameFunc>(dlsym(this->lib_handle, "svGetScopeFromName"));
+    if (!_svSetScope || !_svGetScopeFromName ) {
+        std::cerr << "Failed to load simulation scope functions." << std::endl;
+        return;
+    }
+    _svSetScope(_svGetScopeFromName("TOP.{{__TOP_MODULE_NAME__}}_top"));
 
     // set cycle pointer to 0
     this->cycle = 0;
@@ -198,8 +222,8 @@ void DutVerilatorBase::init(int argc, char **argv)
 
 DutVerilatorBase::~DutVerilatorBase()
 {
-    // finalize Verilator context
-    this->finalize();
+    // finished Verilator context
+    this->finished();
 };
 
 int DutVerilatorBase::step()
@@ -220,26 +244,23 @@ int DutVerilatorBase::step(bool dump)
 
 int DutVerilatorBase::step(uint64_t ncycle, bool dump)
 {
-    // set cycle pointer
-    this->cycle += ncycle;
-
-    // run simulation
+    cycle += ncycle;
     if (dump) {
         for (int i = 0; i < ncycle; i++) {
-            ((V{{__TOP_MODULE_NAME__}} *)(this->top))->eval();
-            ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->timeInc(1);
+            ((V{{__TOP_MODULE_NAME__}} *)(top))->eval();
+            ((V{{__TOP_MODULE_NAME__}} *)(top))->contextp()->timeInc(1);
         }
     } else {
         assert(ncycle == 1);
-        ((V{{__TOP_MODULE_NAME__}} *)(this->top))->eval_step();
+        ((V{{__TOP_MODULE_NAME__}} *)(top))->eval_step();
     }
 
     return 0;
 };
 
-int DutVerilatorBase::finalize()
+int DutVerilatorBase::finished()
 {
-    // finalize Verilator context
+    // finished Verilator context
     if (this->top != nullptr) {
 #if defined(VL_COVERAGE)
         VerilatedContext *contextp = ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp();
@@ -253,6 +274,29 @@ int DutVerilatorBase::finalize()
         this->top = nullptr;
     }
     return 0;
+};
+
+uint64_t DutVerilatorBase::get_dpi_handle(char *name, int towards)
+{
+    char *func_name = (char *)malloc(strlen(name) + 5);
+    if (!func_name) {
+        Fatal("Memory allocation failed for func_name");
+    }
+    if (towards == 0) { // 0 is read from sv
+        strcpy(func_name, "get_");
+    } else if (towards == 1) { // 1 is write to sv
+        strcpy(func_name, "set_");
+    } else {
+        free(func_name);
+        Fatal("towards should be 0 or 1");
+    }
+    strcat(func_name, name);
+    uint64_t handle = (uint64_t)dlsym(this->lib_handle, func_name);
+    if (!handle) {
+        Fatal("Failed to load DPI function: %s", func_name);
+    }
+    free(func_name);
+    return handle;
 };
 
 void DutVerilatorBase::set_waveform(const char *filename)
@@ -286,8 +330,11 @@ DutUnifiedBase::DutUnifiedBase(int argc, char **argv) : DutVerilatorBase(argc, a
 DutUnifiedBase::DutUnifiedBase(char *filename) : DutVerilatorBase(filename) {};
 DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv) : DutVerilatorBase(filename, argc, argv) {};
 DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args) : DutVerilatorBase(args) {};
-int DutUnifiedBase::finalize() {
-    return DutVerilatorBase::finalize();
+int DutUnifiedBase::finished() {
+    return DutVerilatorBase::finished();
+}
+uint64_t DutUnifiedBase::get_dpi_handle(char *name, int towards) {
+    return DutVerilatorBase::get_dpi_handle(name, towards);
 }
 void DutUnifiedBase::set_waveform(const char *filename) {
     return DutVerilatorBase::set_waveform(filename);
@@ -301,8 +348,8 @@ DutUnifiedBase::DutUnifiedBase(int argc, char **argv) : DutVcsBase(argc, argv){}
 DutUnifiedBase::DutUnifiedBase(char *filename) : DutVcsBase(filename) {};
 DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv) : DutVcsBase(filename, argc, argv) {};
 DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args) : DutVcsBase(args) {};
-int DutUnifiedBase::finalize() {
-    return DutVcsBase::finalize();
+int DutUnifiedBase::finished() {
+    return DutVcsBase::finished();
 }
 void DutUnifiedBase::set_waveform(const char *filename) {
     return DutVcsBase::set_waveform(filename);
@@ -314,5 +361,5 @@ void DutUnifiedBase::set_coverage(const char *filename) {
 
 DutUnifiedBase::~DutUnifiedBase()
 {
-    // finalize {{__TOP_MODULE_NAME__}}
+    // finished {{__TOP_MODULE_NAME__}}
 }

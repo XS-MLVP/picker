@@ -25,7 +25,7 @@ UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(std::initializer_list<const
 
 UT{{__TOP_MODULE_NAME__}}::~UT{{__TOP_MODULE_NAME__}}()
 {
-    // finalize {{__TOP_MODULE_NAME__}}
+    // finished {{__TOP_MODULE_NAME__}}
 }
 
 void UT{{__TOP_MODULE_NAME__}}::init()
