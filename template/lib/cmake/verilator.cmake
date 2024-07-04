@@ -31,9 +31,9 @@ if(SIMULATOR STREQUAL "verilator")
 
 	set(VERILATE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/DPI${ModuleName})
 	include_directories(${VERILATE_DIRECTORY})
-	add_library(SDPI${ModuleName} STATIC)
+	add_library(DPI${ModuleName} STATIC)
 	verilate(
-		SDPI${ModuleName}
+		DPI${ModuleName}
 		SOURCES
 		${ModuleName}_top.sv
 		${ModuleName}.v
@@ -56,12 +56,16 @@ if(SIMULATOR STREQUAL "verilator")
 		"-fPIC ${CFLAGS}")
 	message(STATUS "Verilator generated files in ${VERILATE_DIRECTORY}")
 	add_library(dut_base STATIC dut_base.cpp)
-	add_library(DPI${ModuleName} SHARED dut_attach.cpp)
-	target_link_libraries(DPI${ModuleName} "-Wl,--whole-archive"
-												SDPI${ModuleName} "-Wl,--no-whole-archive")
 	add_dependencies(dut_base DPI${ModuleName})
 
 	add_library(${ModuleName} SHARED dut_base)
-	target_link_libraries(${ModuleName} DPI${ModuleName})
+	target_link_libraries(${ModuleName} "-Wl,--whole-archive" DPI${ModuleName}
+	"-Wl,--no-whole-archive" dl )
+
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E copy 
+		${VERILATE_DIRECTORY}/V${ModuleName}__Dpi.h
+		${CMAKE_BINARY_DIR}/UT_${ModuleName}/UT_${ModuleName}_dpi.hpp
+	)
 
 endif()

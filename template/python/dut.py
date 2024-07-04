@@ -15,16 +15,16 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 	# initialize
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.xclock = xsp.XClock(self.step)
+		self.xclock = xsp.XClock(self.DStep)
 		self.port  = xsp.XPort()
 		self.xclock.Add(self.port)
 		self.event = self.xclock.getEvent()
 
 		# set output files
 		if kwargs.get("waveform_filename"):
-			super().set_waveform(kwargs.get("waveform_filename"))
+			super().SetWaveform(kwargs.get("waveform_filename"))
 		if kwargs.get("coverage_filename"):
-			super().set_coverage(kwargs.get("coverage_filename"))
+			super().SetCoverage(kwargs.get("coverage_filename"))
 
 		# all Pins
 {{__XDATA_INIT__}}
@@ -35,8 +35,7 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 {{__XPORT_ADD__}}
 
 	def __del__(self):
-		super().__del__()
-		self.finished()
+		self.Finished()
 
 	def init_clock(self,name:str):
 		self.xclock.Add(self.port[name])
@@ -63,5 +62,5 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 		return self.xclock.RunStep(i)
 
 if __name__=="__main__":
-	dut=DUT{{__TOP_MODULE_NAME__}}("libDPI{{__TOP_MODULE_NAME__}}.so")
+	dut=DUT{{__TOP_MODULE_NAME__}}("libUT{{__TOP_MODULE_NAME__}}.so")
 	dut.Step(1)

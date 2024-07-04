@@ -6,7 +6,7 @@ public class example {
 	  for(int i = 0; i<10; i++){
 		dut.step();
 	  }
-	  dut.finished();
+	  dut.Finished();
 	  System.out.println("Step {{__TOP_MODULE_NAME__}} 10 times complete");
 	}
 }

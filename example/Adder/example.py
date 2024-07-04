@@ -20,8 +20,8 @@ def as_uint(x, nbits):
     return x & ((1 << nbits) - 1)
 
 def main():
-    dut = DUTAdder("libDPIAdder.so")  # Assuming USE_VERILATOR
-    dut2 = DUTAdder("libDPIAdder.so")  # Assuming USE_VERILATOR
+    dut = DUTAdder()  # Assuming USE_VERILATOR
+    dut2 = DUTAdder()  # Assuming USE_VERILATOR
     
     print("Initialized UTAdder")
     
@@ -54,7 +54,7 @@ def main():
         
         assert o_dut.sum == o_ref.sum, "sum mismatch"
 
-    dut.finished()
+    dut.Finished()
     
     print("Test Passed, destroy UTAdder")
 

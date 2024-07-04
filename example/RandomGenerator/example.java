@@ -25,6 +25,6 @@ public class example {
             state = ((state << 1) | new_bit ) & ((1 << 16) - 1);
         }
         System.out.println("All tests passed");
-        dut.finished();
+        dut.Finished();
     }
 }
