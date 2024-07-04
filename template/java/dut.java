@@ -74,10 +74,10 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         this.initDut();
     }
     public void setWaveform(String wave_name){
-        this.dut.set_waveform(wave_name);
+        this.dut.SetWaveform(wave_name);
     }
     public void setCoverage(String coverage_name){
-        this.dut.set_coverage(coverage_name);
+        this.dut.SetCoverage(coverage_name);
     }
     public void step(int i){
         this.xclock.Step(i);
@@ -91,8 +91,8 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public void stepFal(Consumer<java.math.BigInteger> callback){
         this.xclock.StepFal(new CbXClockStep(callback));
     }
-    public void finished(){
-        this.dut.finished();
+    public void Finished(){
+        this.dut.Finished();
     }
     public void initClock(String clock_name){
         this.xclock.Add(this.port.Get(clock_name));

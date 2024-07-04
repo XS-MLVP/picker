@@ -25,7 +25,7 @@ UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(std::initializer_list<const
 
 UT{{__TOP_MODULE_NAME__}}::~UT{{__TOP_MODULE_NAME__}}()
 {
-    // finished {{__TOP_MODULE_NAME__}}
+    // Finished {{__TOP_MODULE_NAME__}}
 }
 
 void UT{{__TOP_MODULE_NAME__}}::init()
@@ -44,7 +44,7 @@ void UT{{__TOP_MODULE_NAME__}}::init()
 {{__XPORT_ADD__}}
 
     xfunction<int, bool> stepfunc = [&](bool d) -> int {
-        return this->step(d);
+        return this->Step(d);
     };
     this->xclk.ReInit(stepfunc, {}, {&this->port});
 }
@@ -53,7 +53,7 @@ void UT{{__TOP_MODULE_NAME__}}::initClock(XData &clk)
 {
     // initialize {{__TOP_MODULE_NAME__}} clock
     xfunction<int, bool> stepfunc = [&](bool d) -> int {
-        return this->step(d);
+        return this->Step(d);
     };
     this->xclk.ReInit(stepfunc, {&clk}, {});
 }
