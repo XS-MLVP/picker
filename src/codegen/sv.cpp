@@ -12,18 +12,18 @@ namespace picker { namespace codegen {
             "  wire {{logic_pin_length}} {{logic_pin}};\n";
 
         static const std::string dpi_get_export_template =
-            "  export \"DPI-C\" function get_{{pin_func_name}};\n";
+            "  export \"DPI-C\" function get_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n";
         static const std::string dpi_set_export_template =
-            "  export \"DPI-C\" function set_{{pin_func_name}};\n";
+            "  export \"DPI-C\" function set_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n";
 
         static const std::string dpi_get_impl_template =
-            "  function void get_{{pin_func_name}};\n"
+            "  function void get_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
             "    output logic {{logic_pin_length}} value;\n"
             "    value={{logic_pin}};\n"
             "  endfunction\n\n";
 
         static const std::string dpi_set_impl_template =
-            "  function void set_{{pin_func_name}};\n"
+            "  function void set_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
             "    input logic {{logic_pin_length}} value;\n"
             "    {{logic_pin}}=value;\n"
             "  endfunction\n\n";
@@ -46,6 +46,7 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
+                data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
 
                 // Set empty or [hb:lb] for verilog render
                 data["logic_pin_length"] =
@@ -88,6 +89,7 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
+                data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
 
                 // Set empty or [hb:lb] for verilog render
                 data["logic_pin_length"] =
@@ -152,11 +154,12 @@ namespace picker { namespace codegen {
     /// @param global_render_data
     /// @param external_pin
     /// @param internal_signal
-    void gen_sv_param(nlohmann::json &global_render_data,
-                      const std::vector<picker::sv_signal_define> &external_pin,
-                      const std::vector<picker::sv_signal_define> &internal_signal,
-                      const std::string &wave_file_name,
-                      const std::string &simulator)
+    void
+    gen_sv_param(nlohmann::json &global_render_data,
+                 const std::vector<picker::sv_signal_define> &external_pin,
+                 const std::vector<picker::sv_signal_define> &internal_signal,
+                 const std::string &wave_file_name,
+                 const std::string &simulator)
     {
         std::string pin_connect, logic, wire, dpi_export, dpi_impl;
 
