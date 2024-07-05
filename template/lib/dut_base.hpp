@@ -13,9 +13,6 @@ public:
     DutBase();
     virtual ~DutBase() = default;
 
-    // Simulate 1 cycle
-    virtual int Step() = 0;
-
     // Simulate N cycles
     virtual int Step(uint64_t cycle, bool dump) = 0;
     // Clean up and dump result
@@ -40,9 +37,6 @@ public:
     DutVerilatorBase();
     DutVerilatorBase(int argc, char **argv);
     ~DutVerilatorBase();
-    int Step();
-    int StepNoDump();
-    int Step(bool dump);
     int Step(uint64_t cycle, bool dump);
     int Finished();
     void SetWaveform(const char *filename);
@@ -50,8 +44,8 @@ public:
 };
 extern "C" {
     DutVerilatorBase *dlcreates(int argc, char **argv);
+    void dlstep(DutVerilatorBase *dut, uint64_t ncycle, bool dump);
 }
-typedef DutVerilatorBase *dlcreates_t(int argc, char **argv);
 #endif
 
 #if defined(USE_VCS)
@@ -72,9 +66,6 @@ public:
     DutVcsBase(int argc, char **argv);
     [[deprecated("VCS does not support no-args constructor")]] DutVcsBase();
     ~DutVcsBase();
-    int Step();
-    int StepNoDump();
-    int Step(bool dump);
     int Step(uint64_t cycle, bool dump);
     int Finished();
     void SetWaveform(const char *filename);
@@ -88,10 +79,12 @@ char *locateLibPath();
 class DutUnifiedBase
 {
 protected:
+    static int lib_count;
+    static bool main_ns_flag; // is there any instance of DutUnifiedBase in main namespace
+    void* lib_handle;
     int argc;
     char **argv;
 #if defined(USE_VERILATOR)
-    void* lib_handle;
     DutVerilatorBase *dut;
 #elif defined(USE_VCS)
     DutVcsBase *dut;
@@ -105,10 +98,11 @@ public:
     DutUnifiedBase(std::initializer_list<const char *> args);
     ~DutUnifiedBase();
     void init(int, char **);
-    int DStep();
-    int DStepNoDump();
-    int DStep(bool dump);
-    int DStep(uint64_t cycle, bool dump);
+    int step();
+    int stepNoDump();
+    int step(bool dump);
+    int step(uint64_t cycle, bool dump);
+    int RefreshComb();
     int Finished();
     uint64_t GetDPIHandle(char *name, int towards);
     void SetWaveform(const char *filename); // Set waveform file path

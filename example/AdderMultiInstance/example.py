@@ -20,17 +20,22 @@ def as_uint(x, nbits):
     return x & ((1 << nbits) - 1)
 
 def main():
-    dut = DUTAdder()  # Assuming USE_VERILATOR
+    dut = DUTAdder(waveform_filename="1.fst")  # Assuming USE_VERILATOR
+    dut2 = DUTAdder(waveform_filename="2.fst")  # Assuming USE_VERILATOR
+    dut.Finished()
+    dut = DUTAdder(waveform_filename="1.1.fst")  # Assuming USE_VERILATOR
     
     print("Initialized UTAdder")
     
-    for c in range(114514):
+    for c in range(10):
         i = input_t(random_int(), random_int(), random_int() & 1)
         o_dut, o_ref = output_t(), output_t()
         
         def dut_cal():
             dut.a.value, dut.b.value, dut.cin.value = i.a, i.b, i.cin
+            dut2.a.value, dut2.b.value, dut2.cin.value = i.a, 0, i.cin
             dut.Step(1)
+            dut2.Step(1)
             o_dut.sum = dut.sum.value
             o_dut.cout = dut.cout.value
         
@@ -46,11 +51,13 @@ def main():
         
         print(f"[cycle {dut.xclock.clk}] a=0x{i.a:x}, b=0x{i.b:x}, cin=0x{i.cin:x}")
         print(f"DUT: sum=0x{o_dut.sum:x}, cout=0x{o_dut.cout:x}")
+        print(f"DUT2: sum=0x{dut2.sum.value:x}, cout=0x{dut2.cout.value:x}")
         print(f"REF: sum=0x{o_ref.sum:x}, cout=0x{o_ref.cout:x}")
         
         assert o_dut.sum == o_ref.sum, "sum mismatch"
 
     dut.Finished()
+    dut2.Finished()
     
     print("Test Passed, destroy UTAdder")
 

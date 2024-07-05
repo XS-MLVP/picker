@@ -24,6 +24,8 @@
 namespace picker {
 
 extern bool is_debug;
+extern char* lib_random_hash;
+
 #define OUTPUT(o, fmt, ...)                                                    \
     {                                                                          \
         fprintf(o, fmt, ##__VA_ARGS__);                                        \
@@ -390,15 +392,15 @@ inline std::string get_xcomm_lib(std::string lib_name, std::string & message){
 inline std::string get_template_path()
 {
     auto path = get_executable_path();
-    path      = path.substr(0, path.find_last_of("/\\"));
-    path      = path.substr(0, path.find_last_of("/\\"));
+    path      = path.substr(0, path.find_last_of("/\\")); // remove picker
+    path      = path.substr(0, path.find_last_of("/\\")); // remove bin
     for (auto &l: {"../template", "/share/picker/template"}){
         auto lib_path = path_join({path, l});
         if(file_exists(lib_path)){
             return lib_path;
         }
     }
-    return "";
+    FATAL("template not found, please check the installation or mannualy set the source dir path");
 }
 inline std::string extract_name(const std::string& input, char delimiter,int isFirst) {
     size_t pos = input.find(delimiter);

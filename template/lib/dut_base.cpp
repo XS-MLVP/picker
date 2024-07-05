@@ -44,22 +44,6 @@ void DutVcsBase::init(int argc, char **argv)
 
 DutVcsBase::~DutVcsBase(){};
 
-int DutVcsBase::Step()
-{
-    return DutVcsBase::Step(1, 1);
-};
-
-int DutVcsBase::StepNoDump()
-{
-    assert(0);
-    return 0;
-};
-
-int DutVcsBase::Step(bool dump)
-{
-    return DutVcsBase::Step(dump, dump);
-};
-
 int DutVcsBase::Step(uint64_t ncycle, bool dump)
 {
     if (!dump) {
@@ -105,8 +89,8 @@ DutVerilatorBase::DutVerilatorBase()
 
 DutVerilatorBase::DutVerilatorBase(int argc, char **argv)
 {
-    //Warn("Shared DPI Library is required for Verilator");
-    // save argc and argv for debug
+    // Warn("Shared DPI Library is required for Verilator");
+    //  save argc and argv for debug
     this->argc = argc;
     this->argv = argv;
     this->init(argc, argv);
@@ -141,22 +125,6 @@ DutVerilatorBase::~DutVerilatorBase()
 {
     // Finished Verilator context
     this->Finished();
-};
-
-int DutVerilatorBase::Step()
-{
-    // push one more cycle
-    return DutVerilatorBase::Step(1, 1);
-};
-
-int DutVerilatorBase::StepNoDump()
-{
-    return DutVerilatorBase::Step(1, 0);
-};
-
-int DutVerilatorBase::Step(bool dump)
-{
-    return DutVerilatorBase::Step(1, dump);
 };
 
 int DutVerilatorBase::Step(uint64_t ncycle, bool dump)
@@ -218,9 +186,15 @@ void DutVerilatorBase::SetCoverage(const char *filename)
 
 DutVerilatorBase *dlcreates(int argc, char **argv)
 {
-    DutVerilatorBase* res = new DutVerilatorBase(argc, argv);
+    DutVerilatorBase *res = new DutVerilatorBase(argc, argv);
 };
 typedef DutVerilatorBase *dlcreates_t(int argc, char **argv);
+
+void dlstep(DutVerilatorBase *dut, uint64_t ncycle, bool dump)
+{
+    dut->Step(ncycle, dump);
+};
+typedef void step_t(DutVerilatorBase *, uint64_t, bool);
 
 #endif
 
@@ -238,6 +212,10 @@ char *locateLibPath()
     strcpy(res, lib_name.c_str());
     return res;
 }
+
+
+int DutUnifiedBase::lib_count = 0;
+bool DutUnifiedBase::main_ns_flag = false;
 
 DutUnifiedBase::DutUnifiedBase()
 {
@@ -283,7 +261,18 @@ DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args)
 };
 void DutUnifiedBase::init(int argc, char **argv)
 {
+    // the main namespace instance doesn't need to load the shared library
+    if (!main_ns_flag) {
+        Info("Using main namespace");
 #if defined(USE_VERILATOR)
+        this->dut = new DutVerilatorBase(argc, argv);
+#elif defined(USE_VCS)
+        this->dut = new DutVcsBase(argc, argv);
+#endif
+        main_ns_flag = true;
+        lib_handle   = nullptr;
+        return;
+    }
     // get dynamic library path from argv
     if (argc == 0) {
         Fatal("Shared DPI Library Path is required for Verilator");
@@ -292,54 +281,81 @@ void DutUnifiedBase::init(int argc, char **argv)
     if (!this->lib_handle) {
         Fatal("Failed to open shared DPI library %s, %s", argv[0], dlerror());
     }
+    this->lib_count++;
 
     // create top module
     dlcreates_t *dlcreates =
         (dlcreates_t *)dlsym(this->lib_handle, "dlcreates");
     if (!dlcreates) { Fatal("Failed to find dlcreates function"); }
     this->dut = dlcreates(argc, argv);
-
-#elif defined(USE_VCS)
-    this->dut = new DutVcsBase(argc, argv);
-#endif
 }
 uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
 {
     char *func_name = (char *)malloc(strlen(name) + 5);
     if (towards == 0) {
-        sprintf(func_name, "get_%s", name);
+        sprintf(func_name, "get_%sxx{{__LIB_DPI_FUNC_NAME_HASH__}}", name);
     } else if (towards == 1) {
-        sprintf(func_name, "set_%s", name);
+        sprintf(func_name, "set_%sxx{{__LIB_DPI_FUNC_NAME_HASH__}}", name);
     } else {
         Fatal("Invalid DPI function request %s %d", name, towards);
     }
 
-    void *func = dlsym(this->lib_handle, func_name);
-    if (func == nullptr) { Fatal("Failed to find DPI function %s", func_name); }
+    void *func;
+    if (this->lib_handle != nullptr) {
+        func = dlsym(this->lib_handle, func_name);
+    } else {
+        func = dlsym(RTLD_DEFAULT, func_name);
+    }
+
+    // internal only support read
+    if (func == nullptr && towards == 0) {
+        Fatal("Failed to find DPI function %s", func_name);
+    }
 
     return (uint64_t)func;
 }
 
-int DutUnifiedBase::DStep()
+int DutUnifiedBase::step()
 {
-    return this->dut->Step();
+    return this->step(1, 1);
 }
-int DutUnifiedBase::DStepNoDump()
+int DutUnifiedBase::stepNoDump()
 {
-    return this->dut->StepNoDump();
+    return this->step(1, 0);
 }
-int DutUnifiedBase::DStep(bool dump)
+int DutUnifiedBase::step(bool dump)
 {
-    return this->dut->Step(dump);
+    return this->step(1, dump);
 }
-int DutUnifiedBase::DStep(uint64_t cycle, bool dump)
+int DutUnifiedBase::step(uint64_t cycle, bool dump)
 {
+    // if (this->lib_handle == nullptr) {
+    //     return this->dut->Step(cycle, dump);
+    // }
+    // step_t *step = (step_t *)dlsym(this->lib_handle, "dlstep");
+    // if (!step) {
+    //     Fatal("Failed to find step function");
+    // }
+    // step(this->dut, cycle, dump);
     return this->dut->Step(cycle, dump);
 }
-
+int DutUnifiedBase::RefreshComb()
+{
+    return this->step(1, 0);
+}
 int DutUnifiedBase::Finished()
 {
-    return this->dut->Finished();
+    this->dut->Finished();
+    delete this->dut;
+    // this class maintain the other namespace
+    if (this->lib_handle != nullptr) {
+        dlclose(this->lib_handle);
+        this->lib_count--;
+    } else { // this class is using the main namespace
+        this->main_ns_flag = false;
+    }
+    for (int i = 0; i < this->argc; i++) { free(this->argv[i]); }\
+    return 0;
 }
 void DutUnifiedBase::SetWaveform(const char *filename)
 {
@@ -352,6 +368,7 @@ void DutUnifiedBase::SetCoverage(const char *filename)
 
 DutUnifiedBase::~DutUnifiedBase()
 {
+    // Clean up the new instance with the shared library
     this->Finished();
-    for (int i = 0; i < this->argc; i++) { free(this->argv[i]); }
+    
 }

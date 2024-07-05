@@ -6,6 +6,17 @@
 picker::main_opts main_opts;
 picker::export_opts export_opts;
 picker::pack_opts pack_opts;
+char* picker::lib_random_hash;
+
+std::string to_base62(uint64_t num) {
+    const std::string base62_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    std::string result;
+    do {
+        result = base62_chars[num % 62] + result;
+        num >>= 6;
+    } while (num > 0);
+    return result;
+}
 
 int set_options_export_rtl(CLI::App &top_app)
 {
@@ -96,7 +107,7 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_flag("--verbose", export_opts.verbose, "Verbose mode");
     app->add_flag("-e,--example", export_opts.example,
                   "Build example project, default is OFF");
-    app->add_flag("--autobuild", export_opts.autobuild,
+    app->add_option("--autobuild", export_opts.autobuild,
                   "Auto build the generated project, default is true")
         ->default_val(true);
 
@@ -161,6 +172,13 @@ int main(int argc, char **argv)
                 GIT_DIRTY);
         exit(0);
     }
+    
+    // get random for random library name
+    srand48(time(NULL));
+    std::string hash_name = to_base62(mrand48()<<32 | mrand48());
+    picker::lib_random_hash = new char[hash_name.size() + 1];
+    std::copy(hash_name.begin(), hash_name.end(), picker::lib_random_hash);
+    
 
     if(main_opts.show_default_template_path){
         auto temp_path = picker::get_template_path();
