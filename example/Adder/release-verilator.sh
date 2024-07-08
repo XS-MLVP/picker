@@ -11,7 +11,7 @@ then
 fi
 
 rm -rf picker_out_adder/
-./build/bin/picker export example/Adder/Adder.v --autobuild=true -w Adder.fst --sname Adder --tdir picker_out_adder --sdir template $@
+./build/bin/picker export example/Adder/Adder.v --autobuild false -w Adder.fst --sname Adder --tdir picker_out_adder --sdir template $@
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/Adder/example.py picker_out_adder/python/
@@ -21,4 +21,4 @@ else
     cp example/Adder/example.cpp picker_out_adder/cpp/
 fi
 
-cd picker_out_adder && make EXAMPLE=ON
+# cd picker_out_adder && make EXAMPLE=ON
