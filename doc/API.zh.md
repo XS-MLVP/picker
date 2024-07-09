@@ -11,8 +11,8 @@
 |-|--|---|---|
 |1|InitClock(name)|字符类型，时钟引脚，或引脚的名称|初始化时钟，让DUT中的|-XClock绑定对应的引脚|
 |2|Step(i)|int类型时钟周期个数|提过XClock推进电路i个时钟周期|
-|3|StepOnRis(callback)|函数类型，回调函数|设置上升沿触发的回调函数|
-|4|StepOnFal(callback)|函数类型，回调函数|设置下降沿触发的回调函数|
+|3|StepRis(callback)|函数类型，回调函数|设置上升沿触发的回调函数|
+|4|StepFal(callback)|函数类型，回调函数|设置下降沿触发的回调函数|
 |5|SetWaveform(file)|字符类型，文件名，含路径|设置波形输出的文件|
 |6|SetCoverage(file)|字符类型，文件名，含路径|设置覆盖率输出的文件|
 |7|Finish()|-|结束仿真，保持波形，覆盖率等结果文件|
@@ -22,8 +22,8 @@
 ```c++
 void InitClock(std::string name);
 void Step(int i = 1);
-void StepOnRis(std::function<void(uint64_t, void*)>, void*args=nullptr);
-void StepOnFal(std::function<void(uint64_t, void*)>, void*args=nullptr);
+void StepRis(std::function<void(uint64_t, void*)>, void*args=nullptr);
+void StepFal(std::function<void(uint64_t, void*)>, void*args=nullptr);
 void SetWaveform(std::string filename);
 void SetCoverage(std::string filename);
 void Finish();
@@ -35,26 +35,26 @@ void RefreshComb();
 ```python
 InitClock(name: str)
 Step(i:int = 1)
-StepOnRis(callback: Callable, args=None,  args=(), kwargs={})
-StepOnFal(callback: Callable, args=None,  args=(), kwargs={})
+StepRis(callback: Callable, args=None,  args=(), kwargs={})
+StepFal(callback: Callable, args=None,  args=(), kwargs={})
 SetWaveform(filename)
 SetCoverage(filename)
 Finish()
 RefreshComb()
 ```
 
-对于 StepOnRis 和 StepOnFal 中的回调函数，第一个参数为cycle，C++支持一个自定义参数 void*，python支持args 和 kwargs 自定义参数。其他编程语言不支持自定义参数：
+对于 StepRis 和 StepFal 中的回调函数，第一个参数为cycle，C++支持一个自定义参数 void*，python支持args 和 kwargs 自定义参数。其他编程语言不支持自定义参数：
 
 ```java
 // java
-StepOnRis(Consumer<Long> callback)
-StepOnFal(Consumer<Long> callback)
+StepRis(Consumer<Long> callback)
+StepFal(Consumer<Long> callback)
 // scala
-StepOnRis(callback: (Long) => Unit)
-StepOnFal(callback: (Long) => Unit)
+StepRis(callback: (Long) => Unit)
+StepFal(callback: (Long) => Unit)
 // golang
-StepOnRis(callback: func(uint64))
-StepOnFal(callback: func(uint64))
+StepRis(callback: func(uint64))
+StepFal(callback: func(uint64))
 ```
 
 **对于其他API，Java/Scala/Golang等语言类似，此处不再重复**
