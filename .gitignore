@@ -7,6 +7,7 @@
 *.log
 *.jar
 *.key
+.metals
 
 # Compiled Object files
 *.slo
