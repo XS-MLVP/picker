@@ -7,7 +7,7 @@ namespace picker { namespace codegen {
         static const std::string xdata_init_template =
             "\t\tself.{{pin_func_name}} = xsp.XPin(xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}}), self.event)\n";
         static const std::string xdata_bindrw_template =
-            "\t\tself.{{pin_func_name}}.BindDPIName(self, \"{{pin_func_name}}\")\n";
+            "\t\tself.{{pin_func_name}}.BindDPIPtr(self.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xport_add_template =
             "\t\tself.port.Add(\"{{pin_func_name}}\", self.{{pin_func_name}}.xdata)\n";
 
