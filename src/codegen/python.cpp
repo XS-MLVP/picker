@@ -5,11 +5,11 @@ namespace picker { namespace codegen {
 
     namespace py {
         static const std::string xdata_init_template =
-            "\t\tself.{{pin_func_name}} = xsp.XPin(xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}}), self.event)\n";
+            "        self.{{pin_func_name}} = xsp.XPin(xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}}), self.event)\n";
         static const std::string xdata_bindrw_template =
-            "\t\tself.{{pin_func_name}}.BindDPIPtr(self.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
+            "        self.{{pin_func_name}}.BindDPIPtr(self.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xport_add_template =
-            "\t\tself.port.Add(\"{{pin_func_name}}\", self.{{pin_func_name}}.xdata)\n";
+            "        self.port.Add(\"{{pin_func_name}}\", self.{{pin_func_name}}.xdata)\n";
 
         /// @brief Export external pin for cpp render
         /// @param pin
