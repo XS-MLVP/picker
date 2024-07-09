@@ -213,8 +213,7 @@ char *locateLibPath()
     return res;
 }
 
-
-int DutUnifiedBase::lib_count = 0;
+int DutUnifiedBase::lib_count     = 0;
 bool DutUnifiedBase::main_ns_flag = false;
 
 DutUnifiedBase::DutUnifiedBase()
@@ -268,11 +267,10 @@ void DutUnifiedBase::init(int argc, char **argv)
     // hold argc and argv for later use
     this->argc = argc;
     this->argv = (char **)malloc(sizeof(char *) * argc);
-    for (size_t i = 0; i < argc; i++)
-    {
+    for (size_t i = 0; i < argc; i++) {
         this->argv[i] = (char *)malloc(strlen(argv[i]) + 1);
         strcpy(this->argv[i], argv[i]);
-    } 
+    }
 
     // the main namespace instance doesn't need to load the shared library
     if (!main_ns_flag) {
@@ -291,7 +289,8 @@ void DutUnifiedBase::init(int argc, char **argv)
         Fatal("Shared DPI Library Path is required for Verilator");
     }
 
-    this->lib_handle = dlmopen(LM_ID_NEWLM, this->argv[0], RTLD_NOW | RTLD_DEEPBIND);
+    this->lib_handle =
+        dlmopen(LM_ID_NEWLM, this->argv[0], RTLD_NOW | RTLD_DEEPBIND);
     if (!this->lib_handle) {
         Fatal("Failed to open shared DPI library %s, %s", argv[0], dlerror());
     }
@@ -367,9 +366,7 @@ int DutUnifiedBase::RefreshComb()
 }
 int DutUnifiedBase::Finish()
 {
-    if (!this->dut) {
-        return 0;
-    }
+    if (!this->dut) { return 0; }
     this->dut->Finish();
     delete this->dut;
     // this class maintain the other namespace
@@ -379,21 +376,28 @@ int DutUnifiedBase::Finish()
     } else { // this class is using the main namespace
         this->main_ns_flag = false;
     }
-    for (int i = 0; i < this->argc; i++) { free(this->argv[i]); }\
+    for (int i = 0; i < this->argc; i++) { free(this->argv[i]); }
     return 0;
 }
 void DutUnifiedBase::SetWaveform(const char *filename)
 {
     return this->dut->SetWaveform(filename);
 }
+void DutUnifiedBase::SetCoverage(const std::string filename)
+{
+    return this->dut->SetCoverage(filename.c_str());
+}
 void DutUnifiedBase::SetCoverage(const char *filename)
 {
     return this->dut->SetCoverage(filename);
+}
+void DutUnifiedBase::SetWaveform(const std::string filename)
+{
+    return this->dut->SetWaveform(filename.c_str());
 }
 
 DutUnifiedBase::~DutUnifiedBase()
 {
     // Clean up the new instance with the shared library
     this->Finish();
-    
 }
