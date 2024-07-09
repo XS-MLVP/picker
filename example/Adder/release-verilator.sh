@@ -21,4 +21,4 @@ else
     cp example/Adder/example.cpp picker_out_adder/cpp/
 fi
 
-# cd picker_out_adder && make EXAMPLE=ON
+cd picker_out_adder && make EXAMPLE=ON

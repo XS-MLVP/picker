@@ -16,7 +16,7 @@ public:
     // Simulate N cycles
     virtual int Step(uint64_t cycle, bool dump) = 0;
     // Clean up and dump result
-    virtual int Finished() = 0;
+    virtual int Finish() = 0;
 
     // Set waveform file path
     virtual void SetWaveform(const char *filename) = 0;
@@ -38,7 +38,7 @@ public:
     DutVerilatorBase(int argc, char **argv);
     ~DutVerilatorBase();
     int Step(uint64_t cycle, bool dump);
-    int Finished();
+    int Finish();
     void SetWaveform(const char *filename);
     void SetCoverage(const char *filename);
 };
@@ -67,7 +67,7 @@ public:
     [[deprecated("VCS does not support no-args constructor")]] DutVcsBase();
     ~DutVcsBase();
     int Step(uint64_t cycle, bool dump);
-    int Finished();
+    int Finish();
     void SetWaveform(const char *filename);
     void SetCoverage(const char *filename);
 };
@@ -98,12 +98,12 @@ public:
     DutUnifiedBase(std::initializer_list<const char *> args);
     ~DutUnifiedBase();
     void init(int, char **);
-    int step();
+    int simStep();
     int stepNoDump();
-    int step(bool dump);
-    int step(uint64_t cycle, bool dump);
+    int simStep(bool dump);
+    int simStep(uint64_t cycle, bool dump);
     int RefreshComb();
-    int Finished();
+    int Finish();
     uint64_t GetDPIHandle(char *name, int towards);
     void SetWaveform(const char *filename); // Set waveform file path
     void SetCoverage(const char *filename); // Set coverage file path

@@ -15,7 +15,7 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 	# initialize
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args)
-		self.xclock = xsp.XClock(self.step)
+		self.xclock = xsp.XClock(self.simStep)
 		self.port  = xsp.XPort()
 		self.xclock.Add(self.port)
 		self.event = self.xclock.getEvent()
@@ -35,7 +35,7 @@ class DUT{{__TOP_MODULE_NAME__}}(DutUnifiedBase):
 {{__XPORT_ADD__}}
 
 	def __del__(self):
-		self.Finished()
+		self.Finish()
 
 	def init_clock(self,name:str):
 		self.xclock.Add(self.port[name])
