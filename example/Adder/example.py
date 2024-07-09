@@ -50,7 +50,7 @@ def main():
         
         assert o_dut.sum == o_ref.sum, "sum mismatch"
 
-    dut.Finished()
+    dut.Finish()
     
     print("Test Passed, destroy UTAdder")
 

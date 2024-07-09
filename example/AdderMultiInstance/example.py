@@ -22,7 +22,7 @@ def as_uint(x, nbits):
 def main():
     dut = DUTAdder(waveform_filename="1.fst")  # Assuming USE_VERILATOR
     dut2 = DUTAdder(waveform_filename="2.fst")  # Assuming USE_VERILATOR
-    dut.Finished()
+    dut.Finish()
     dut = DUTAdder(waveform_filename="1.1.fst")  # Assuming USE_VERILATOR
     
     print("Initialized UTAdder")
@@ -56,8 +56,8 @@ def main():
         
         assert o_dut.sum == o_ref.sum, "sum mismatch"
 
-    dut.Finished()
-    dut2.Finished()
+    dut.Finish()
+    dut2.Finish()
     
     print("Test Passed, destroy UTAdder")
 
