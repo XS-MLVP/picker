@@ -32,7 +32,7 @@ endif
 
 	@rm -rf build cmake cpp mk python CMakeLists.txt dut_base.*
 	@rm -rf ${TARGET}.cpp
-	@mv ${TARGET}/*.v ${TARGET}/*.sv . || true
+	@mv ${TARGET}/*.v ${TARGET}/*.sv . 2>/dev/null|| true
 endif
 
 coverage:

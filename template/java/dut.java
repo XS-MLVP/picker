@@ -52,8 +52,8 @@ public class UT_{{__TOP_MODULE_NAME__}} {
 {{__XDATA_DECL__}}
     private void initDut(){
         this.port = new XPort();
-        this.xclock = new XClock(new CbXClockEval(dump -> this.dut.step(dump)));
-	this.xclock.Add(this.port);
+        this.xclock = new XClock((dump) -> this.dut.simStep(dump));
+        this.xclock.Add(this.port);
         // new pins
 {{__XDATA_INIT__}}
         // bind dpi
@@ -73,29 +73,38 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         this.dut = new DutUnifiedBase(vec);
         this.initDut();
     }
-    public void setWaveform(String wave_name){
+    /*************************************************/
+    /*                  User APIs                    */
+    /*************************************************/
+    public void SetWaveform(String wave_name){
         this.dut.SetWaveform(wave_name);
     }
-    public void setCoverage(String coverage_name){
+    public void SetCoverage(String coverage_name){
         this.dut.SetCoverage(coverage_name);
     }
-    public void step(int i){
+    public void Step(int i){
         this.xclock.Step(i);
     }
-    public void step(){
+    public void Step(){
         this.xclock.Step(1);
     }
-    public void stepRis(Consumer<java.math.BigInteger> callback){
-        this.xclock.StepRis(new CbXClockStep(callback));
+    public void StepRis(Consumer<Long> callback){
+        this.xclock.StepRis(callback);
     }
-    public void stepFal(Consumer<java.math.BigInteger> callback){
-        this.xclock.StepFal(new CbXClockStep(callback));
+    public void StepFal(Consumer<Long> callback){
+        this.xclock.StepFal(callback);
     }
     public void Finish(){
         this.dut.Finish();
     }
-    public void initClock(String clock_name){
+    public void InitClock(String clock_name){
         this.xclock.Add(this.port.Get(clock_name));
     }
+    public void RefreshComb(){
+        this.dut.RefreshComb();
+    }
+    /*************************************************/
+    /*               End of User APIs                */
+    /*************************************************/
 }
 

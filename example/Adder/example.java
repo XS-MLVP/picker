@@ -18,7 +18,7 @@ public class example {
             adder.b.Set(b);
             adder.cin.Set(c);
             // step
-            adder.step();
+            adder.Step();
             // reference model
             long sum = a + b;
             boolean carry = sum < a ? true : false;

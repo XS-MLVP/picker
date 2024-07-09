@@ -187,6 +187,7 @@ void DutVerilatorBase::SetCoverage(const char *filename)
 DutVerilatorBase *dlcreates(int argc, char **argv)
 {
     DutVerilatorBase *res = new DutVerilatorBase(argc, argv);
+    return res;
 };
 typedef DutVerilatorBase *dlcreates_t(int argc, char **argv);
 
@@ -369,6 +370,7 @@ int DutUnifiedBase::Finish()
     if (!this->dut) { return 0; }
     this->dut->Finish();
     delete this->dut;
+    this->dut = nullptr;
     // this class maintain the other namespace
     if (this->lib_handle != nullptr) {
         dlclose(this->lib_handle);

@@ -61,7 +61,7 @@ int main()
 
         dut_cal();
         ref_cal();
-        printf("[cycle %llu] a=0x%lx, b=0x%lx, cin=0x%lx\n", dut->xclk.clk, i.a,
+        printf("[cycle %lu] a=0x%lx, b=0x%lx, cin=0x%lx\n", dut->xclk.clk, i.a,
                i.b, i.cin);
         printf("DUT: sum=0x%lx, cout=0x%lx\n", o_dut.sum, o_dut.cout);
         printf("REF: sum=0x%lx, cout=0x%lx\n", o_ref.sum, o_ref.cout);

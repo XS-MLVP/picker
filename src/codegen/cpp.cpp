@@ -23,9 +23,9 @@ namespace codegen {
         static const std::string xdata_reinit_template =
             "    this->{{pin_func_name}}.ReInit({{logic_pin_length}}, IOType::{{logic_pin_type}}, \"{{logic_pin}}\");\n";
         static const std::string xdata_bindrw_template =
-            "    this->{{pin_func_name}}.BindDPIRW({{read_func_type}}get_{{pin_func_name}}, {{write_func_type}}set_{{pin_func_name}});\n";
+            "    this->{{pin_func_name}}.BindDPIPtr(this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 0), this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 1));\n";
         static const std::string xdata_bind_onlyr_template =
-            "    this->{{pin_func_name}}.BindDPIRW({{read_func_type}}get_{{pin_func_name}}, {{write_func_type}}nullptr);\n";
+            "    this->{{pin_func_name}}.BindDPIPtr(this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 0), 0);\n";
         static const std::string xport_add_template =
             "    this->port.Add(this->{{pin_func_name}}.mName, this->{{pin_func_name}});\n";
         static const std::string comment_template =
