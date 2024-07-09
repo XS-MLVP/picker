@@ -105,6 +105,7 @@ public:
     int RefreshComb();
     int Finish();
     uint64_t GetDPIHandle(char *name, int towards);
+    uint64_t GetDPIHandle(std::string name, int towards);
     void SetWaveform(const char *filename); // Set waveform file path
     void SetCoverage(const char *filename); // Set coverage file path
 };

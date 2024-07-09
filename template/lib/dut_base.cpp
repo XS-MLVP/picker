@@ -303,6 +303,12 @@ void DutUnifiedBase::init(int argc, char **argv)
     if (!dlcreates) { Fatal("Failed to find dlcreates function"); }
     this->dut = dlcreates(this->argc, this->argv);
 }
+
+uint64_t DutUnifiedBase::GetDPIHandle(std::string name, int towards)
+{
+    return this->GetDPIHandle((char *)name.c_str(), towards);
+}
+
 uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
 {
     char *func_name = (char *)malloc(strlen(name) + 5);
