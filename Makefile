@@ -26,4 +26,4 @@ test: build
 	./build/bin/picker exports -h
 
 clean:
-	sudo rm -rf temp build
+	rm -rf temp build
