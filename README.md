@@ -149,7 +149,13 @@ After picker compilation, execute the following commands in the picker directory
 ```
 bash example/Adder/release-verilator.sh --lang cpp
 bash example/Adder/release-verilator.sh --lang python
+
+# Default enable cpp and python supoort
+#  for other languages：make BUILD_XSPCOMM_SWIG=python,java,scala,golang
 bash example/Adder/release-verilator.sh --lang java
+bash example/Adder/release-verilator.sh --lang scala
+bash example/Adder/release-verilator.sh --lang golang
+
 bash example/RandomGenerator/release-verilator.sh --lang cpp
 bash example/RandomGenerator/release-verilator.sh --lang python
 bash example/RandomGenerator/release-verilator.sh --lang java

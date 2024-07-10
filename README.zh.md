@@ -173,7 +173,13 @@ pack:
 ```
 bash example/Adder/release-verilator.sh --lang cpp
 bash example/Adder/release-verilator.sh --lang python
+
+# 默认仅支持 cpp 和 Python
+# 支持其他语言用：make BUILD_XSPCOMM_SWIG=python,java,scala,golang
 bash example/Adder/release-verilator.sh --lang java
+bash example/Adder/release-verilator.sh --lang scala
+bash example/Adder/release-verilator.sh --lang golang
+
 bash example/RandomGenerator/release-verilator.sh --lang cpp
 bash example/RandomGenerator/release-verilator.sh --lang python
 bash example/RandomGenerator/release-verilator.sh --lang java
