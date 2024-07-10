@@ -1,6 +1,6 @@
 add_definitions(-DUSE_VCS)
 
-function(XSJavaTarget)
+function(XSScalaTarget)
 
 	cmake_parse_arguments(
 		XSP
@@ -100,27 +100,31 @@ function(XSJavaTarget)
 
 	# copy file
 	add_custom_command(
-		OUTPUT ${JAR_SOURCE_DIR}/simple_step.java
+		OUTPUT ${JAR_SOURCE_DIR}/simple_step.scala
 		COMMAND ${CMAKE_COMMAND} -E copy
 				${CMAKE_CURRENT_BINARY_DIR}/*.java
 				${JAR_SOURCE_DIR}/
 		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/../java/simple_step.java
+				${CMAKE_CURRENT_SOURCE_DIR}/../scala/simple_step.scala
 				${JAR_SOURCE_DIR}/
 		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/../java/dut.java
+				${CMAKE_CURRENT_SOURCE_DIR}/../scala/dut.java
 				${JAR_SOURCE_DIR}/UT_${PROJECT_NAME}.java
+		COMMAND ${CMAKE_COMMAND} -E copy
+				${CMAKE_CURRENT_SOURCE_DIR}/../scala/dut.scala
+				${JAR_SOURCE_DIR}/UT_${PROJECT_NAME}.scala
 		COMMAND ${CMAKE_COMMAND} -E copy
 				${CMAKE_CURRENT_SOURCE_DIR}/*.so
 				${JAR_SOURCE_DIR}/
-		COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-java.jar
+		COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-scala.jar
+		COMMAND scalac -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-scala.jar -d ${JAR_SOURCE_DIR} -classpath ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.scala
 		DEPENDS UT_${PROJECT_NAME}
 	)
 	add_custom_target(
     _DummyTarget_create_${PROJECT_NAME} ALL
-        COMMAND ${Java_JAR_EXECUTABLE} cfm UT_${PROJECT_NAME}-java.jar MANIFEST.MF -C ${JAR_SOURCE_DIR} .
+        COMMAND ${Java_JAR_EXECUTABLE} cfm UT_${PROJECT_NAME}-scala.jar MANIFEST.MF -C ${JAR_SOURCE_DIR} .
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS ${JAR_SOURCE_DIR}/simple_step.java
+        DEPENDS ${JAR_SOURCE_DIR}/simple_step.scala
 	)
 
 endfunction()

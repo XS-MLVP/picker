@@ -1,6 +1,6 @@
 all: compile
 	@echo "--------------Comple Success Test Step DUT--------------------"
-	@java -cp xspcomm-java.jar:${TARGET}-java.jar -ea com.ut.example
+	@scala -cp xspcomm-scala.jar:${TARGET}-scala.jar -ea com.ut.example
 	@echo "--------------------------------------------------------------"
 
 compile:

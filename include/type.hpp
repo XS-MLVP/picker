@@ -8,6 +8,7 @@ typedef struct main_opts {
     bool show_default_template_path;
     bool show_xcom_lib_location_cpp;
     bool show_xcom_lib_location_java;
+    bool show_xcom_lib_location_scala;
     bool show_xcom_lib_location_python;
 } main_opts;
 

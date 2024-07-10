@@ -5,6 +5,7 @@ set(source_file
      cpp.cpp
      python.cpp
      java.cpp
+     scala.cpp
      sv.cpp
      lib.cpp
      uvm.cpp

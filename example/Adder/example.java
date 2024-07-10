@@ -28,7 +28,7 @@ public class example {
             assert adder.sum.U().longValue() == sum : "sum mismatch: " + adder.sum.U() + " != " + sum;
             assert adder.cout.U().intValue() == (carry ? 1 : 0) : "carry mismatch: " + adder.cout.U() + " != " + carry;
         }
-        System.out.println("All tests passed");
+        System.out.println("Java tests passed");
         adder.Finish();
     }
 }

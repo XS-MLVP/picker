@@ -41,10 +41,11 @@ int set_options_export_rtl(CLI::App &top_app)
         ->default_val("verilator");
 
     // Set DUT RTL Language, Optional, default is python
+    std::vector<std::string> select_languages = {"python", "cpp", "java", "scala", "golang"};
     app->add_option(
            "--lang,--language", export_opts.language,
            "Build example project, default is python, choose cpp, java or python")
-        ->default_val("python");
+        ->default_val("python")->check(CLI::IsMember(select_languages));
 
     // Set DUT RTL Source Dir, Optional, default is
     // ${picker_install_path}/../picker/template
@@ -146,6 +147,7 @@ int set_options_main(CLI::App &app){
     app.add_flag("--show_default_template_path", main_opts.show_default_template_path, "Print default template path");
     app.add_flag("--lib_location_cpp", main_opts.show_xcom_lib_location_cpp, "Print xspcomm lib and include location");
     app.add_flag("--lib_location_java", main_opts.show_xcom_lib_location_java, "Print xspcomm-java.jar location");
+    app.add_flag("--lib_location_scala", main_opts.show_xcom_lib_location_scala, "Print xspcomm-scala.jar location");
     app.add_flag("--lib_location_python", main_opts.show_xcom_lib_location_python, "Print python module xspcomm location");
     return 0;
 }
@@ -249,6 +251,8 @@ int main(int argc, char **argv)
         picker::codegen::python(export_opts, sv_pin_result,
                                 internal_sginal_result);
         picker::codegen::java(export_opts, sv_pin_result,
+                                internal_sginal_result);
+        picker::codegen::scala(export_opts, sv_pin_result,
                                 internal_sginal_result);
         // build the result with make
         if (export_opts.autobuild) {
