@@ -9,7 +9,7 @@
 
 picker是一个芯片验证辅助工具，有两个功能，其一是将RTL设计验证模块(.v/.scala/.sv)进行封装，并使用其他编程语言暴露Pin-Level的操作，未来计划支持自动化的Transaction-Level原语生成。其二是将UVM的的的transaction打包为一个uvm的agent和一个python类，通过xcomm和生成的文件可以实现UVM和Python的通信
 
-其他编程语言包括 c++ (原生支持), python(已支持), java(已支持), scala(正在进行中), golang(正在进行中) 等编程语言接口。
+支持的编程语言包括 C++, Python, Java, Scala, Golang 等。
 
 该辅助工具让用户可以基于现有的软件测试框架，例如 pytest, junit，TestNG, go test等，进行芯片UT验证。
 
@@ -143,23 +143,23 @@ Options:
 
 #### 参数解释
 export: 
-* `-h, --help`: 打印帮助信息并退出。
-* `--fs, --filelist `TEXT: 多个DUT .v/.sv源文件，包含顶层模块，以逗号分隔。或使用包含每行一个RTL文件路径的.txt文件指定文件列表。
-* `--sim TEXT [verilator]: `使用的模拟器，可以选择vcs或verilator，默认是verilator。
-* `--lang, --language `TEXT:{python,cpp,java,scala,golang} [python]: 生成示例项目的语言，默认是Python，可选C++、Java、Scala或Go。
-* `--sdir, --source_dir `TEXT [/usr/local/share/picker/template]: 模板文件目录，默认是/usr/local/share/picker/template。
-* `--tdir, --target_dir `TEXT [./picker_out]: 代码生成后文件的目标目录，默认是./picker_out。
-* `--sname, --source_module_name `TEXT: 指定DUT .v文件中的模块，默认是文件中最后一个模块。
-* `--tname, --target_module_name `TEXT: 设置目标DUT的模块名和文件名，默认与源文件相同。例如，-T top会生成UTtop.cpp和UTtop.hpp文件，并包含UTtop类。
-* `--internal` TEXT: 导出的内部信号配置文件，默认是空，表示没有内部引脚。
-* `-F, --frequency `TEXT [100MHz]: 设置仅VCS DUT的频率，默认是100MHz，可以使用Hz、KHz、MHz、GHz作为单位。
-* `-w, --wave_file_name `TEXT: 波形文件名，默认不生成波形文件。
-* `-c, --coverage`: 启用覆盖率，默认不启用。
-* `-V, --vflag `TEXT: 用户自定义的模拟器编译参数，直接传递。例如：-v -x-assign=fast -Wall --trace 或 -C vcs -cc -f filelist.f。
-* `-C, --cflag `TEXT: 用户自定义的gcc/clang编译命令，直接传递。例如：-O3 -std=c++17 -I./include。
-* `--verbose`: 启用详细模式。
-* `-e, --example`: 生成示例项目，默认不生成。
-* `--autobuild` BOOLEAN [1]: 自动构建生成的项目，默认启用。
+* `file`: 必需。DUT 的 Verilog 或 SystemVerilog 源文件，包含顶层模块
+* `--filelist, -f`: 可选。DUT 的 Verilog 或 SystemVerilog 源文件，逗号分隔。也可以使用 `*.txt` 文件，每行指定一个 RTL 文件路径，来指定文件列表。
+* `--sim`: 可选。模拟器类型，可以是 vcs 或 verilator，默认是 verilator。
+* `--language, -l`: 可选。构建示例项目的语言，可以是 cpp 或 python，默认是 cpp。
+* `--source_dir, -s`: 可选。模板文件目录，默认是 ${picker_install_path}/../picker/template。
+* `--target_dir, -t`: 可选。渲染文件的目标目录，默认是 ./picker_out。
+* `--source_module_name, -S`: 可选。在 DUT 的 Verilog 文件中选择模块，默认是  标记的文件中的最后一个模块。
+* `--target_module_name, -T`: 可选。设置目标 DUT 的模块名和文件名，默认与源相同。例如，-T top 将生成 UTtop.cpp 和 UTtop.hpp，并包含 UTtop 类。
+* `--internal`: 可选。导出的内部信号配置文件，默认为空，表示没有内部引脚。
+* `--frequency, -F`: 可选。设置 仅 VCS DUT 的频率，默认是 100MHz，可以使用 Hz、KHz、MHz、GHz 作为单位。
+* `--wave_file_name, -w`: 可选。波形文件名，为空表示不导出波形。
+* `--vflag, -V`: 可选。用户定义的模拟器编译参数，透传。例如：'-v -x-assign=fast -Wall --trace' 或 '-f filelist.f'。
+* `--cflag, -C`: 可选。用户定义的 gcc/clang 编译参数，透传。例如：'-O3 -std=c++17 -I./include'。
+* `--verbose, -v`: 可选。详细模式，保留生成的中间文件。
+* `--example, -e`: 可选。构建示例项目，默认是 OFF。
+* `--autobuild`: 可选。自动构建生成的项目，默认是 true。
+* `--help, -h`: 可选。打印使用帮助。
 
 pack: 
 * `file`: 必需。待解析的UVM transaction文件
@@ -174,8 +174,8 @@ pack:
 bash example/Adder/release-verilator.sh --lang cpp
 bash example/Adder/release-verilator.sh --lang python
 
-# 默认仅支持 cpp 和 Python
-# 支持其他语言用：make BUILD_XSPCOMM_SWIG=python,java,scala,golang
+# 默认仅开启 cpp 和 Python 支持
+#   支持其他语言编译命令为：make BUILD_XSPCOMM_SWIG=python,java,scala,golang
 bash example/Adder/release-verilator.sh --lang java
 bash example/Adder/release-verilator.sh --lang scala
 bash example/Adder/release-verilator.sh --lang golang
@@ -188,4 +188,3 @@ bash example/RandomGenerator/release-verilator.sh --lang java
 ### 参考材料
 
 如何基于picker进行芯片验证，可参考：[https://open-verify.cc/mlvp/docs/](https://open-verify.cc/mlvp/docs/)
-

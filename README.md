@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 Picker is a chip verification auxiliary tool. There are two functions: the first is aimed at encapsulating RTL design verification modules (.v/.scala/.sv) and exposing Pin-Level operations through other programming languages, with plans to support automated Transaction-Level primitive generation in the future. the second is pack uvm transaction as a uvm agent and python class, you can use them and xcomm tool to enable communication between UVM and Python.
 
-Other programming languages include interfaces for C++ (natively supported), Python (supported), Java (supported), Scala (in progress), and Golang (in progress).
+Supported programming languages include C++, Python, Java, Scala, and Golang.
 
 This auxiliary tool allows users to perform chip UT verification based on existing software testing frameworks, such as pytest, junit, TestNG, go test, etc.
 
@@ -150,8 +150,8 @@ After picker compilation, execute the following commands in the picker directory
 bash example/Adder/release-verilator.sh --lang cpp
 bash example/Adder/release-verilator.sh --lang python
 
-# Default enable cpp and python supoort
-#  for other languages：make BUILD_XSPCOMM_SWIG=python,java,scala,golang
+# Default enable cpp and python
+#  for other languages support：make BUILD_XSPCOMM_SWIG=python,java,scala,golang
 bash example/Adder/release-verilator.sh --lang java
 bash example/Adder/release-verilator.sh --lang scala
 bash example/Adder/release-verilator.sh --lang golang
