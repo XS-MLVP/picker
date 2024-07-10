@@ -86,37 +86,46 @@ Subcommands:
 Now picker has two subcommands: pack and export. You can run the following commands to check their output:
 
 ```bash
-Export RTL Projects Sources as Software libraries such as C++/Python
-Usage: picker export [OPTIONS] file
+Export RTL Projects Sources as Software libraries such as C++/Python Usage: picker
+export [OPTIONS] file
 
 Positionals:
   file TEXT REQUIRED          DUT .v/.sv source file, contain the top module
 
 Options:
   -h,--help                   Print this help message and exit
-  --fs,--filelist TEXT        DUT .v/.sv source files, contain the top module, split by comma.
-                              Or use '*.txt' file  with one RTL file path per line to specify the file list
+  --fs,--filelist TEXT        DUT .v/.sv source files, contain the top module, 
+                              split by comma. Or use '*.txt' file  with one RTL 
+                              file path per line to specify the file list
   --sim TEXT [verilator]      vcs or verilator as simulator, default is verilator
-  --lang,--language TEXT [python] 
-                              Build example project, default is python, choose cpp, java or python
-  --sdir,--source_dir TEXT [/home/yaozhicheng/workspace/picker/template] 
+  --lang,--language TEXT:{python,cpp,java,scala,golang} [python] 
+                              Build example project, default is python, choose 
+                              cpp, java or python
+  --sdir,--source_dir TEXT [/usr/local/share/picker/template] 
                               Template Files Dir, default is ${picker_install_path}/../picker/template
   --tdir,--target_dir TEXT [./picker_out] 
                               Codegen render files to target dir, default is ./picker_out
   --sname,--source_module_name TEXT
-                              Pick the module in DUT .v file, default is the last module in the -f marked file
+                              Pick the module in DUT .v file, default is the last 
+                              module in the --fs marked file
   --tname,--target_module_name TEXT
-                              Set the module name and file name of target DUT, default is the same as source. For example, -T top, will generate UTtop.cpp and UTtop.hpp with UTtop class
-  --internal TEXT             Exported internal signal config file, default is empty, means no internal pin
+                              Set the module name and file name of target DUT, 
+                              default is the same as source. For example, --tname top, 
+                              will generate UTtop.cpp and UTtop.hpp with UTtop class
+  --internal TEXT             Exported internal signal config file, default is empty, 
+                              means no internal pin
   -F,--frequency TEXT [100MHz] 
-                              Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit
+                              Set the frequency of the **only VCS** DUT, default 
+                              is 100MHz, use Hz, KHz, MHz, GHz as unit
   -w,--wave_file_name TEXT    Wave file name, emtpy mean don't dump wave
   -c,--coverage               Enable coverage, default is not selected as OFF
-  -V,--vflag TEXT             User defined simulator compile args, passthrough. Eg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'
-  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'
+  -V,--vflag TEXT             User defined simulator compile args, passthrough. 
+                              Eg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'
+  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough. 
+                              Eg:'-O3 -std=c++17 -I./include'
   --verbose                   Verbose mode
   -e,--example                Build example project, default is OFF
-  --autobuild [1]             Auto build the generated project, default is true
+  --autobuild BOOLEAN [1]     Auto build the generated project, default is true
 ```
 
 ```bash

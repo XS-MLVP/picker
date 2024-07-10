@@ -163,7 +163,7 @@ int main(int argc, char **argv)
     try {
         app.parse(argc, argv);
     } catch (const CLI::ParseError &e) {
-        MESSAGE("%s", app.help().c_str());
+        // MESSAGE("%s", app.help().c_str());
         return app.exit(e);
     }
 
