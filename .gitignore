@@ -8,6 +8,8 @@
 *.jar
 *.key
 .metals
+.bsp/
+.scala-build/
 
 # Compiled Object files
 *.slo
