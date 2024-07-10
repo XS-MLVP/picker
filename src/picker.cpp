@@ -254,6 +254,8 @@ int main(int argc, char **argv)
                                 internal_sginal_result);
         picker::codegen::scala(export_opts, sv_pin_result,
                                 internal_sginal_result);
+        picker::codegen::golang(export_opts, sv_pin_result,
+                                internal_sginal_result);
         // build the result with make
         if (export_opts.autobuild) {
             const std::string cmd =

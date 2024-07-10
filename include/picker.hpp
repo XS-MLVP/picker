@@ -17,6 +17,7 @@
 #include "codegen/python.hpp"
 #include "codegen/java.hpp"
 #include "codegen/scala.hpp"
+#include "codegen/golang.hpp"
 #include "codegen/sv.hpp"
 #include "codegen/lib.hpp"
 #include "parser/sv.hpp"

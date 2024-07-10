@@ -6,6 +6,7 @@ set(source_file
      python.cpp
      java.cpp
      scala.cpp
+     golang.cpp
      sv.cpp
      lib.cpp
      uvm.cpp
