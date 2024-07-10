@@ -16,6 +16,7 @@
 #include "codegen/cpp.hpp"
 #include "codegen/python.hpp"
 #include "codegen/java.hpp"
+#include "codegen/scala.hpp"
 #include "codegen/sv.hpp"
 #include "codegen/lib.hpp"
 #include "parser/sv.hpp"
@@ -38,6 +39,7 @@ extern char* lib_random_hash;
 #define ERROR(fmt, ...)                                                        \
     {                                                                          \
         OUTPUT(stderr, fmt, ##__VA_ARGS__)                                     \
+        OUTPUT(stderr, "%s\n", "")                                             \
     }
 #define DEBUG(fmt, ...)                                                        \
     {                                                                          \
@@ -50,13 +52,14 @@ extern char* lib_random_hash;
 #define FATAL(fmt, ...)                                                        \
     {                                                                          \
         OUTPUT(stderr, fmt, ##__VA_ARGS__);                                    \
+        OUTPUT(stderr, "%s\n", "")                                             \
         exit(-1);                                                              \
     }
 
 
 inline void vassert(bool c, std::string msg = "")
 {
-    if (!c) { FATAL("Assert error: %s\n", msg.c_str()); }
+    if (!c) { FATAL("Assert error: %s", msg.c_str()); }
 }
 
 inline long vtime()

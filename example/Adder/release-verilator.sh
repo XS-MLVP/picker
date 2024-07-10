@@ -17,6 +17,8 @@ if [[ $@ == *"python"* ]]; then
     cp example/Adder/example.py picker_out_adder/python/
 elif [[ $@ == *"java"* ]]; then
     cp example/Adder/example.java picker_out_adder/java/
+elif [[ $@ == *"scala"* ]]; then
+    cp example/Adder/example.scala picker_out_adder/scala/
 else
     cp example/Adder/example.cpp picker_out_adder/cpp/
 fi
