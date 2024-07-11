@@ -1,4 +1,7 @@
-all: compile
+all: test clean
+	@echo "All complete"
+
+test: compile
 	@cp build/UT{{__TOP_MODULE_NAME__}}_example .
 	@rm -rf build
 	@echo "--------------Comple Success Test Step DUT--------------------"

@@ -1,4 +1,7 @@
-all: compile
+all: test clean
+	@echo "All complete"
+
+test: compile
 	@echo "--------------Comple Success Test Step DUT--------------------"
 	@java -cp xspcomm-java.jar:${TARGET}-java.jar -ea com.ut.example
 	@echo "--------------------------------------------------------------"
@@ -9,5 +12,4 @@ compile:
 	cmake --build build --config Debug --parallel `nproc`
 	
 clean:
-	@rm -rf *.fst *.vcd *.fsdb *.log *.key
-	@ls|grep -v ".jar"|grep -v "Makefile"|grep -v "CMakeLists.txt"|xargs rm -rf
+	@ls|grep -v ".jar"|xargs rm -rf
