@@ -28,6 +28,7 @@
 
 # Fortran module files
 *.mod
+!template/golang/go.mod
 *.smod
 
 # Compiled Static libraries

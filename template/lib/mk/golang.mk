@@ -7,6 +7,7 @@ endif
 	@cp golang/Makefile ${TARGET}/Makefile
 	@cp golang/dut.i ${TARGET}/dut.i
 	@cp golang/dut.go ${TARGET}/${TARGET}_Wrapper.go
+	@cp golang/go.mod ${TARGET}/go.mod
 	@cd ${TARGET} && make && make clean
 
 ifeq ($(VERBOSE), OFF)
