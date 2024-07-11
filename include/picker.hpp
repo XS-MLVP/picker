@@ -39,8 +39,9 @@ extern char* lib_random_hash;
     }
 #define ERROR(fmt, ...)                                                        \
     {                                                                          \
+        OUTPUT(stderr, "%s", "\033[31m")                                       \
         OUTPUT(stderr, fmt, ##__VA_ARGS__)                                     \
-        OUTPUT(stderr, "%s\n", "")                                             \
+        OUTPUT(stderr, "%s\n", "\033[0m")                                      \
     }
 #define DEBUG(fmt, ...)                                                        \
     {                                                                          \
