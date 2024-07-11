@@ -63,20 +63,28 @@ sudo -E make install
 XDut Generate. 
 Convert DUT(*.v/*.sv) to C++ DUT libs.
 
-Usage: picker [OPTIONS] [SUBCOMMAND]
+Usage: ./build/bin/picker [OPTIONS] [SUBCOMMAND]
 
 Options:
   -h,--help                   Print this help message and exit
   -v,--version                Print version
   --show_default_template_path
                               Print default template path
-  --lib_location_cpp          Print xspcomm lib and include location
-  --lib_location_java         Print xspcomm-java.jar location
-  --lib_location_python       Print python module xspcomm location
+  --show_xcom_lib_location_cpp
+                              Print xspcomm lib and include location
+  --show_xcom_lib_location_java
+                              Print xspcomm-java.jar location
+  --show_xcom_lib_location_scala
+                              Print xspcomm-scala.jar location
+  --show_xcom_lib_location_python
+                              Print python module xspcomm location
+  --show_xcom_lib_location_golang
+                              Print golang module xspcomm location
+  --check                     check install location and supproted languages
 
 Subcommands:
   export                      Export RTL Projects Sources as Software libraries such as C++/Python
-  pack                        Pack uvm transaction as a uvm agent and python class
+  pack                        Pack UVM transaction as a UVM agent and Python class
 ```
 
 ### 安装测试
