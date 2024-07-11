@@ -144,11 +144,13 @@ int set_options_pack_message(CLI::App &top_app)
 
 int set_options_main(CLI::App &app){
     app.add_flag("-v, --version", main_opts.version, "Print version");
-    app.add_flag("--show_default_template_path", main_opts.show_default_template_path, "Print default template path");
-    app.add_flag("--lib_location_cpp", main_opts.show_xcom_lib_location_cpp, "Print xspcomm lib and include location");
-    app.add_flag("--lib_location_java", main_opts.show_xcom_lib_location_java, "Print xspcomm-java.jar location");
-    app.add_flag("--lib_location_scala", main_opts.show_xcom_lib_location_scala, "Print xspcomm-scala.jar location");
-    app.add_flag("--lib_location_python", main_opts.show_xcom_lib_location_python, "Print python module xspcomm location");
+    app.add_flag("--show_default_template_path",    main_opts.show_default_template_path,    "Print default template path");
+    app.add_flag("--show_xcom_lib_location_cpp",    main_opts.show_xcom_lib_location_cpp,    "Print xspcomm lib and include location");
+    app.add_flag("--show_xcom_lib_location_java",   main_opts.show_xcom_lib_location_java,   "Print xspcomm-java.jar location");
+    app.add_flag("--show_xcom_lib_location_scala",  main_opts.show_xcom_lib_location_scala,  "Print xspcomm-scala.jar location");
+    app.add_flag("--show_xcom_lib_location_python", main_opts.show_xcom_lib_location_python, "Print python module xspcomm location");
+    app.add_flag("--show_xcom_lib_location_golang", main_opts.show_xcom_lib_location_golang, "Print golang module xspcomm location");
+    app.add_flag("--check", main_opts.check, "check install location and supproted languages");
     return 0;
 }
 
@@ -207,6 +209,7 @@ int main(int argc, char **argv)
         }
         MESSAGE("Lib:     %s", lib_location.c_str());
         MESSAGE("Include: %s", include_location.c_str());
+        exit(0);
     }
     if (main_opts.show_xcom_lib_location_java) {
         auto java_location = picker::get_xcomm_lib("java/xspcomm-java.jar", erro_message);
@@ -215,6 +218,16 @@ int main(int argc, char **argv)
             exit(1);
         }
         MESSAGE("%s", java_location.c_str());
+        exit(0);
+    }
+    if (main_opts.show_xcom_lib_location_scala) {
+        auto scala_location = picker::get_xcomm_lib("java/xspcomm-scala.jar", erro_message);
+        if (scala_location.size() == 0) {
+            ERROR("%s", erro_message.c_str());
+            exit(1);
+        }
+        MESSAGE("%s", scala_location.c_str());
+        exit(0);
     }
     if (main_opts.show_xcom_lib_location_python) {
         auto python_location = picker::get_xcomm_lib("python", erro_message);
@@ -223,11 +236,50 @@ int main(int argc, char **argv)
             exit(1);
         }
         MESSAGE("%s", python_location.c_str());
-    }
-    if (main_opts.show_xcom_lib_location_java || \
-        main_opts.show_xcom_lib_location_python || \
-        main_opts.show_xcom_lib_location_cpp) {
         exit(0);
+    }
+    if (main_opts.show_xcom_lib_location_python) {
+        auto golang_location = picker::get_xcomm_lib("golang", erro_message);
+        if (golang_location.size() == 0) {
+            ERROR("%s", erro_message.c_str());
+            exit(1);
+        }
+        MESSAGE("%s", golang_location.c_str());
+        exit(0);
+    }
+
+    int lang_index = 0;
+    const char * check_libs[] = {"include", "java/xspcomm-java.jar", "scala/xspcomm-scala.jar", "python", "golang"};
+    const char * check_langs[] = {"Cpp", "Java", "Scala", "Python", "Golang"};
+    std::map<std::string, int> lang_map = {{"cpp", 0}, {"java", 1}, {"scala", 2}, {"python", 3}, {"golang", 4}};
+    if (main_opts.check){
+        MESSAGE("[OK ] Version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
+        MESSAGE("[OK ] Exec path: %s", picker::get_executable_path().c_str());
+        auto temp_path = picker::get_template_path();
+        if (temp_path.empty()) {
+            MESSAGE("[Err] Can't find default template path");
+        }else{
+            MESSAGE("[OK ] Template path: %s", temp_path.c_str());
+        }
+        int i = 0;
+        for (auto lang : check_langs) {
+            auto lib_location = picker::get_xcomm_lib(check_libs[i], erro_message);
+            if (lib_location.size() == 0) {
+                ERROR("[Err] Support %6s (find: '%s' fail)", lang, check_libs[i]);
+            }else{
+                MESSAGE("[OK ] Support %6s (find: '%s' success)", lang, lib_location.c_str());
+            }
+            i+=1;
+        }
+        exit(0);
+    }
+    if (export_opts.language.size() != 0) {
+        lang_index = lang_map[export_opts.language];
+        auto lib_location = picker::get_xcomm_lib(check_libs[lang_index], erro_message);
+        if (lib_location.size() == 0) {
+            ERROR("[Err] Support %6s (find: '%s' fail)", check_langs[lang_index], check_libs[lang_index]);
+            exit(1);
+        }
     }
 
     // check if app parsed export subcommand
@@ -246,16 +298,17 @@ int main(int argc, char **argv)
 
         picker::codegen::lib(export_opts, sv_pin_result,
                              internal_sginal_result);
-        picker::codegen::cpp(export_opts, sv_pin_result,
-                             internal_sginal_result);
-        picker::codegen::python(export_opts, sv_pin_result,
-                                internal_sginal_result);
-        picker::codegen::java(export_opts, sv_pin_result,
-                                internal_sginal_result);
-        picker::codegen::scala(export_opts, sv_pin_result,
-                                internal_sginal_result);
-        picker::codegen::golang(export_opts, sv_pin_result,
-                                internal_sginal_result);
+        
+        std::map<std::string, std::function<void(picker::export_opts &, \
+                                                 std::vector<picker::sv_signal_define>, \
+                                                 std::vector<picker::sv_signal_define>)>> func_map = {
+            {"cpp",    picker::codegen::cpp},
+            {"python", picker::codegen::python},
+            {"java",   picker::codegen::java},
+            {"scala",  picker::codegen::scala},
+            {"golang", picker::codegen::golang},
+        };
+        func_map[export_opts.language](export_opts, sv_pin_result, internal_sginal_result);
         // build the result with make
         if (export_opts.autobuild) {
             const std::string cmd =
