@@ -1,7 +1,11 @@
-all: compile
+all: test clean
+	@echo "All complete"
+
+test: compile
 	@python3 __init__.py
+	@rm *.a 2>/dev/null || true
 	@echo "--------------Comple Success Test Step DUT--------------------"
-	@cd ../ && python3 example.py || true
+	@cd ../ && PYTHONPATH=. python3 example.py || true
 	@echo "--------------------------------------------------------------"
 
 compile:
