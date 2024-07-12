@@ -51,14 +51,11 @@ void UT{{__TOP_MODULE_NAME__}}::init()
     xfunction<int, bool> stepfunc = [&](bool d) -> int {
         return this->dut->simStep(d);
     };
-    this->xclk.ReInit(stepfunc, {}, {&this->port});
+    this->xclock.ReInit(stepfunc, {}, {});
+    this->xclock.Add(this->xport);
 }
 
 void UT{{__TOP_MODULE_NAME__}}::InitClock(XData &clk)
 {
-    // initialize {{__TOP_MODULE_NAME__}} clock
-    xfunction<int, bool> stepfunc = [&](bool d) -> int {
-        return this->dut->simStep(d);
-    };
-    this->xclk.ReInit(stepfunc, {&clk}, {});
+    this->xclock.Add(clk);
 }

@@ -7,8 +7,7 @@ int main()
 #elif defined(USE_VERILATOR)
     UT{{__TOP_MODULE_NAME__}} *dut = new UT{{__TOP_MODULE_NAME__}}();
 #endif
-    // dut->initClock(dut->clock);
-    dut->xclk.Step(1);
+    dut->xclock.Step(1);
     printf("Initialized UT{{__TOP_MODULE_NAME__}}\n");
     delete dut;
     printf("Deleted UT{{__TOP_MODULE_NAME__}}\n");

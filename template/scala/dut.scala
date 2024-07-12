@@ -14,7 +14,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.dut.simStep(dump)
         ()
     })
-    var port = new XPort()
+    var xport = new XPort()
 
     def this() = {
         this(Array.empty[String])
@@ -33,7 +33,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     // Add to port
 {{__XPORT_ADD__}}
 
-    this.xclock.Add(this.port)
+    this.xclock.Add(this.xport)
     
     /*************************************************/
     /*                  User APIs                    */
@@ -57,7 +57,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.dut.Finish()
     }
     def InitClock(clock_name: String) = {
-        this.xclock.Add(this.port.Get(clock_name))
+        this.xclock.Add(this.xport.Get(clock_name))
     }
     def RefreshComb() = {
         this.dut.RefreshComb()

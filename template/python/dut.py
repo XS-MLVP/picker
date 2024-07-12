@@ -16,8 +16,8 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def __init__(self, *args, **kwargs):
         self.dut = DutUnifiedBase(*args)
         self.xclock = xsp.XClock(self.dut.simStep)
-        self.port  = xsp.XPort()
-        self.xclock.Add(self.port)
+        self.xport  = xsp.XPort()
+        self.xclock.Add(self.xport)
         self.event = self.xclock.getEvent()
         # set output files
         if kwargs.get("waveform_filename"):
@@ -41,7 +41,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     #         User APIs            #
     ################################
     def InitClock(self, name: str):
-        self.xclock.Add(self.port[name])
+        self.xclock.Add(self.xport[name])
 
     def Step(self, i:int = 1):
         self.xclock.Step(i)
