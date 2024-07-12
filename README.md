@@ -7,24 +7,23 @@ English | [中文](README.zh.md)
 
 ## Introduction
 
-Picker is a chip verification auxiliary tool. There are two functions: the first is aimed at encapsulating RTL design verification modules (.v/.scala/.sv) and exposing Pin-Level operations through other programming languages, with plans to support automated Transaction-Level primitive generation in the future. the second is pack uvm transaction as a uvm agent and python class, you can use them and xcomm tool to enable communication between UVM and Python.
+**picker** is a chip verification auxiliary tool with two main functions:
 
-Supported programming languages include C++, Python, Java, Scala, and Golang.
+1. **Expot RTL designs into verification modules:** Picker can convert RTL design verification modules (.v/.scala/.sv) into dynamic libraries and provide programming interfaces in multiple high-level languages (currently supporting C++, Python, Java, Scala, Golang) to drive the circuits.
+1. **Pack UVM-TLM transaction with other languages:** Picker can automatically encapsulate TLM code based on user-provided UVM sequence_items, providing communication interfaces between UVM and other high-level languages (such as Python).
 
-This auxiliary tool allows users to perform chip UT verification based on existing software testing frameworks, such as pytest, junit, TestNG, go test, etc.
+This tool allows users to perform chip unit testing based on existing software testing frameworks, such as pytest, junit, TestNG, go test, etc.
 
-The advantages of verifying with Picker include:
+Advantages of verification based on picker:
+1. No RTL design leakage: After conversion by picker, the original design files (.v) are transformed into binary files (.so). Verification can still be performed without the original design files, and the verifier cannot access the RTL source code.
+1. Reduced compilation time: When the DUT (Design Under Test) is stable, it only needs to be compiled once (packaged into a .so file).
+1. Wide user range: Provides multiple programming interfaces, covering developers of different languages.
+1. Utilizes rich software ecosystems: Supports ecosystems such as Python3, Java, Golang.
+1. Automated UVM transaction encapsulation: Achieves communication between UVM and Python through automated UVM transaction encapsulation.
 
-1. No leakage of RTL design. After conversion by Picker, the original design files (.v) are transformed into binary files (.so), allowing for verification without the original design files and preventing verifiers from accessing the RTL source code.
-2. Reduced compilation time. When the DUT (Design Under Test) is stable, it only needs to be compiled once (packaged into .so).
-3. Broad user base. The provided programming interfaces cover developers of different languages (traditional IC verification only uses System Verilog).
-4. Rich software ecosystem. It can utilize ecosystems like Python3, Java, Golang, etc.
-5. Automate the packaging of UVM transactions to enable communication between UVM and Python.
-
-Currently, Picker supports the following backend RTL simulators:
-
+Currently supported RTL simulators by picker:
 1. Verilator
-2. Synopsys VCS
+1. Synopsys VCS
 
 ## How to Use
 
@@ -52,12 +51,16 @@ make init
 ```bash
 cd picker
 make
+# You can enable support for other languages by 
+#   using `make BUILD_XSPCOMM_SWIG=python,java,scala,golang`.
+# Each language requires its own development environment, 
+#   which needs to be configured separately, such as `javac` for Java.
 sudo -E make install
 ```
 
 > The default installation path is `/usr/local`, with binary files placed in `/usr/local/bin` and template files in `/usr/local/share/picker`.  
 > The installation will automatically install the `xspcomm` base library (https://github.com/XS-MLVP/xcomm), which is used to encapsulate the basic types of `RTL` modules, located at `/usr/local/lib/libxspcomm.so`. **You may need to manually set the link directory parameters (-L) during compilation.**   
-> Additionally, if Python support is enabled (default), the `xspcomm` Python package will also be installed, located at `/usr/local/share/picker/python/xspcomm/`.  
+> If support for languages such as Java is enabled, the corresponding `xspcomm` multi-language packages will also be installed.  
 
 After installation, execute the `picker` command to except the flow output:
 
@@ -91,7 +94,11 @@ Subcommands:
 
 ### Installation Test
 
-Now picker has two subcommands: pack and export. You can run the following commands to check their output:
+picker currently has two subcommands: `export` and `pack`.
+
+The `export` subcommand is used to convert RTL designs into "libraries" corresponding to other high-level programming languages, which can be driven through software.
+
+> $picker export --help
 
 ```bash
 Export RTL Projects Sources as Software libraries such as C++/Python Usage: picker
@@ -135,6 +142,10 @@ Options:
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
 ```
+
+The `pack` subcommand is used to convert UVM `sequence_item` into other languages and then communicate through TLM (currently supports Python, other languages are under development).
+
+> $picker pack --help
 
 ```bash
 Pack uvm transaction as a uvm agent and python class
