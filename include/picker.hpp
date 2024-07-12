@@ -130,6 +130,52 @@ inline std::vector<std::string> strsplit(std::string str, std::string s = " ")
     return ret;
 }
 
+inline std::string lower_case(std::string input)
+{
+    auto str = input;
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    return str;
+}
+
+inline std::string capitalize_first_letter(const std::string &input) {
+    if (input.empty()) {
+        return input;
+    }
+    
+    std::string result = input;
+    result[0] = std::toupper(result[0]);
+    return result;
+}
+
+inline std::map<std::string, std::string> get_default_confilct_map() {
+    std::map<std::string, std::string> pin_map;
+    std::vector<std::string> conflict_pin = {"xclock", "xport", "dut", "initclock", "step", "stepris", "stepfal", "setwaveform", "setcoverage", "finish", "refreshcomb"};
+    for (auto &p : conflict_pin) {
+        pin_map[p] = "pin_";
+    }
+    return pin_map;
+}
+
+inline std::string fix_conflict_pin_name(const std::string &in, std::map<std::string, std::string> &pin_map, bool cap_first = false) {
+    auto input = lower_case(in);
+    if(input.empty()){
+        FATAL("input pin name is empty");
+    }
+    // not find in conflict map
+    if (pin_map.find(input) == pin_map.end()) {
+        if (cap_first) {
+            return capitalize_first_letter(in);
+        }
+        return in;
+    }
+    std::string result = pin_map[input] + in;
+    if (cap_first) {
+        result = capitalize_first_letter(result);
+    }
+    return result;
+}
+
 inline std::string strsplit(std::string str,
                             std::initializer_list<std::string> s,
                             bool front = true)
@@ -193,13 +239,6 @@ inline std::string exec_result(std::string cmd, int index)
     return result[index];
 }
 
-inline std::string lower_case(std::string input)
-{
-    auto str = input;
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    return str;
-}
 
 inline std::string first_upercase(std::string input)
 {

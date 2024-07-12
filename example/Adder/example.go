@@ -27,9 +27,9 @@ func main() {
             c = 0
         }
 
-        adder.P_a.Set(a)
-        adder.P_b.Set(b)
-        adder.P_cin.Set(c)
+        adder.A.Set(a)
+        adder.B.Set(b)
+        adder.Cin.Set(c)
 
         adder.Step()
 
@@ -40,7 +40,7 @@ func main() {
         carry = carry || sum < c
 
         // assert
-        assert(adder.P_sum.U64() == uint64(sum), fmt.Sprintf("sum mismatch: %d != %d\n", adder.P_sum.U64(), uint64(sum)))
+        assert(adder.Sum.U64() == uint64(sum), fmt.Sprintf("sum mismatch: %d != %d\n", adder.Sum.U64(), uint64(sum)))
         
         var carry_bool uint64
         if carry {
@@ -48,7 +48,7 @@ func main() {
         } else {
             carry_bool = 0
         }
-        assert(adder.P_cout.U64() == carry_bool, fmt.Sprintf("carry mismatch: %d != %t\n", adder.P_cout.U().Int64(), carry))
+        assert(adder.Cout.U64() == carry_bool, fmt.Sprintf("carry mismatch: %d != %t\n", adder.Cout.U().Int64(), carry))
     }
     adder.Finish();
     fmt.Println("Golang tests passed")

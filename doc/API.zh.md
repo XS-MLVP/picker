@@ -120,6 +120,9 @@ x = dut.pin.At(12).Get()  // 获取第12位
 dut.pin.At(12).Set(1)     // 对第12位进行赋值
 ```
 
+**注1：** 对于Golang，其pin的成员名称首字母将自动转为大写，eg: dut.Pin.Set(0x123)
+**注2：** 如果pin的名称与dut中的成员变量或方法名称冲突，picker会自动加上pin_（对应Golang前缀为Pin_）前缀。冲突名称有："xclock", "xport", "dut", "initclock", "step", "stepris", "stepfal", "setwaveform", "setcoverage", "finish", "refreshcomb"等
+
 由于C++支持运算符重载，因此在赋值和取值上可以进行简化：
 ```c++
 dut.pin = 0x123

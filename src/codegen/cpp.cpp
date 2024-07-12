@@ -19,15 +19,15 @@ namespace codegen {
 
     namespace cxx {
         static const std::string xdata_declaration_template =
-            "    XData {{pin_func_name}};\n";
+            "    XData {{pin_uniq_name}};\n";
         static const std::string xdata_reinit_template =
-            "    this->{{pin_func_name}}.ReInit({{logic_pin_length}}, IOType::{{logic_pin_type}}, \"{{logic_pin}}\");\n";
+            "    this->{{pin_uniq_name}}.ReInit({{logic_pin_length}}, IOType::{{logic_pin_type}}, \"{{logic_pin}}\");\n";
         static const std::string xdata_bindrw_template =
-            "    this->{{pin_func_name}}.BindDPIPtr(this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 0), this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 1));\n";
+            "    this->{{pin_uniq_name}}.BindDPIPtr(this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 0), this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 1));\n";
         static const std::string xdata_bind_onlyr_template =
-            "    this->{{pin_func_name}}.BindDPIPtr(this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 0), 0);\n";
+            "    this->{{pin_uniq_name}}.BindDPIPtr(this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 0), 0);\n";
         static const std::string xport_add_template =
-            "    this->xport.Add(this->{{pin_func_name}}.mName, this->{{pin_func_name}});\n";
+            "    this->xport.Add(this->{{pin_uniq_name}}.mName, this->{{pin_uniq_name}});\n";
         static const std::string comment_template =
             "    {{logic_pin_type}} {{logic_pin_length}} {{logic_pin}}\n";
 
@@ -58,10 +58,12 @@ namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
+            auto pin_map = picker::get_default_confilct_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_uniq_name"] = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
                 // render
@@ -100,10 +102,12 @@ namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
+            auto pin_map = picker::get_default_confilct_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_uniq_name"] = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 // Set empty or [hb:lb] for verilog render
                 data["logic_pin_length"] =
