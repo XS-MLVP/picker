@@ -311,7 +311,7 @@ uint64_t DutUnifiedBase::GetDPIHandle(std::string name, int towards)
 
 uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
 {
-    char *func_name = (char *)malloc(strlen(name) + 5);
+    char *func_name = (char *)malloc(strlen(name) + 128);
     if (towards == 0) {
         sprintf(func_name, "get_%sxx{{__LIB_DPI_FUNC_NAME_HASH__}}", name);
     } else if (towards == 1) {
@@ -333,7 +333,7 @@ uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
     if (func == nullptr && towards == 0) {
         Fatal("Failed to find DPI function %s", func_name);
     }
-
+    free(func_name);
     return (uint64_t)func;
 }
 
