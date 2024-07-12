@@ -5,7 +5,7 @@ test: compile
 	@python3 __init__.py
 	@rm *.a 2>/dev/null || true
 	@echo "--------------Comple Success Test Step DUT--------------------"
-	@cd ../ && PYTHONPATH=. python3 example.py || true
+	@cd ../ && PYTHONPATH=. python3 example.py && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || true
 	@echo "--------------------------------------------------------------"
 
 compile:

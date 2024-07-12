@@ -3,7 +3,7 @@ all: test clean
 
 test: compile
 	@echo "--------------Comple Success Test Step DUT--------------------"
-	@cd ../ && GO111MODULE=off GOPATH="`pwd`/${TARGET}/golang" go run example.go || true
+	@cd ../ && GO111MODULE=off GOPATH="`pwd`/${TARGET}/golang" go run example.go && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || true
 	@echo "--------------------------------------------------------------"
 
 compile:
