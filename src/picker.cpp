@@ -238,7 +238,7 @@ int main(int argc, char **argv)
         MESSAGE("%s", python_location.c_str());
         exit(0);
     }
-    if (main_opts.show_xcom_lib_location_python) {
+    if (main_opts.show_xcom_lib_location_golang) {
         auto golang_location = picker::get_xcomm_lib("golang", erro_message);
         if (golang_location.size() == 0) {
             ERROR("%s", erro_message.c_str());
