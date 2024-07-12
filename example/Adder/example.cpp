@@ -11,13 +11,8 @@ int64_t random_int64()
 
 int main()
 {
-#if defined(USE_VCS)
-    UTAdder *dut = new UTAdder("libDPIAdder.so");
-#elif defined(USE_VERILATOR)
     UTAdder *dut = new UTAdder();
-#endif
-    // dut->initClock(dut->clock);
-    dut->xclk.Step(1);
+    dut->Step(1);
     printf("Initialized UTAdder\n");
 
     struct input_t {
@@ -43,7 +38,7 @@ int main()
             dut->a   = i.a;
             dut->b   = i.b;
             dut->cin = i.cin;
-            dut->xclk.Step(1);
+            dut->Step(1);
             o_dut.sum  = (uint64_t)dut->sum;
             o_dut.cout = (uint64_t)dut->cout;
         };
@@ -61,14 +56,14 @@ int main()
 
         dut_cal();
         ref_cal();
-        printf("[cycle %lu] a=0x%lx, b=0x%lx, cin=0x%lx\n", dut->xclk.clk, i.a,
+        printf("[cycle %lu] a=0x%lx, b=0x%lx, cin=0x%lx\n", dut->xclock.clk, i.a,
                i.b, i.cin);
         printf("DUT: sum=0x%lx, cout=0x%lx\n", o_dut.sum, o_dut.cout);
         printf("REF: sum=0x%lx, cout=0x%lx\n", o_ref.sum, o_ref.cout);
         Assert(o_dut.sum == o_ref.sum, "sum mismatch");
     }
 
-    delete dut;
+    dut->Finish();
     printf("Test Passed, destory UTAdder\n");
     return 0;
 }

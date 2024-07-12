@@ -9,9 +9,9 @@ namespace picker { namespace codegen {
         static const std::string xdata_init_template =
             "    self.P_{{pin_func_name}} = xspcomm.NewXData({{logic_pin_length}}, xspcomm.{{logic_pin_type}})\n";
         static const std::string xdata_bindrw_template =
-            "    self.P_{{pin_func_name}}.BindDPIPtr(self.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
+            "    self.P_{{pin_func_name}}.BindDPIPtr(self.Dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.Dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xport_add_template =
-            "    self.Port.Add(\"{{pin_func_name}}\", self.P_{{pin_func_name}})\n";
+            "    self.Xport.Add(\"{{pin_func_name}}\", self.P_{{pin_func_name}})\n";
 
         /// @brief Export external pin for cpp render
         /// @param pin

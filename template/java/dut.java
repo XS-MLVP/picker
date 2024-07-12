@@ -45,15 +45,15 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         System.out.printf("Dependency loaded: %b\n", LIB_LOADED);
     }
     public DutUnifiedBase dut;
-    public XPort port;
+    public XPort xport;
     public XClock xclock;
 
     // all pins declare
 {{__XDATA_DECL__}}
     private void initDut(){
-        this.port = new XPort();
+        this.xport = new XPort();
         this.xclock = new XClock((dump) -> this.dut.simStep(dump));
-        this.xclock.Add(this.port);
+        this.xclock.Add(this.xport);
         // new pins
 {{__XDATA_INIT__}}
         // bind dpi
@@ -98,7 +98,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         this.dut.Finish();
     }
     public void InitClock(String clock_name){
-        this.xclock.Add(this.port.Get(clock_name));
+        this.xclock.Add(this.xport.Get(clock_name));
     }
     public void RefreshComb(){
         this.dut.RefreshComb();

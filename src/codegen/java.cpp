@@ -11,7 +11,7 @@ namespace picker { namespace codegen {
         static const std::string xdata_bindrw_template =
             "        this.{{pin_func_name}}.BindDPIPtr(this.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), this.dut.GetDPIHandle(\"{{pin_func_name}}\", 1));\n";
         static const std::string xport_add_template =
-            "        this.port.Add(\"{{pin_func_name}}\", this.{{pin_func_name}});\n";
+            "        this.xport.Add(\"{{pin_func_name}}\", this.{{pin_func_name}});\n";
         /// @brief Export external pin for cpp render
         /// @param pin
         /// @param xdata_declaration
