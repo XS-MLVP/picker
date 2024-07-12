@@ -11,11 +11,7 @@ int64_t random_int64()
 
 int main()
 {
-#if defined(USE_VCS)
-    UTRandomGenerator *dut = new UTRandomGenerator("libDPIAdder.so");
-#elif defined(USE_VERILATOR)
     UTRandomGenerator *dut = new UTRandomGenerator();
-#endif
     unsigned short seed = random_int64() & 0xffff;
     printf("seed = 0x%x\n", seed);
     dut->InitClock(dut->clk);
@@ -48,9 +44,9 @@ int main()
 
         dut_cal();
         ref_cal();
-        printf("[cycle %llu] ", dut->clock.clk);
-        printf("DUT: cout=0x%x , ", o_dut.cout);
-        printf("REF: cout=0x%x\n", o_ref.cout);
+        printf("[cycle %lu] ", dut->xclock.clk);
+        printf("DUT: cout=0x%lx , ", o_dut.cout);
+        printf("REF: cout=0x%lx\n", o_ref.cout);
         Assert(o_dut.cout == o_ref.cout, "sum mismatch");
     }
 

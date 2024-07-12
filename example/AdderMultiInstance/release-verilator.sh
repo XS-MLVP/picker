@@ -15,10 +15,9 @@ rm -rf picker_out_adder/
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/AdderMultiInstance/example.py picker_out_adder/python/
-elif [[ $@ == *"java"* ]]; then
-    cp example/AdderMultiInstance/example.java picker_out_adder/java/
 else
-    cp example/AdderMultiInstance/example.cpp picker_out_adder/cpp/
+    echo "Only example.py find! Use --lang python"
+    exit -1
 fi
 
 cd picker_out_adder && make EXAMPLE=ON

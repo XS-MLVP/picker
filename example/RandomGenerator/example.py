@@ -11,7 +11,7 @@ class LSRF_16:
 
 if __name__ == "__main__":
     dut = DUTRandomGenerator()
-    dut.init_clock("clk")
+    dut.InitClock("clk")
 
     seed = random.randint(0, 2**16 - 1)
 
