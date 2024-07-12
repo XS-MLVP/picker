@@ -5,13 +5,13 @@ namespace picker { namespace codegen {
 
     namespace go {
         static const std::string xdata_declare_template =
-            "    P_{{pin_func_name}} xspcomm.XData\n";
+            "    {{pin_uniq_name}} xspcomm.XData\n";
         static const std::string xdata_init_template =
-            "    self.P_{{pin_func_name}} = xspcomm.NewXData({{logic_pin_length}}, xspcomm.{{logic_pin_type}})\n";
+            "    self.{{pin_uniq_name}} = xspcomm.NewXData({{logic_pin_length}}, xspcomm.{{logic_pin_type}})\n";
         static const std::string xdata_bindrw_template =
-            "    self.P_{{pin_func_name}}.BindDPIPtr(self.Dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.Dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
+            "    self.{{pin_uniq_name}}.BindDPIPtr(self.Dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.Dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xport_add_template =
-            "    self.Xport.Add(\"{{pin_func_name}}\", self.P_{{pin_func_name}})\n";
+            "    self.Xport.Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}})\n";
 
         /// @brief Export external pin for cpp render
         /// @param pin
@@ -29,11 +29,13 @@ namespace picker { namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
+            auto pin_map = picker::get_default_confilct_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"] = pin[i].logic_pin;
                 data["logic_pin_type"] =
                     (pin[i].logic_pin_type[0] == 'i') ? "IOType_Input" : "IOType_Output";
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_uniq_name"] = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, true);
 
                 data["logic_pin_length"] =
                     pin[i].logic_pin_hb == -1 ? // means not vector
@@ -66,10 +68,12 @@ namespace picker { namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
+            auto pin_map = picker::get_default_confilct_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_uniq_name"] = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, true);
 
                 data["logic_pin_length"] =
                     pin[i].logic_pin_hb == -1 ? // means not vector

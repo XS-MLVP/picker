@@ -5,11 +5,11 @@ namespace picker { namespace codegen {
 
     namespace scala_ns {
         static const std::string xdata_init_template =
-            "    var {{pin_func_name}} = new XData({{logic_pin_length}}, XData.{{logic_pin_type}})\n";
+            "    var {{pin_uniq_name}} = new XData({{logic_pin_length}}, XData.{{logic_pin_type}})\n";
         static const std::string xdata_bindrw_template =
-            "    this.{{pin_func_name}}.BindDPIPtr(this.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), this.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
+            "    this.{{pin_uniq_name}}.BindDPIPtr(this.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), this.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xport_add_template =
-            "    this.xport.Add(\"{{pin_func_name}}\", this.{{pin_func_name}})\n";
+            "    this.xport.Add(\"{{pin_func_name}}\", this.{{pin_uniq_name}})\n";
         /// @brief Export external pin for cpp render
         /// @param pin
         /// @param xdata_declaration
@@ -25,12 +25,14 @@ namespace picker { namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
+            auto pin_map = picker::get_default_confilct_map();
             data["moudle_name"] = moudle_name;
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"] = pin[i].logic_pin;
                 data["logic_pin_type"] =
                     (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_uniq_name"] = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] =
                     pin[i].logic_pin_hb == -1 ? // means not vector
@@ -60,11 +62,13 @@ namespace picker { namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
+            auto pin_map = picker::get_default_confilct_map();
             data["moudle_name"] = moudle_name;
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_uniq_name"] = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] =
                     pin[i].logic_pin_hb == -1 ? // means not vector
