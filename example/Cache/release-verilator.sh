@@ -14,7 +14,7 @@ fi
 
 # run cache codegen
 rm -rf picker_out
-./build/bin/picker export --autobuild false example/Cache/Cache.v --fs example/Cache/Test.v -w cache.vcd --sim verilator $@ -C '-fPIC -O3'
+./build/bin/picker export --autobuild false example/Cache/Cache.v --fs example/Cache/Test.v -w cache.vcd --sim verilator $@
 
 # build cache
 cd picker_out && make
