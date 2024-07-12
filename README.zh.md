@@ -1,29 +1,30 @@
 
-# <image src="/image/picker-logo.png" width="32px" height="32px" />Picker: Pick your favorite language to verify your chip.
+# <image src="/image/picker-logo.png" width="32px" height="32px" />Picker: 用你擅长的编程语言进行芯片验证.
 
-> A codegen tool for chip verification, which can provide C++/Python interfaces for the RTL designs.
+> A codegen tool for chip verification, which can provide C++/Python/Java/Scala/Golang interfaces for the RTL designs.
 
 中文 | [English](README.md)
 
 ## 介绍
 
-picker是一个芯片验证辅助工具，有两个功能，其一是将RTL设计验证模块(.v/.scala/.sv)进行封装，并使用其他编程语言暴露Pin-Level的操作，未来计划支持自动化的Transaction-Level原语生成。其二是将UVM的的的transaction打包为一个uvm的agent和一个python类，通过xcomm和生成的文件可以实现UVM和Python的通信
+**picker** 是一个芯片验证辅助工具，具有两个主要功能：
 
-支持的编程语言包括 C++, Python, Java, Scala, Golang 等。
+1. **打包RTL设计验证模块：** picker 可以将 RTL 设计验证模块（.v/.scala/.sv）打包成动态库，并提供多种高级语言（目前支持 C++、Python、Java、Scala、Golang）的编程接口来驱动电路。
+1. **UVM-TLM代码自动生成：** picker 能够基于用户提供的 UVM sequence_item 进行自动化的 TLM 代码封装，提供 UVM 与其他高级语言（如 Python）的通信接口。
 
-该辅助工具让用户可以基于现有的软件测试框架，例如 pytest, junit，TestNG, go test等，进行芯片UT验证。
 
-基于picker进行验证具有如下优点：
+该工具允许用户基于现有的软件测试框架，例如 pytest、junit、TestNG、go test 等，进行芯片单元测试。
 
-1. 不泄露RTL设计。经过picker转换后，原始的设计文件(.v)被转化成了二进制文件(.so)，脱离原始设计文件后，依旧可进行验证，且验证者无法获取RTL源代码。
-2. 减少编译时间。当DUT(Design Under Test)稳定时，只需要编译一次（打包成so）。
-3. 用户面广。提供的编程接口多，可覆盖不同语言的开发者（传统IC验证，只用System Verilog）。
-4. 可使用软件生态丰富。能使用python3, java, golang等生态。
-5. 自动化的打包UVM的transaction,实现UVM和Python的通信
-目前picker支持的后端rtl仿真器如下：
+基于 Picker 进行验证的优点
+1. 不泄露 RTL 设计：经过 Picker 转换后，原始的设计文件（.v）被转化成了二进制文件（.so），脱离原始设计文件后，依旧可进行验证，且验证者无法获取 RTL 源代码。
+1. 减少编译时间：当 DUT（设计待测）稳定时，只需要编译一次（打包成 .so 文件）。
+1. 用户范围广：提供的编程接口多，覆盖不同语言的开发者。
+1. 使用丰富的软件生态：支持 Python3、Java、Golang 等生态系统。
+1. 自动化的 UVM 事务封装：通过自动化封装 UVM 事务，实现 UVM 和 Python 的通信。
 
-1. verilator
-2. synopsys vcs
+Picker 目前支持的 RTL 仿真器：
+1. Verilator
+1. Synopsys VCS
 
 # 使用方法
 
@@ -50,12 +51,14 @@ make init
 ```bash
 cd picker
 make
+# 可通过 make BUILD_XSPCOMM_SWIG=python,java,scala,golang 开启其他语言支持。
+# 各语言需要自己的开发环境，需要自行配置，例如javac等
 sudo -E make install
 ```
 
 > 默认的安装的目标路径是 `/usr/local`， 二进制文件被置于 `/usr/local/bin`，模板文件被置于 `/usr/local/share/picker`。  
 > 安装时会自动安装 `xspcomm`基础库（[https://github.com/XS-MLVP/xcomm](https://github.com/XS-MLVP/xcomm)），该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**  
-> 同时如果开启了python支持，还会安装 `xspcomm` 的python包，位于 `/usr/local/share/picker/python/xspcomm/`。 
+> 如果开启了Java等语言支持，还会安装 `xspcomm` 对应的多语言软件包。 
 
 安装完成后，执行`picker`命令可以得到以下输出:
 
@@ -89,7 +92,11 @@ Subcommands:
 
 ### 安装测试
 
-当前picker有pack和export两个子命令，你可以运行如下两条命令来检查他们的输出：
+当前picker有export和pack两个子命令。
+
+export 子命令用于将RTL设计转换成其他高级编程语言对应的“库”，可以通过软件的方式进行驱动。
+
+> $picker export --help
 
 ```bash
 Export RTL Projects Sources as Software libraries such as C++/Python Usage: picker
@@ -133,6 +140,10 @@ Options:
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
 ```
+
+pack子命令用于将UVM中的 sequence_item 转换为其他语言，然后通过TLM进行通信（目前支持Python，其他语言在开发中）
+
+> $picker pack --help
 
 ```bash
 Pack uvm transaction as a uvm agent and python class
