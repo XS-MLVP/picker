@@ -10,7 +10,7 @@
 |编号|API名称|参数|说明|
 |-|--|---|---|
 |1|InitClock(name)|字符类型，时钟引脚，或引脚的名称|初始化时钟，让DUT中的|-XClock绑定对应的引脚|
-|2|Step(i)|int类型时钟周期个数|提过XClock推进电路i个时钟周期|
+|2|Step(i)|int类型时钟周期个数|推进时序电路i个时钟周期|
 |3|StepRis(callback)|函数类型，回调函数|设置上升沿触发的回调函数|
 |4|StepFal(callback)|函数类型，回调函数|设置下降沿触发的回调函数|
 |5|SetWaveform(file)|字符类型，文件名，含路径|设置波形输出的文件|
@@ -121,6 +121,7 @@ dut.pin.At(12).Set(1)     // 对第12位进行赋值
 ```
 
 **注1：** 对于Golang，其pin的成员名称首字母将自动转为大写，eg: dut.Pin.Set(0x123)
+
 **注2：** 如果pin的名称与dut中的成员变量或方法名称冲突，picker会自动加上pin_（对应Golang前缀为Pin_）前缀。冲突名称有："xclock", "xport", "dut", "initclock", "step", "stepris", "stepfal", "setwaveform", "setcoverage", "finish", "refreshcomb"等
 
 由于C++支持运算符重载，因此在赋值和取值上可以进行简化：
