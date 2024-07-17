@@ -3,7 +3,7 @@
 #include "xspcomm/xcomm.h"
 using namespace xspcomm;
 
-class UT{{__TOP_MODULE_NAME__}}: public DutUnifiedBase
+class UT{{__TOP_MODULE_NAME__}}
 {
     void init();
 public:

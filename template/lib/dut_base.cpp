@@ -1,5 +1,9 @@
 #include "dut_base.hpp"
 #include <dlfcn.h>
+#include <unistd.h>
+
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 
 DutBase::DutBase()
 {
@@ -9,7 +13,7 @@ DutBase::DutBase()
 }
 
 #if defined(USE_VCS)
-#include "vc_hdrs.h"
+
 DutVcsBase::DutVcsBase()
 {
     // FATAL("VCS does not support no-args constructor");
@@ -47,7 +51,7 @@ DutVcsBase::~DutVcsBase(){};
 int DutVcsBase::Step(uint64_t ncycle, bool dump)
 {
     if (!dump) {
-        assert(ncycle == 0);
+        // assert(ncycle == 0);
         VcsSimUntil(&cycle);
         return 0;
     }
@@ -69,6 +73,15 @@ int DutVcsBase::Finish()
 {
     // Finish VCS context
     return 0;
+};
+
+void DutVcsBase::SetWaveform(const char *filename)
+{
+    Info("VCS waveform is not supported");
+};
+void DutVcsBase::SetCoverage(const char *filename)
+{
+    Info("VCS coverage is not supported");
 };
 
 #endif
@@ -205,13 +218,42 @@ char *locateLibPath()
     if (dladdr((char *)locateLibPath, &info) == 0) {
         Fatal("Failed to find the shared library path");
     }
+    
     std::string lib_path = info.dli_fname;
     Info("Shared DPI Library Path: %s", lib_path.c_str());
-    std::string lib_name = lib_path.substr(lib_path.find_last_of("/") + 1);
 
-    char *res = (char *)malloc(lib_name.size() + 1);
-    strcpy(res, lib_name.c_str());
+    // get PWD
+    char *pwd = get_current_dir_name();
+    
+
+    // get relative path
+    std::string rel_path;
+    if (lib_path.find(pwd) == std::string::npos) {
+        rel_path = lib_path;
+    } else {
+        rel_path = lib_path.substr(strlen(pwd) + 1);
+    }
+    
+
+    char *res = (char *)malloc(rel_path.size() + 128);
+    strcpy(res, rel_path.c_str());
     return res;
+}
+
+inline void vcsLibPathConvert(char *path)
+{
+    // locate 'libUT' and replace it with 'libDPI' for VCS
+    // move the other char to next position
+    char *p = path;
+    int plib = 0, pend = strlen(path) + 1;
+    plib = strstr(path, "libUT") - p;
+    while (pend > plib)
+    {
+        p[pend+1] = p[pend];
+        pend--;
+    }
+    strncpy(p+plib, "libDPI", 6);
+    Info("vcsLibPath %s", path);
 }
 
 int DutUnifiedBase::lib_count     = 0;
@@ -219,13 +261,13 @@ bool DutUnifiedBase::main_ns_flag = false;
 
 DutUnifiedBase::DutUnifiedBase()
 {
-#if defined(USE_VERILATOR)
+    char **argv = (char **)malloc(sizeof(char *) * (argc + 128));
     // find the lib.so file path which contains this class
-    char *argv[] = {locateLibPath()};
-    this->init(1, argv);
-#elif defined(USE_VCS)
-    Fatal("VCS does not support no-args constructor");
+    argv[0] = locateLibPath();
+#if defined(USE_VCS)
+    vcsLibPathConvert(argv[0]);
 #endif
+    this->init(1, argv);
     free(argv[0]);
 }
 
@@ -267,7 +309,8 @@ void DutUnifiedBase::init(int argc, char **argv)
 {
     // hold argc and argv for later use
     this->argc = argc;
-    this->argv = (char **)malloc(sizeof(char *) * argc);
+    this->argv = (char **)malloc(sizeof(char *) * (argc + 128));
+    memset(this->argv, -1, sizeof(char *) * (argc + 128));
     for (size_t i = 0; i < argc; i++) {
         this->argv[i] = (char *)malloc(strlen(argv[i]) + 1);
         strcpy(this->argv[i], argv[i]);
@@ -285,9 +328,11 @@ void DutUnifiedBase::init(int argc, char **argv)
         lib_handle   = nullptr;
         return;
     }
+    
+#ifndef USE_VCS
     // get dynamic library path from argv
     if (argc == 0) {
-        Fatal("Shared DPI Library Path is required for Verilator");
+        Fatal("Shared DPI Library Path is required for Simulator");
     }
 
     this->lib_handle =
@@ -302,6 +347,7 @@ void DutUnifiedBase::init(int argc, char **argv)
         (dlcreates_t *)dlsym(this->lib_handle, "dlcreates");
     if (!dlcreates) { Fatal("Failed to find dlcreates function"); }
     this->dut = dlcreates(this->argc, this->argv);
+#endif
 }
 
 uint64_t DutUnifiedBase::GetDPIHandle(std::string name, int towards)
