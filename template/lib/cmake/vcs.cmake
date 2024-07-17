@@ -85,6 +85,8 @@ if(SIMULATOR STREQUAL "vcs")
 			${CMAKE_CURRENT_BINARY_DIR}/libDPI${ModuleName}.so.daidir
 			${CMAKE_BINARY_DIR}/UT_${ModuleName}/libDPI${ModuleName}.so.daidir
 		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/vc_hdrs.h
-						${CMAKE_BINARY_DIR}/UT_${ModuleName}/UT_${ModuleName}_dpi.hpp)
+						${CMAKE_BINARY_DIR}/UT_${ModuleName}/UT_${ModuleName}_dpi.hpp
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/vc_hdrs.h
+						${CMAKE_BINARY_DIR}/UT_${ModuleName}/vc_hdrs.h)
 
 endif()

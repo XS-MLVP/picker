@@ -54,6 +54,7 @@ int VcsMain(int argc, char **argv);
 void VcsInit();
 void VcsSimUntil(uint64_t *);
 }
+#include "vc_hdrs.h"
 
 class DutVcsBase : public DutBase
 {
