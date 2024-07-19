@@ -18,7 +18,7 @@ endif()
 # check verilator
 if ("$ENV{VERILATOR_ROOT}" STREQUAL "")
     execute_process(
-        COMMAND bash -c "verilator -V|grep ROOT|grep verilator|awk '{print $3}'"
+        COMMAND bash -c "verilator -V|grep ROOT|grep verilator|head -n 1|awk '{print $3}'"
         OUTPUT_VARIABLE verilator_root
     )
 else()
