@@ -14,7 +14,7 @@ class output_t:
         self.cout = 0
 
 def random_int():
-    return random.randint(-(2**127), 2**127 - 1) & ((1 << 127) - 1)
+    return random.randint(-(2**127), 2**127 - 1) & ((1 << 128) - 1)
 
 def as_uint(x, nbits):
     return x & ((1 << nbits) - 1)
@@ -35,11 +35,9 @@ def main():
             o_dut.cout = dut.cout.value
         
         def ref_cal():
-            sum = as_uint( i.a + i.b, 256 )
-            carry = sum < i.a
-            sum += i.cin
-            carry = carry or sum < i.cin
-            o_ref.sum, o_ref.cout = sum, carry
+            sum = as_uint( i.a + i.b + i.cin, 128+1)
+            o_ref.sum = as_uint(sum, 128)
+            o_ref.cout = as_uint(sum >> 128, 1)
         
         dut_cal()
         ref_cal()
