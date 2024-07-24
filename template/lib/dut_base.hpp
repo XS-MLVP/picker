@@ -97,6 +97,7 @@ public:
     DutUnifiedBase(char *filename);
     DutUnifiedBase(char *filename, int argc, char **argv);
     DutUnifiedBase(std::initializer_list<const char *> args);
+    DutUnifiedBase(std::vector<std::string> args);
     ~DutUnifiedBase();
     void init(int, char **);
     int simStep();

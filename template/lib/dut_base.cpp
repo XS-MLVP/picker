@@ -275,6 +275,7 @@ DutUnifiedBase::DutUnifiedBase(int argc, char **argv)
 {
     this->init(argc, argv);
 }
+
 DutUnifiedBase::DutUnifiedBase(char *filename)
 {
     char *name = (char *)malloc(strlen(filename) + 1);
@@ -283,6 +284,7 @@ DutUnifiedBase::DutUnifiedBase(char *filename)
     this->init(1, argv);
     free(name);
 };
+
 DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv)
 {
     char *name = (char *)malloc(strlen(filename) + 1);
@@ -291,6 +293,7 @@ DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv)
     this->init(argc, argv);
     free(name);
 };
+
 DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args)
 {
     int argc    = args.size();
@@ -305,6 +308,22 @@ DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args)
     this->init(argc, argv);
     for (int i = 0; i < argc; i++) { free(argv[i]); }
 };
+
+DutUnifiedBase::DutUnifiedBase(std::vector<std::string> args)
+{
+    int argc    = args.size();
+    char **argv = (char **)malloc(sizeof(char *) * (argc + 128));
+    memset(argv, -1, sizeof(char *) * (argc + 128));
+    int i = 0;
+    for (auto arg : args) {
+        char *name = (char *)malloc(strlen(arg) + 1);
+        strcpy(name, arg);
+        argv[i++] = name;
+    }
+    this->init(argc, argv);
+    for (int i = 0; i < argc; i++) { free(argv[i]); }
+}
+
 void DutUnifiedBase::init(int argc, char **argv)
 {
     // hold argc and argv for later use
