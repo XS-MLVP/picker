@@ -41,7 +41,7 @@ Currently supported RTL simulators by picker:
 ### Source Code Download
 
 ```bash
-git clone https://github.com/XS-MLVP/picker.git
+git clone https://github.com/XS-MLVP/picker.git --depth=1
 cd picker
 make init
 ```

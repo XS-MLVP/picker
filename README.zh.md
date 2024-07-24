@@ -42,7 +42,8 @@ Picker 目前支持的 RTL 仿真器：
 ### 下载源码
 
 ```bash
-git clone https://github.com/XS-MLVP/picker.git
+git clone https://github.com/XS-MLVP/picker.git --depth=1
+cd picker
 make init
 ```
 
