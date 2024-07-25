@@ -25,5 +25,12 @@ test: build
 	./build/bin/picker pack -h
 	./build/bin/picker exports -h
 
+test_all:
+	rm -rf picker_out_*
+	./example/Adder/release-verilator.sh --lang python
+	./example/RandomGenerator/release-verilator.sh --lang python
+	./example/AdderMultiInstance/release-verilator.sh --lang python
+	./example/Cache/release-verilator.sh --lang python
+
 clean:
 	rm -rf temp build

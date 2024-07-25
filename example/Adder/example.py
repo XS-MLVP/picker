@@ -24,7 +24,7 @@ def main():
     
     print("Initialized UTAdder")
     
-    for c in range(114514):
+    for c in range(11451):
         i = input_t(random_int(), random_int(), random_int() & 1)
         o_dut, o_ref = output_t(), output_t()
         

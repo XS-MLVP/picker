@@ -46,7 +46,7 @@ void DutVcsBase::init(int argc, char **argv)
                                 + {{__VCS_CLOCK_PERIOD_HIGH__}};
 }
 
-DutVcsBase::~DutVcsBase(){};
+DutVcsBase::~DutVcsBase() {};
 
 int DutVcsBase::Step(uint64_t ncycle, bool dump)
 {
@@ -218,13 +218,12 @@ char *locateLibPath()
     if (dladdr((char *)locateLibPath, &info) == 0) {
         Fatal("Failed to find the shared library path");
     }
-    
+
     std::string lib_path = info.dli_fname;
     Info("Shared DPI Library Path: %s", lib_path.c_str());
 
     // get PWD
     char *pwd = get_current_dir_name();
-    
 
     // get relative path
     std::string rel_path;
@@ -233,7 +232,6 @@ char *locateLibPath()
     } else {
         rel_path = lib_path.substr(strlen(pwd) + 1);
     }
-    
 
     char *res = (char *)malloc(rel_path.size() + 128);
     strcpy(res, rel_path.c_str());
@@ -244,15 +242,14 @@ inline void vcsLibPathConvert(char *path)
 {
     // locate 'libUT' and replace it with 'libDPI' for VCS
     // move the other char to next position
-    char *p = path;
+    char *p  = path;
     int plib = 0, pend = strlen(path) + 1;
     plib = strstr(path, "libUT") - p;
-    while (pend > plib)
-    {
-        p[pend+1] = p[pend];
+    while (pend > plib) {
+        p[pend + 1] = p[pend];
         pend--;
     }
-    strncpy(p+plib, "libDPI", 6);
+    strncpy(p + plib, "libDPI", 6);
     Info("vcsLibPath %s", path);
 }
 
@@ -261,19 +258,12 @@ bool DutUnifiedBase::main_ns_flag = false;
 
 DutUnifiedBase::DutUnifiedBase()
 {
-    char **argv = (char **)malloc(sizeof(char *) * (argc + 128));
-    // find the lib.so file path which contains this class
-    argv[0] = locateLibPath();
-#if defined(USE_VCS)
-    vcsLibPathConvert(argv[0]);
-#endif
-    this->init(1, argv);
-    free(argv[0]);
+    this->init(0, nullptr);
 }
 
 DutUnifiedBase::DutUnifiedBase(int argc, char **argv)
 {
-    this->init(argc, argv);
+    this->init(argc, (const char**)argv);
 }
 
 DutUnifiedBase::DutUnifiedBase(char *filename)
@@ -281,7 +271,7 @@ DutUnifiedBase::DutUnifiedBase(char *filename)
     char *name = (char *)malloc(strlen(filename) + 1);
     strcpy(name, filename);
     char *argv[] = {name};
-    this->init(1, argv);
+    this->init(1, (const char**)argv);
     free(name);
 };
 
@@ -290,41 +280,29 @@ DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv)
     char *name = (char *)malloc(strlen(filename) + 1);
     strcpy(name, filename);
     argv[0] = name;
-    this->init(argc, argv);
+    this->init(argc, (const char**)argv);
     free(name);
 };
 
 DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args)
 {
-    int argc    = args.size();
-    char **argv = (char **)malloc(sizeof(char *) * (argc + 128));
-    memset(argv, -1, sizeof(char *) * (argc + 128));
-    int i = 0;
-    for (auto arg : args) {
-        char *name = (char *)malloc(strlen(arg) + 1);
-        strcpy(name, arg);
-        argv[i++] = name;
-    }
+    int argc    = 0;
+    const char **argv = (const char **)malloc(sizeof(char *) * argc);
+    for (auto arg : args) { argv[argc++] = arg; }
     this->init(argc, argv);
-    for (int i = 0; i < argc; i++) { free(argv[i]); }
+    free(argv);
 };
 
 DutUnifiedBase::DutUnifiedBase(std::vector<std::string> args)
 {
-    int argc    = args.size();
-    char **argv = (char **)malloc(sizeof(char *) * (argc + 128));
-    memset(argv, -1, sizeof(char *) * (argc + 128));
-    int i = 0;
-    for (auto arg : args) {
-        char *name = (char *)malloc(arg.size() + 1);
-        strcpy(name, arg.c_str());
-        argv[i++] = name;
-    }
+    int argc    = 0;
+    const char **argv = (const char **)malloc(sizeof(char *) * argc);
+    for (auto arg : args) { argv[argc++] = arg.c_str(); }
     this->init(argc, argv);
-    for (int i = 0; i < argc; i++) { free(argv[i]); }
+    free(argv);
 }
 
-void DutUnifiedBase::init(int argc, char **argv)
+void DutUnifiedBase::init(int argc, const char **argv)
 {
     // hold argc and argv for later use
     this->argc = argc;
@@ -334,6 +312,18 @@ void DutUnifiedBase::init(int argc, char **argv)
         this->argv[i] = (char *)malloc(strlen(argv[i]) + 1);
         strcpy(this->argv[i], argv[i]);
     }
+
+    // find whether the shared library path is provided
+    if (argc == 0 || !std::string(this->argv[0]).ends_with(".so")) {
+        // add the shared library path to argv
+        for (int i = argc; i > 0; i--) { this->argv[i] = this->argv[i - 1]; }
+        this->argv[0] = locateLibPath();
+#if defined(USE_VCS)
+        vcsLibPathConvert(this->argv[0]);
+#endif
+        this->argc++;
+    }
+
 
     // the main namespace instance doesn't need to load the shared library
     if (!main_ns_flag) {
@@ -347,17 +337,17 @@ void DutUnifiedBase::init(int argc, char **argv)
         lib_handle   = nullptr;
         return;
     }
-    
+
 #ifndef USE_VCS
     // get dynamic library path from argv
-    if (argc == 0) {
+    if (this->argc == 0) {
         Fatal("Shared DPI Library Path is required for Simulator");
     }
 
     this->lib_handle =
         dlmopen(LM_ID_NEWLM, this->argv[0], RTLD_NOW | RTLD_DEEPBIND);
     if (!this->lib_handle) {
-        Fatal("Failed to open shared DPI library %s, %s", argv[0], dlerror());
+        Fatal("Failed to open shared DPI library %s, %s", this->argv[0], dlerror());
     }
     this->lib_count++;
 

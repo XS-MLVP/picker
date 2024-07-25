@@ -99,7 +99,7 @@ public:
     DutUnifiedBase(std::initializer_list<const char *> args);
     DutUnifiedBase(std::vector<std::string> args);
     ~DutUnifiedBase();
-    void init(int, char **);
+    void init(int, const char **);
     int simStep();
     int stepNoDump();
     int simStep(bool dump);
