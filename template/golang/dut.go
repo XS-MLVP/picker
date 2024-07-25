@@ -16,7 +16,20 @@ type UT_{{__TOP_MODULE_NAME__}} struct {
 
 func NewUT_{{__TOP_MODULE_NAME__}}(a ...interface{}) *UT_{{__TOP_MODULE_NAME__}}{
     self := &UT_{{__TOP_MODULE_NAME__}}{}
-    self.Dut = NewDutUnifiedBase(a ...)
+	if len(a) == 1 {
+        strings, ok := a[0].([]string)
+        if ok {
+            args := NewStringVector()
+            for _, v := range strings {
+                args.Add(v)
+            }
+            self.Dut = NewDutUnifiedBase(args)
+        }else{
+            self.Dut = NewDutUnifiedBase(a ...)
+        }
+    }else{
+        self.Dut = NewDutUnifiedBase(a ...)
+    }
     self.Xclock = xspcomm.NewXClock(func(dump bool) int {
         self.Dut.SimStep(dump)
         return 0

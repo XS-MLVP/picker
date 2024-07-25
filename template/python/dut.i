@@ -4,10 +4,6 @@
 %feature("director") DutUnifiedBase;
 %ignore DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args);
 
-%{
-#include "dut_base.hpp"
-%}
-
 %define {{__USE_SIMULATOR__}}
 %enddef
 
@@ -35,6 +31,14 @@
 %include std_string.i
 %include std_map.i
 %include std_vector.i
+
+namespace std {
+   %template(StringVector) vector<string>;
+}
+
+%{
+#include "dut_base.hpp"
+%}
 
 %include "dut_base.hpp"
 

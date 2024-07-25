@@ -5,9 +5,6 @@
 %include std_map.i
 %include std_vector.i
 
-%typemap(jstype) std::vector<std::string> "java.util.List<String>"
-%typemap(javain) std::vector<std::string> "$javacode"
-%typemap(jni) std::vector<std::string> "jobjectArray"
 %template(StringVector) std::vector<std::string>;
 
 %{
@@ -41,24 +38,6 @@
 
 %include "dut_base.hpp"
 %include "UT_{{__TOP_MODULE_NAME__}}_dpi.hpp"
-
-%extend DutUnifiedBase {
-    DutUnifiedBase(std::vector<std::string> &args) {
-        int argc    = args.size();
-        // Reserve heap space for VCS overflow ?
-        char **argv = (char **)malloc(sizeof(char *) * (argc+128));
-        memset(argv, -1, sizeof(char *) * (argc+128));
-        int i       = 0;
-        for (auto narg : args) {
-            auto arg = narg.c_str();
-            char *name = (char *)malloc(strlen(arg) + 1);
-            strcpy(name, arg);
-            argv[i++] = name;
-        }
-        return new DutUnifiedBase(argc, argv);
-    }
-}
-
 
 %{
 // Default null DPI read and write
