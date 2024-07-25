@@ -316,8 +316,8 @@ DutUnifiedBase::DutUnifiedBase(std::vector<std::string> args)
     memset(argv, -1, sizeof(char *) * (argc + 128));
     int i = 0;
     for (auto arg : args) {
-        char *name = (char *)malloc(strlen(arg) + 1);
-        strcpy(name, arg);
+        char *name = (char *)malloc(arg.size() + 1);
+        strcpy(name, arg.c_str());
         argv[i++] = name;
     }
     this->init(argc, argv);
