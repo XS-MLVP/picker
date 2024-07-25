@@ -32,7 +32,7 @@ Currently supported RTL simulators by picker:
 1. [CMake](https://cmake.org/download/) (>=3.11)
 2. [GCC](https://gcc.gnu.org/) (needs to support C++20, at least version 10, **recommended version 11 or above**)
 3. [Python3](https://www.python.org/downloads/) (>=3.8)
-4. [Verilator](https://verilator.org/guide/latest/install.html#git-quick-install) (**==4.218**)
+4. [Verilator](https://verilator.org/guide/latest/install.html#git-quick-install) (>=4.218)
 5. [Verible Verilog Format](https://github.com/chipsalliance/verible) (>=0.0-3428-gcfcbb82b)
 6. [SWIG](http://www.swig.org/) (>=**4.2.0**, multi-language support)
 

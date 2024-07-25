@@ -15,20 +15,6 @@ else()
     set(is_top_level_project FALSE)
 endif()
 
-# check verilator
-if ("$ENV{VERILATOR_ROOT}" STREQUAL "")
-    execute_process(
-        COMMAND bash -c "verilator -V|grep ROOT|grep verilator|head -n 1|awk '{print $3}'"
-        OUTPUT_VARIABLE verilator_root
-    )
-else()
-    set(verilator_root $ENV{VERILATOR_ROOT})
-endif()
-
-if (NOT "${verilator_root}" STREQUAL "")
-    include_directories(${verilator_root})
-endif()
-
 # options
 option(CPPAST_BUILD_TEST "whether or not to build the tests" OFF)
 option(CPPAST_BUILD_EXAMPLE "whether or not to build the examples" OFF)

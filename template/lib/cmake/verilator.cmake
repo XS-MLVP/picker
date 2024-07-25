@@ -2,7 +2,13 @@ if(SIMULATOR STREQUAL "verilator")
 
 	add_definitions(-DUSE_VERILATOR)
 
-	find_package(verilator REQUIRED)
+	# Get VERILATOR_ROOT from verilator command output
+	execute_process(
+		COMMAND bash -c "verilator -V|grep ROOT|grep verilator|head -n 1|awk '{print $3}'"
+		OUTPUT_VARIABLE CMD_VERILATOR_ROOT
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	find_package(verilator REQUIRED PATHS ${CMD_VERILATOR_ROOT} NO_DEFAULT_PATH)
 	include_directories(${VERILATOR_ROOT}/include
 											${VERILATOR_ROOT}/include/vltstd)
 

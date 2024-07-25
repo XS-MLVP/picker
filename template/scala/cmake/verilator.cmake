@@ -20,7 +20,12 @@ function(XSScalaTarget)
 	set(CustomLibs ${XSP_CUSTOM_LIBS})
 	set(CustomLinkOptions ${XSP_CUSTOM_LINK_OPTIONS})
 
-	find_package(verilator REQUIRED)
+	execute_process(
+		COMMAND bash -c "verilator -V|grep ROOT|grep verilator|head -n 1|awk '{print $3}'"
+		OUTPUT_VARIABLE CMD_VERILATOR_ROOT
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	find_package(verilator REQUIRED PATHS ${CMD_VERILATOR_ROOT}  NO_DEFAULT_PATH)
 	include_directories(${VERILATOR_ROOT}/include
 											${VERILATOR_ROOT}/include/vltstd)
 
