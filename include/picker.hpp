@@ -406,17 +406,39 @@ inline std::string get_executable_path()
 
 #endif
 
-inline std::string get_xcomm_location(){
+inline bool str_start_with(std::string str, std::string prefix)
+{
+    return str.find(prefix) == 0;
+}
+
+inline std::string get_target_path_from(std::string base, std::vector<std::string> paths)
+{
     auto path = get_executable_path();
-    path      = path.substr(0, path.find_last_of("/\\"));
-    path      = path.substr(0, path.find_last_of("/\\"));
-    for (auto &l: {"/dependence/xcomm", "/share/picker"}){
-        auto lib_path = path_join({path, l});
-        if(file_exists(lib_path)){
-            return lib_path;
+    for (auto &l: paths){
+        auto p = std::string(l);
+        if(!str_start_with(p, "/")){
+            p = path_join({base, p});
+        }
+        if(file_exists(p)){
+            return p;
         }
     }
     return "";
+}
+
+inline std::string get_target_path_from(std::string base, std::initializer_list<std::string> paths)
+{
+    return get_target_path_from(base, std::vector<std::string>(paths));
+}
+
+inline std::string get_xcomm_location(){
+    auto path = get_executable_path();
+    return get_target_path_from(path, {"../../dependence/xcomm",    // 1. search in bulid dir (for dev)
+                                       "./picker",                  // 2. search in current dir
+                                       "../../share/picker",        // 3. search in share dir (for install)
+                                       "/usr/local/share/picker",   // 4. search in /usr/local/share
+                                       "/usr/share/picker",         // 5. search in /usr/share
+                                       "/etc/picker"});             // 6. search in /etc
 }
 
 inline std::string get_xcomm_lib(std::string lib_name, std::string & message){
@@ -436,13 +458,13 @@ inline std::string get_xcomm_lib(std::string lib_name, std::string & message){
 inline std::string get_template_path()
 {
     auto path = get_executable_path();
-    path      = path.substr(0, path.find_last_of("/\\")); // remove picker
-    path      = path.substr(0, path.find_last_of("/\\")); // remove bin
-    for (auto &l: {"../template", "/share/picker/template"}){
-        auto lib_path = path_join({path, l});
-        if(file_exists(lib_path)){
-            return lib_path;
-        }
+    auto tmp = get_target_path_from(path, {"../../../template",                // 1. search in source dir (for dev)
+                                           "./template",                       // 2. search in current dir
+                                           "../../share/picker/template",      // 3. search in share dir (for install)
+                                           "/usr/local/share/picker/template", // 4. search in /usr/local/share
+                                           "/etc/picker/template"});           // 5. search in /etc
+    if(!tmp.empty()){
+        return tmp;
     }
     FATAL("template not found, please check the installation or mannualy set the source dir path");
 }
