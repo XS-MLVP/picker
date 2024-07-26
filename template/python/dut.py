@@ -1,7 +1,8 @@
+#coding=utf8
 
-if __package__ or "." in __name__:
+try:
     from . import xspcomm as xsp
-else:
+except ImportError as e:
     import xspcomm as xsp
 
 if __package__ or "." in __name__:
