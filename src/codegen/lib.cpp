@@ -27,7 +27,8 @@ namespace picker { namespace codegen {
         }
     }
 
-    void gen_filelist(const std::string &source_file, const std::string &ifilelist, std::string &ofilelist)
+    void gen_filelist(const std::string &source_file,
+                      const std::string &ifilelist, std::string &ofilelist)
     {
         std::vector<std::string> path_list;
         if (ifilelist.ends_with(".txt")) { // read from file
@@ -42,7 +43,7 @@ namespace picker { namespace codegen {
         for (auto &path : path_list) {
             if (path.starts_with("#")) { continue; } // skip comment line
             path.substr(0, path.find_first_of("#")); // remove comment part
-            if (path == source_file)  { continue; } // skip source file
+            if (path == source_file) { continue; }   // skip source file
 
             if (path.ends_with(".sv") || path.ends_with(".v")) { // single file
                 path = std::filesystem::absolute(path).string();
@@ -103,20 +104,18 @@ namespace picker { namespace codegen {
 
     void lib(picker::export_opts &opts,
              const std::vector<picker::sv_signal_define> &external_pin,
-             const std::vector<picker::sv_signal_define> &internal_pin)
+             const std::vector<picker::sv_signal_define> &internal_pin,
+             nlohmann::json &signal_tree)
     {
         // Parse Options
-        std::string filename = opts.file,
-                    src_dir  = opts.source_dir + "/lib",
-                    dst_dir  = opts.target_dir,
+        std::string filename = opts.file, src_dir = opts.source_dir + "/lib",
+                    dst_dir         = opts.target_dir,
                     src_module_name = opts.source_module_name,
                     dst_module_name = opts.target_module_name,
-                    wave_file_name  = opts.wave_file_name,
-                    simulator       = opts.sim,
-                    vflag           = opts.vflag,
-                    cflag           = opts.cflag,
-                    ifilelist = opts.filelist, ofilelist,
-                    vcs_clock_period_h, vcs_clock_period_l;
+                    wave_file_name = opts.wave_file_name, simulator = opts.sim,
+                    vflag = opts.vflag, cflag = opts.cflag,
+                    ifilelist = opts.filelist, ofilelist, vcs_clock_period_h,
+                    vcs_clock_period_l;
 
         // Build environment
         inja::Environment env;
@@ -125,26 +124,26 @@ namespace picker { namespace codegen {
         data["__SOURCE_MODULE_NAME__"] = src_module_name;
         data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
-        gen_sv_param(data, external_pin, internal_pin, wave_file_name,
-                     simulator);
+        gen_sv_param(data, external_pin, internal_pin, signal_tree,
+                     wave_file_name, simulator);
         gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag,
                   env, data);
 
         // Set clock period
         printf("Frequency: %s\n", opts.frequency.c_str());
         get_clock_period(vcs_clock_period_h, vcs_clock_period_l,
-                            opts.frequency);    
+                         opts.frequency);
 
         // Render lib filelist
         gen_filelist(filename, ifilelist, ofilelist);
 
-        data["__VCS_CLOCK_PERIOD_HIGH__"] = vcs_clock_period_h;
-        data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
-        data["__VERBOSE__"]         = opts.verbose ? "ON" : "OFF";
-        data["__EXAMPLE__"]         = opts.example ? "ON" : "OFF";
-        data["__COVERAGE__"]        = opts.coverage ? "ON" : "OFF";
-        data["__TARGET_LANGUAGE__"] = opts.language;
-        data["__FILELIST__"]        = ofilelist;
+        data["__VCS_CLOCK_PERIOD_HIGH__"]  = vcs_clock_period_h;
+        data["__VCS_CLOCK_PERIOD_LOW__"]   = vcs_clock_period_l;
+        data["__VERBOSE__"]                = opts.verbose ? "ON" : "OFF";
+        data["__EXAMPLE__"]                = opts.example ? "ON" : "OFF";
+        data["__COVERAGE__"]               = opts.coverage ? "ON" : "OFF";
+        data["__TARGET_LANGUAGE__"]        = opts.language;
+        data["__FILELIST__"]               = ofilelist;
         data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
 
         // Render lib files
