@@ -46,7 +46,8 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
-                data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
+                data["__LIB_DPI_FUNC_NAME_HASH__"] =
+                    std::string(lib_random_hash);
 
                 // Set empty or [hb:lb] for verilog render
                 data["logic_pin_length"] =
@@ -89,7 +90,8 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
-                data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
+                data["__LIB_DPI_FUNC_NAME_HASH__"] =
+                    std::string(lib_random_hash);
 
                 // Set empty or [hb:lb] for verilog render
                 data["logic_pin_length"] =
@@ -147,6 +149,107 @@ namespace picker { namespace codegen {
                     "OFF";
             data["__SV_DUMP_WAVE__"] = sv_dump_wave;
         }
+
+        void render_signal_tree(
+            const std::vector<picker::sv_signal_define> &external_pin,
+            const std::vector<picker::sv_signal_define> &internal_signal,
+            std::string &signal_tree)
+        {
+            // iterate the signal pin and generate the signal tree by TRIE tree
+            // get all the signal name and sort them
+            std::vector<picker::sv_signal_define> signal_list;
+            for (auto pin : external_pin) { signal_list.push_back(pin); }
+            for (auto pin : internal_signal) { signal_list.push_back(pin); }
+
+            // sort the signal list for handle the signal tree
+            std::sort(
+                signal_list.begin(), signal_list.end(),
+                [](auto &a, auto &b) { return a.logic_pin < b.logic_pin; });
+
+            // split the string by delimiter, only considering the last one in
+            // consecutive delimiters
+            auto split = [](const std::string &str, char delimiter) {
+                std::vector<std::string> tokens;
+                std::stringstream ss;
+                bool last_was_delimiter = false;
+                for (char ch : str) {
+                    if (ch == delimiter) {
+                        ss << ch;
+                        last_was_delimiter = true;
+                    } else {
+                        if (last_was_delimiter) {
+                            tokens.push_back(
+                                ss.str().substr(0, ss.str().size() - 1));
+                            ss.str("");
+                        }
+                        ss << ch;
+                        last_was_delimiter = false;
+                    }
+                }
+                if (!ss.str().empty()) { tokens.push_back(ss.str()); }
+                return tokens;
+            };
+
+            // Creat trie node typedef for signal tree
+            struct TrieNode {
+                std::map<std::string, TrieNode *> children;
+                bool isEndOfWord = false;
+                std::string part_name, pin_type;
+                int high_bit = -1, low_bit = -1;
+            };
+
+            // Build the TRIE
+            TrieNode *root = new TrieNode();
+            for (auto signal : signal_list) {
+                std::vector<std::string> signal_split =
+                    split(replace_all(signal.logic_pin, ".", "_"), '_');
+                TrieNode *current = root;
+                for (auto part_name : signal_split) {
+                    if (current->children.find(part_name)
+                        == current->children.end()) {
+                        TrieNode *new_node           = new TrieNode();
+                        new_node->part_name          = part_name;
+                        current->children[part_name] = new_node;
+                    }
+                    current = current->children[part_name];
+                }
+                current->isEndOfWord = true;
+                current->high_bit    = signal.logic_pin_hb;
+                current->low_bit     = signal.logic_pin_lb;
+                current->pin_type    = signal.logic_pin_type;
+            }
+
+            // convert the TRIE to json
+            std::function<void(TrieNode *, nlohmann::json &)> trie_to_json =
+                [&](TrieNode *node, nlohmann::json &json) {
+                    if (node->isEndOfWord) {
+                        json["Pin"]  = node->pin_type;
+                        json["High"] = node->high_bit;
+                        json["Low"]  = node->low_bit;
+                        json["_"]    = true;
+                    }
+                    for (auto &child : node->children) {
+                        nlohmann::json child_json;
+                        trie_to_json(child.second, child_json);
+                        json[child.first] = child_json;
+                    }
+                };
+
+            // json2string
+            nlohmann::json tries;
+            trie_to_json(root, tries);
+            signal_tree = tries.dump(4);
+
+            // free the memory
+            std::function<void(TrieNode *)> delete_trie = [&](TrieNode *node) {
+                for (auto &child : node->children) {
+                    delete_trie(child.second);
+                }
+                delete node;
+            };
+            delete_trie(root);
+        }
+
     } // namespace sv
     /// @brief generate system verilog wrapper file contains
     /// __PIN_CONNECT__ , __LOGIC_PIN_DECLARATION__ , __WIRE_PIN_DECLARATION__
@@ -161,18 +264,20 @@ namespace picker { namespace codegen {
                  const std::string &wave_file_name,
                  const std::string &simulator)
     {
-        std::string pin_connect, logic, wire, dpi_export, dpi_impl;
+        std::string pin_connect, logic, wire, dpi_export, dpi_impl, signal_tree;
 
         sv::render_external_pin(external_pin, pin_connect, logic, wire,
                                 dpi_export, dpi_impl);
         sv::render_internal_signal(internal_signal, dpi_export, dpi_impl);
         sv::render_sv_waveform(simulator, wave_file_name, global_render_data);
+        sv::render_signal_tree(external_pin, internal_signal, signal_tree);
 
         global_render_data["__LOGIC_PIN_DECLARATION__"]  = logic;
         global_render_data["__WIRE_PIN_DECLARATION__"]   = wire;
         global_render_data["__PIN_CONNECT__"]            = pin_connect;
         global_render_data["__DPI_FUNCTION_EXPORT__"]    = dpi_export;
         global_render_data["__DPI_FUNCTION_IMPLEMENT__"] = dpi_impl;
+        global_render_data["__SIGNAL_TREE__"]            = signal_tree;
     }
 
 }} // namespace picker::codegen
