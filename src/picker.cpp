@@ -334,8 +334,9 @@ int main(int argc, char **argv)
         std::map<std::string,
                  std::function<void(picker::export_opts &,
                                     std::vector<picker::sv_signal_define>,
-                                    std::vector<picker::sv_signal_define>)>>
-            func_map = {
+                                    std::vector<picker::sv_signal_define>,
+                                    nlohmann::json &
+                                    )>> func_map = {
                 {"cpp", picker::codegen::cpp},
                 {"python", picker::codegen::python},
                 {"java", picker::codegen::java},
@@ -343,7 +344,8 @@ int main(int argc, char **argv)
                 {"golang", picker::codegen::golang},
             };
         func_map[export_opts.language](export_opts, sv_pin_result,
-                                       internal_sginal_result);
+                                       internal_sginal_result,
+                                       signal_tree_json);
         // build the result with make
         if (export_opts.autobuild) {
             const std::string cmd = "cd " + export_opts.target_dir + " && make";

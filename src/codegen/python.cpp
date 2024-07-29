@@ -85,7 +85,7 @@ namespace picker { namespace codegen {
 
     void python(picker::export_opts &opts,
                 std::vector<picker::sv_signal_define> external_pin,
-                std::vector<picker::sv_signal_define> internal_signal)
+                std::vector<picker::sv_signal_define> internal_signal, nlohmann::json &signal_tree_json)
     {
         //
         std::string src_dir         = opts.source_dir + "/python";
