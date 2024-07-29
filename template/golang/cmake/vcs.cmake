@@ -1,5 +1,24 @@
 add_definitions(-DUSE_VCS)
 
+function(search_libs afound rlibs)
+    set(libs_list ${ARGN})
+    set(all_found TRUE)
+    set(libs "")
+    foreach(lib ${libs_list})
+        find_library(LIB_${lib} ${lib})
+        if (NOT LIB_${lib})
+            set(all_found FALSE)
+            break()
+        else()
+            message(STATUS "Found ${lib}: ${LIB_${lib}}")
+            set(libs "${libs} -l${lib}")
+        endif()
+    endforeach()
+    set(${afound} ${all_found} PARENT_SCOPE)
+    set(${rlibs} ${libs} PARENT_SCOPE)
+endfunction()
+
+
 function(XSGolangTarget)
 
 	cmake_parse_arguments(
@@ -65,6 +84,7 @@ function(XSGolangTarget)
 	swig_add_library(UT_${PROJECT_NAME} LANGUAGE go SOURCES dut.i)
 
 	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} DPI${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
+	search_libs(ALL_FOUND LIBS zerosoft_rt_stubs m c pthread numa dl)
 	target_link_options(
 		UT_${PROJECT_NAME}
 		PRIVATE
@@ -79,7 +99,6 @@ function(XSGolangTarget)
 		-Wl,-whole-archive
 		-lvcsucli
 		-Wl,-no-whole-archive
-		-lzerosoft_rt_stubs
 		-luclinative
 		-lvirsim
 		-lerrorinf
@@ -87,11 +106,7 @@ function(XSGolangTarget)
 		-lvfs
 		-lvcsnew
 		-lsimprofile
-		-ldl
-		-lc
-		-lm
-		-lpthread
-		-lnuma
+		${LIBS}
 		${CustomLinkOptions})
 
 	set_property(TARGET UT_${PROJECT_NAME} PROPERTY SWIG_COMPILE_OPTIONS -module UT_${PROJECT_NAME})

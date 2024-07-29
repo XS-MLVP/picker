@@ -1,5 +1,25 @@
 add_definitions(-DUSE_VCS)
 
+
+function(search_libs afound rlibs)
+    set(libs_list ${ARGN})
+    set(all_found TRUE)
+    set(libs "")
+    foreach(lib ${libs_list})
+        find_library(LIB_${lib} ${lib})
+        if (NOT LIB_${lib})
+            set(all_found FALSE)
+            break()
+        else()
+            message(STATUS "Found ${lib}: ${LIB_${lib}}")
+            set(libs "${libs} -l${lib}")
+        endif()
+    endforeach()
+    set(${afound} ${all_found} PARENT_SCOPE)
+    set(${rlibs} ${libs} PARENT_SCOPE)
+endfunction()
+
+
 function(XSScalaTarget)
 
 	cmake_parse_arguments(
@@ -67,6 +87,7 @@ function(XSScalaTarget)
 	set_target_properties(UT_${PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${JAR_SOURCE_DIR})
 
 	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} DPI${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
+	search_libs(ALL_FOUND LIBS zerosoft_rt_stubs m c pthread numa dl)
 	target_link_options(
 		UT_${PROJECT_NAME}
 		PRIVATE
@@ -81,7 +102,6 @@ function(XSScalaTarget)
 		-Wl,-whole-archive
 		-lvcsucli
 		-Wl,-no-whole-archive
-		-lzerosoft_rt_stubs
 		-luclinative
 		-lvirsim
 		-lerrorinf
@@ -89,42 +109,38 @@ function(XSScalaTarget)
 		-lvfs
 		-lvcsnew
 		-lsimprofile
-		-ldl
-		-lc
-		-lm
-		-lpthread
-		-lnuma
+		${LIBS}
 		${CustomLinkOptions})
 
-	set_property(TARGET UT_${PROJECT_NAME} PROPERTY SWIG_COMPILE_OPTIONS -package com.xspcomm)
+		set_property(TARGET UT_${PROJECT_NAME} PROPERTY SWIG_COMPILE_OPTIONS -package com.xspcomm)
 
-	# copy file
-	add_custom_command(
-		OUTPUT ${JAR_SOURCE_DIR}/simple_step.scala
-		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_BINARY_DIR}/*.java
-				${JAR_SOURCE_DIR}/
-		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/../scala/simple_step.scala
-				${JAR_SOURCE_DIR}/
-		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/../scala/dut.java
-				${JAR_SOURCE_DIR}/UT_${PROJECT_NAME}.java
-		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/../scala/dut.scala
-				${JAR_SOURCE_DIR}/UT_${PROJECT_NAME}.scala
-		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/*.so
-				${JAR_SOURCE_DIR}/
-		COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-scala.jar
-		COMMAND scalac -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-scala.jar -d ${JAR_SOURCE_DIR} -classpath ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.scala
-		DEPENDS UT_${PROJECT_NAME}
-	)
-	add_custom_target(
-    _DummyTarget_create_${PROJECT_NAME} ALL
-        COMMAND ${Java_JAR_EXECUTABLE} cfm UT_${PROJECT_NAME}-scala.jar MANIFEST.MF -C ${JAR_SOURCE_DIR} .
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS ${JAR_SOURCE_DIR}/simple_step.scala
-	)
+		# copy file
+		add_custom_command(
+			OUTPUT ${JAR_SOURCE_DIR}/example.scala
+			COMMAND ${CMAKE_COMMAND} -E copy
+					${CMAKE_CURRENT_BINARY_DIR}/*.java
+					${JAR_SOURCE_DIR}/
+			COMMAND ${CMAKE_COMMAND} -E copy
+					${CMAKE_CURRENT_SOURCE_DIR}/../scala/example.scala
+					${JAR_SOURCE_DIR}/
+			COMMAND ${CMAKE_COMMAND} -E copy
+					${CMAKE_CURRENT_SOURCE_DIR}/../scala/dut.java
+					${JAR_SOURCE_DIR}/JavaUT_${PROJECT_NAME}.java
+			COMMAND ${CMAKE_COMMAND} -E copy
+					${CMAKE_CURRENT_SOURCE_DIR}/../scala/dut.scala
+					${JAR_SOURCE_DIR}/UT_${PROJECT_NAME}.scala
+			COMMAND ${CMAKE_COMMAND} -E copy
+					${CMAKE_CURRENT_SOURCE_DIR}/*.so
+					${JAR_SOURCE_DIR}/
+			COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-scala.jar
+			COMMAND scalac -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-scala.jar -d ${JAR_SOURCE_DIR} -classpath ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.scala
+			DEPENDS UT_${PROJECT_NAME}
+		)
+		add_custom_target(
+		_DummyTarget_create_${PROJECT_NAME} ALL
+			COMMAND ${Java_JAR_EXECUTABLE} cfm UT_${PROJECT_NAME}-scala.jar MANIFEST.MF -C ${JAR_SOURCE_DIR} .
+			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+			DEPENDS ${JAR_SOURCE_DIR}/example.scala
+		)
 
 endfunction()

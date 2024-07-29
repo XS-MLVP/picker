@@ -1,5 +1,25 @@
 add_definitions(-DUSE_VCS)
 
+
+function(search_libs afound rlibs)
+    set(libs_list ${ARGN})
+    set(all_found TRUE)
+    set(libs "")
+    foreach(lib ${libs_list})
+        find_library(LIB_${lib} ${lib})
+        if (NOT LIB_${lib})
+            set(all_found FALSE)
+            break()
+        else()
+            message(STATUS "Found ${lib}: ${LIB_${lib}}")
+            set(libs "${libs} -l${lib}")
+        endif()
+    endforeach()
+    set(${afound} ${all_found} PARENT_SCOPE)
+    set(${rlibs} ${libs} PARENT_SCOPE)
+endfunction()
+
+
 function(XSPTarget)
 
 	cmake_parse_arguments(
@@ -65,13 +85,14 @@ function(XSPTarget)
 	# Build the test executable
 	add_executable(${ExecutableName} UT_${RTLModuleName}.cpp)
 	target_link_libraries(${ExecutableName} UT${RTLModuleName} DPI${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
+	search_libs(ALL_FOUND LIBS zerosoft_rt_stubs m c pthread numa dl)
 	target_link_options(
 		${ExecutableName}
 		PRIVATE
 		-L./
 		-L${VCS_HOME}/linux64/lib
 		-Wl,-rpath=~/.local/lib
-		-Wl,-rpath=/usr/local/lib 
+		-Wl,-rpath=/usr/local/lib
 		-Wl,-rpath=${VCS_HOME}/linux64/lib
 		-no-pie
 		-Wl,--no-as-needed
@@ -79,7 +100,6 @@ function(XSPTarget)
 		-Wl,-whole-archive
 		-lvcsucli
 		-Wl,-no-whole-archive
-		-lzerosoft_rt_stubs
 		-luclinative
 		-lvirsim
 		-lerrorinf
@@ -87,11 +107,7 @@ function(XSPTarget)
 		-lvfs
 		-lvcsnew
 		-lsimprofile
-		-ldl
-		-lc
-		-lm
-		-lpthread
-		-lnuma
+		${LIBS}
 		${CustomLinkOptions})
 
 endfunction()
