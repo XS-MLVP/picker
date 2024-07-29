@@ -2,7 +2,7 @@
 
 try:
     from . import xspcomm as xsp
-except ImportError as e:
+except Exception as e:
     import xspcomm as xsp
 
 if __package__ or "." in __name__:

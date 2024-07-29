@@ -114,6 +114,11 @@ namespace picker { namespace codegen {
         auto python_location =
             picker::get_xcomm_lib("python/xspcomm", erro_message);
         if (python_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
+        auto cpplib_location =
+            picker::get_xcomm_lib("lib", erro_message);
+        if (cpplib_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
+
+        data["__XSPCOMM_LIB__"]    = cpplib_location;
         data["__XSPCOMM_PYTHON__"] = python_location;
 
         data["__SOURCE_MODULE_NAME__"] = src_module_name;
@@ -124,6 +129,7 @@ namespace picker { namespace codegen {
         data["__XPORT_ADD__"]     = xport_add;
         data["__SWIG_CONSTANT__"] = swig_constant;
         data["__USE_SIMULATOR__"] = "USE_" + simulator;
+        data["__COPY_XSPCOMM_LIB__"]  = opts.cp_lib;
 
         // Render
         inja::Environment env;

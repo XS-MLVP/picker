@@ -93,6 +93,7 @@ function(XSJavaTarget)
 		-L${VCS_HOME}/linux64/lib
 		-Wl,-rpath=~/.local/lib
 		-Wl,-rpath=/usr/local/lib
+		-Wl,-rpath={{__XSPCOMM_LIB__}}
 		-Wl,-rpath=${VCS_HOME}/linux64/lib
 		-no-pie
 		-Wl,--no-as-needed
@@ -127,7 +128,7 @@ function(XSJavaTarget)
 			COMMAND ${CMAKE_COMMAND} -E copy
 					${CMAKE_CURRENT_SOURCE_DIR}/*.so
 					${JAR_SOURCE_DIR}/
-			COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-java.jar
+			COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp {{__XSPCOMM_JAR__}}
 			DEPENDS UT_${PROJECT_NAME}
 		)
 		add_custom_target(

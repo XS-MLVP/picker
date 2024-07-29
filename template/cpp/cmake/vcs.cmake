@@ -93,6 +93,7 @@ function(XSPTarget)
 		-L${VCS_HOME}/linux64/lib
 		-Wl,-rpath=~/.local/lib
 		-Wl,-rpath=/usr/local/lib
+		-Wl,-rpath={{__XSPCOMM_LIB__}}
 		-Wl,-rpath=${VCS_HOME}/linux64/lib
 		-no-pie
 		-Wl,--no-as-needed

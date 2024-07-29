@@ -95,6 +95,7 @@ function(XSScalaTarget)
 		-L${VCS_HOME}/linux64/lib
 		-Wl,-rpath=~/.local/lib
 		-Wl,-rpath=/usr/local/lib
+		-Wl,-rpath={{__XSPCOMM_LIB__}}
 		-Wl,-rpath=${VCS_HOME}/linux64/lib
 		-no-pie
 		-Wl,--no-as-needed
@@ -132,8 +133,8 @@ function(XSScalaTarget)
 			COMMAND ${CMAKE_COMMAND} -E copy
 					${CMAKE_CURRENT_SOURCE_DIR}/*.so
 					${JAR_SOURCE_DIR}/
-			COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-scala.jar
-			COMMAND scalac -cp ${CMAKE_CURRENT_SOURCE_DIR}/xspcomm-scala.jar -d ${JAR_SOURCE_DIR} -classpath ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.scala
+			COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp {{__XSPCOMM_JAR__}}
+			COMMAND scalac -cp {{__XSPCOMM_JAR__}} -d ${JAR_SOURCE_DIR} -classpath ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.scala
 			DEPENDS UT_${PROJECT_NAME}
 		)
 		add_custom_target(

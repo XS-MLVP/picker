@@ -3,11 +3,22 @@ all: test clean
 
 test: compile
 	@echo "--------------Comple Success Test Step DUT--------------------"
-	@cd ../ && GO111MODULE=off GOPATH="`pwd`/${TARGET}/golang" go run example.go && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || true
+	@cd ../ && GO111MODULE=off GOPATH="`pwd`/${TARGET}/golang:{{__XSPCOMM_GOLANG__}}" go run example.go && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || true
 	@echo "--------------------------------------------------------------"
 
-compile:
+
+# copy xspcomm lib
+copy_xspcomm_lib={{__COPY_XSPCOMM_LIB__}}
+ifneq ($(copy_xspcomm_lib), true)
+copy_xspcomm:
+	@echo "Ignore copy gomodule xspcomm"
+else
+copy_xspcomm:
+	@echo "Try copy gomodule xspcomm"
 	@cp -r {{__XSPCOMM_GOLANG__}} .
+endif
+
+compile: copy_xspcomm
 	cmake . -Bbuild
 	cmake --build build --config Debug --parallel `nproc`
 	@mkdir -p golang/src/${TARGET}

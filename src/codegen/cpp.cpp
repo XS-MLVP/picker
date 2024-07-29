@@ -158,9 +158,19 @@ namespace codegen {
                                     xdata_reinit, xdata_bindrw, xport_add,
                                     comments);
 
+        std::string erro_message;
+        auto cpplib_location =
+            picker::get_xcomm_lib("lib", erro_message);
+        if (cpplib_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
+
+        auto include_location =
+            picker::get_xcomm_lib("include", erro_message);
+        if (include_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
 
         // Set global render data
         nlohmann::json data;
+        data["__XSPCOMM_LIB__"]     = cpplib_location;
+        data["__XSPCOMM_INCLUDE__"] = include_location;
 
         data["__SOURCE_MODULE_NAME__"] = src_module_name;
         data["__TOP_MODULE_NAME__"]    = dst_module_name;
@@ -170,6 +180,7 @@ namespace codegen {
         data["__XDATA_BIND__"]        = xdata_bindrw;
         data["__XPORT_ADD__"]         = xport_add;
         data["__COMMENTS__"]          = comments;
+        data["__COPY_XSPCOMM_LIB__"]  = opts.cp_lib;
 
         // Render
         inja::Environment env;

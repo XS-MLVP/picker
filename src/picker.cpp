@@ -89,6 +89,10 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_flag("-c,--coverage", export_opts.coverage,
                   "Enable coverage, default is not selected as OFF");
 
+    // Enable copy xspcomm lib to DUT location
+    app->add_flag("--cp_lib", export_opts.cp_lib,
+                  "Copy xspcomm lib to generated DUT dir");
+
     // User defined simulator compile args, passthrough. Eg: '-v -x-assign=fast
     // -Wall --trace' || '-C vcs -cc -f filelist.f'
     app->add_option(

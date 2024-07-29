@@ -4,11 +4,21 @@ all: test clean
 
 test: compile
 	@echo "--------------Comple Success Test Step DUT--------------------"
-	@scala -cp xspcomm-scala.jar:${TARGET}-scala.jar -ea com.ut.example
+	@scala -cp {{__XSPCOMM_JAR__}}:${TARGET}-scala.jar -ea com.ut.example
 	@echo "--------------------------------------------------------------"
 
-compile:
+# copy xspcomm lib
+copy_xspcomm_lib={{__COPY_XSPCOMM_LIB__}}
+ifneq ($(copy_xspcomm_lib), true)
+copy_xspcomm:
+	@echo "Ignore copy scala module: xspcomm"
+else
+copy_xspcomm:
+	@echo "Try copy scala module: xspcomm"
 	@cp {{__XSPCOMM_JAR__}} ./
+endif
+
+compile: copy_xspcomm
 	cmake . -Bbuild
 	cmake --build build --config Debug --parallel `nproc`
 	

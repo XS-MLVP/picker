@@ -69,6 +69,8 @@ set(SWIG_OUTFILE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_goswig)
 find_package(Python COMPONENTS Interpreter Development)
 include_directories(${Python_INCLUDE_DIRS})
 
+link_directories({{__XSPCOMM_LIB__}})
+
 # Init swig module
 include(dut.cmake)
 XSGolangTarget(

@@ -69,6 +69,8 @@ find_package(JNI REQUIRED)
 find_package(Java REQUIRED)
 include_directories(${JNI_INCLUDE_DIRS})
 
+link_directories({{__XSPCOMM_LIB__}})
+
 # Init swig module
 include(dut.cmake)
 XSScalaTarget(

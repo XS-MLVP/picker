@@ -28,6 +28,10 @@ if(EXISTS ${NON_ROOT_INC_DIR})
 	link_directories("$ENV{HOME}/.local/lib")
 endif()
 
+# libs find by picker
+include_directories({{__XSPCOMM_INCLUDE__}})
+link_directories({{__XSPCOMM_LIB__}})
+
 include(${ModuleName}.cmake)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines")
 add_library(example OBJECT example.cpp)

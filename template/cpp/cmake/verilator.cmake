@@ -46,6 +46,7 @@ function(XSPTarget)
 	target_link_options(${ExecutableName} PRIVATE 
 		-Wl,-rpath=~/.local/lib
 		-Wl,-rpath=/usr/local/lib  
+		-Wl,-rpath={{__XSPCOMM_LIB__}}
 		${CustomLinkOptions})
 
 endfunction()
