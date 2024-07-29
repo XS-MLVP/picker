@@ -26,6 +26,7 @@ compile: copy_xspcomm
 	@mv build/${TARGET}.so golang/src/${TARGET}/
 	@mv build/${TARGET}.go golang/src/${TARGET}/
 	@mv *.so golang/src/${TARGET}/
+	@mv *.so.* golang/src/${TARGET}/ || true
 	@mv *.go golang/src/${TARGET}/
 	@mv go.mod golang/src/${TARGET}/
 
