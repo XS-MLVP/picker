@@ -219,6 +219,30 @@ namespace picker { namespace codegen {
                 current->pin_type    = signal.logic_pin_type;
             }
 
+            // Auto merge words with '_', if one node has only one child, merge
+            // them
+            std::function<void(TrieNode *)> merge_trie = [&](TrieNode *node) {
+                while (node->children.size() == 1) {
+                    auto child = node->children.begin();
+                    node->part_name += "_" + child->second->part_name;
+                    TrieNode *temp = child->second;
+                    node->children.clear();
+                    for (auto &schild : temp->children) {
+                        node->children[schild.first] = schild.second;
+                    }
+                    if (temp->isEndOfWord) {
+                        node->isEndOfWord = true;
+                        node->high_bit    = temp->high_bit;
+                        node->low_bit     = temp->low_bit;
+                        node->pin_type    = temp->pin_type;
+                    }
+                    delete temp;
+                    printf("merge %s\n", node->part_name.c_str());
+                }
+                for (auto &child : node->children) { merge_trie(child.second); }
+            };
+            merge_trie(root);
+
             // convert the TRIE to json
             std::function<void(TrieNode *, nlohmann::json &)> trie_to_json =
                 [&](TrieNode *node, nlohmann::json &json) {
@@ -227,6 +251,12 @@ namespace picker { namespace codegen {
                         json["High"] = node->high_bit;
                         json["Low"]  = node->low_bit;
                         json["_"]    = true;
+                    }
+                    for (auto &child : node->children) {
+                        if (child.first != child.second->part_name) {
+                            node->children.erase(child.first);
+                            node->children[child.second->part_name] = child.second;
+                        }
                     }
                     for (auto &child : node->children) {
                         nlohmann::json child_json;
@@ -271,7 +301,8 @@ namespace picker { namespace codegen {
                                 dpi_export, dpi_impl);
         sv::render_internal_signal(internal_signal, dpi_export, dpi_impl);
         sv::render_sv_waveform(simulator, wave_file_name, global_render_data);
-        sv::render_signal_tree(external_pin, internal_signal, signal_tree, signal_tree_json);
+        sv::render_signal_tree(external_pin, internal_signal, signal_tree,
+                               signal_tree_json);
 
         global_render_data["__LOGIC_PIN_DECLARATION__"]  = logic;
         global_render_data["__WIRE_PIN_DECLARATION__"]   = wire;
