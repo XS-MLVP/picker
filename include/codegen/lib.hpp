@@ -20,5 +20,6 @@ namespace picker { namespace codegen {
     /// @param internal_pin
     void lib(picker::export_opts &opts,
              const std::vector<picker::sv_signal_define> &external_pin,
-             const std::vector<picker::sv_signal_define> &internal_pin);
+             const std::vector<picker::sv_signal_define> &internal_pin,
+             nlohmann::json &signal_tree_json);
 }} // namespace picker::codegen

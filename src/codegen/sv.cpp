@@ -153,7 +153,7 @@ namespace picker { namespace codegen {
         void render_signal_tree(
             const std::vector<picker::sv_signal_define> &external_pin,
             const std::vector<picker::sv_signal_define> &internal_signal,
-            std::string &signal_tree)
+            std::string &signal_tree, nlohmann::json &signal_tree_json)
         {
             // iterate the signal pin and generate the signal tree by TRIE tree
             // get all the signal name and sort them
@@ -236,7 +236,7 @@ namespace picker { namespace codegen {
                 };
 
             // json2string
-            nlohmann::json tries;
+            nlohmann::json &tries = signal_tree_json;
             trie_to_json(root, tries);
             signal_tree = tries.dump(4);
 
@@ -261,6 +261,7 @@ namespace picker { namespace codegen {
     gen_sv_param(nlohmann::json &global_render_data,
                  const std::vector<picker::sv_signal_define> &external_pin,
                  const std::vector<picker::sv_signal_define> &internal_signal,
+                 nlohmann::json &signal_tree_json,
                  const std::string &wave_file_name,
                  const std::string &simulator)
     {
@@ -270,7 +271,7 @@ namespace picker { namespace codegen {
                                 dpi_export, dpi_impl);
         sv::render_internal_signal(internal_signal, dpi_export, dpi_impl);
         sv::render_sv_waveform(simulator, wave_file_name, global_render_data);
-        sv::render_signal_tree(external_pin, internal_signal, signal_tree);
+        sv::render_signal_tree(external_pin, internal_signal, signal_tree, signal_tree_json);
 
         global_render_data["__LOGIC_PIN_DECLARATION__"]  = logic;
         global_render_data["__WIRE_PIN_DECLARATION__"]   = wire;
