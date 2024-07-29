@@ -28,7 +28,7 @@ namespace picker { namespace parser {
             return std::vector<picker::sv_signal_define>();
         }
 
-        MESSAGE("start call!");
+        PK_MESSAGE("start call!");
         std::string syntax_cmd =
             "verible-verilog-syntax --export_json --printtokens " + filename
             + "> /tmp/" + raw_filename + ".json";
@@ -37,13 +37,13 @@ namespace picker { namespace parser {
         // read verible-verilog-syntax result
         auto verible_result = read_file("/tmp/" + raw_filename + ".json");
 
-        MESSAGE("start parse!");
+        PK_MESSAGE("start parse!");
 
         // nlohmann parse json
         nlohmann::json module_json = nlohmann::json::parse(verible_result);
 
         // filter json like 标点符号等
-        MESSAGE("start filter!");
+        PK_MESSAGE("start filter!");
         auto module_token = module_json[filename]["tokens"];
         // nlohmann::json res_token;
         // for (auto it = module_token.begin(); it != module_token.end();) {
@@ -61,7 +61,7 @@ namespace picker { namespace parser {
         // }
         // module_token = res_token;
 
-        MESSAGE("want module: %s", src_module_name.c_str());
+        PK_MESSAGE("want module: %s", src_module_name.c_str());
 
         // 不指明解析的module名，则默认解析文件中最后一个module
         if (src_module_name.length() == 0) {
@@ -136,7 +136,7 @@ namespace picker { namespace parser {
                                    exp.c_str(), expression.value());
                             return expression.value();
                         } else {
-                            FATAL(
+                            PK_FATAL(
                                 "Failed to parse pin length expression: %s .\n",
                                 exp.c_str());
                         }

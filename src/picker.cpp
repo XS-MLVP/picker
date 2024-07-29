@@ -169,14 +169,14 @@ int main(int argc, char **argv)
     try {
         app.parse(argc, argv);
     } catch (const CLI::ParseError &e) {
-        // MESSAGE("%s", app.help().c_str());
+        // PK_MESSAGE("%s", app.help().c_str());
         return app.exit(e);
     }
 
     // handel main options here
     // if need version, print version
     if (main_opts.version) {
-        MESSAGE("version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH,
+        PK_MESSAGE("version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH,
                 GIT_DIRTY);
         exit(0);
     }
@@ -191,10 +191,10 @@ int main(int argc, char **argv)
     if(main_opts.show_default_template_path){
         auto temp_path = picker::get_template_path();
         if (temp_path.empty()) {
-            ERROR("Can't find default template path");
+            PK_ERROR("Can't find default template path");
             exit(1);
         }
-        MESSAGE("%s", temp_path.c_str());
+        PK_MESSAGE("%s", temp_path.c_str());
         exit(0);
     }
 
@@ -203,52 +203,52 @@ int main(int argc, char **argv)
     if (main_opts.show_xcom_lib_location_cpp) {    
         auto lib_location = picker::get_xcomm_lib("lib", erro_message);
         if (lib_location.size() == 0) {
-            ERROR("%s", erro_message.c_str());
+            PK_ERROR("%s", erro_message.c_str());
             exit(1);
         }
         auto include_location = picker::get_xcomm_lib("include", erro_message);
         if (include_location.size() == 0) {
-            ERROR("%s", erro_message.c_str());
+            PK_ERROR("%s", erro_message.c_str());
             exit(1);
         }
-        MESSAGE("Lib:     %s", lib_location.c_str());
-        MESSAGE("Include: %s", include_location.c_str());
+        PK_MESSAGE("Lib:     %s", lib_location.c_str());
+        PK_MESSAGE("Include: %s", include_location.c_str());
         exit(0);
     }
     if (main_opts.show_xcom_lib_location_java) {
         auto java_location = picker::get_xcomm_lib("java/xspcomm-java.jar", erro_message);
         if (java_location.size() == 0) {
-            ERROR("%s", erro_message.c_str());
+            PK_ERROR("%s", erro_message.c_str());
             exit(1);
         }
-        MESSAGE("%s", java_location.c_str());
+        PK_MESSAGE("%s", java_location.c_str());
         exit(0);
     }
     if (main_opts.show_xcom_lib_location_scala) {
         auto scala_location = picker::get_xcomm_lib("java/xspcomm-scala.jar", erro_message);
         if (scala_location.size() == 0) {
-            ERROR("%s", erro_message.c_str());
+            PK_ERROR("%s", erro_message.c_str());
             exit(1);
         }
-        MESSAGE("%s", scala_location.c_str());
+        PK_MESSAGE("%s", scala_location.c_str());
         exit(0);
     }
     if (main_opts.show_xcom_lib_location_python) {
         auto python_location = picker::get_xcomm_lib("python", erro_message);
         if (python_location.size() == 0) {
-            ERROR("%s", erro_message.c_str());
+            PK_ERROR("%s", erro_message.c_str());
             exit(1);
         }
-        MESSAGE("%s", python_location.c_str());
+        PK_MESSAGE("%s", python_location.c_str());
         exit(0);
     }
     if (main_opts.show_xcom_lib_location_golang) {
         auto golang_location = picker::get_xcomm_lib("golang", erro_message);
         if (golang_location.size() == 0) {
-            ERROR("%s", erro_message.c_str());
+            PK_ERROR("%s", erro_message.c_str());
             exit(1);
         }
-        MESSAGE("%s", golang_location.c_str());
+        PK_MESSAGE("%s", golang_location.c_str());
         exit(0);
     }
 
@@ -257,21 +257,21 @@ int main(int argc, char **argv)
     const char * check_langs[] = {"Cpp", "Java", "Scala", "Python", "Golang"};
     std::map<std::string, int> lang_map = {{"cpp", 0}, {"java", 1}, {"scala", 2}, {"python", 3}, {"golang", 4}};
     if (main_opts.check){
-        MESSAGE("[OK ] Version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
-        MESSAGE("[OK ] Exec path: %s", picker::get_executable_path().c_str());
+        PK_MESSAGE("[OK ] Version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
+        PK_MESSAGE("[OK ] Exec path: %s", picker::get_executable_path().c_str());
         auto temp_path = picker::get_template_path();
         if (temp_path.empty()) {
-            MESSAGE("[Err] Can't find default template path");
+            PK_MESSAGE("[Err] Can't find default template path");
         }else{
-            MESSAGE("[OK ] Template path: %s", temp_path.c_str());
+            PK_MESSAGE("[OK ] Template path: %s", temp_path.c_str());
         }
         int i = 0;
         for (auto lang : check_langs) {
             auto lib_location = picker::get_xcomm_lib(check_libs[i], erro_message);
             if (lib_location.size() == 0) {
-                ERROR("[Err] Support %6s (find: '%s' fail)", lang, check_libs[i]);
+                PK_ERROR("[Err] Support %6s (find: '%s' fail)", lang, check_libs[i]);
             }else{
-                MESSAGE("[OK ] Support %6s (find: '%s' success)", lang, lib_location.c_str());
+                PK_MESSAGE("[OK ] Support %6s (find: '%s' success)", lang, lib_location.c_str());
             }
             i+=1;
         }
@@ -281,15 +281,15 @@ int main(int argc, char **argv)
         lang_index = lang_map[export_opts.language];
         auto lib_location = picker::get_xcomm_lib(check_libs[lang_index], erro_message);
         if (lib_location.size() == 0) {
-            ERROR("[Err] Support %6s (find: '%s' fail)", check_langs[lang_index], check_libs[lang_index]);
+            PK_ERROR("[Err] Support %6s (find: '%s' fail)", check_langs[lang_index], check_libs[lang_index]);
             exit(1);
         }
     }
 
     // check if app parsed export subcommand
     if (app.get_subcommands().size() == 0) {
-        MESSAGE("%s", app.help().c_str());
-        MESSAGE("No subcommand specified: need export or pack");
+        PK_MESSAGE("%s", app.help().c_str());
+        PK_MESSAGE("No subcommand specified: need export or pack");
         exit(0);
     }
 
@@ -318,7 +318,7 @@ int main(int argc, char **argv)
             const std::string cmd =
                 "cd " + export_opts.target_dir + " && make";
             if (system(cmd.c_str()) != 0) {
-                MESSAGE("Build failed");
+                PK_MESSAGE("Build failed");
                 exit(1);
             }
         }

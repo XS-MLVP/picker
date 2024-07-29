@@ -41,11 +41,11 @@ namespace picker { namespace parser {
                     tokens[1].substr(pos + 1, tokens[1].length() - pos - 2));
 
             } else {
-                MESSAGE("error: unknown node type");
+                PK_MESSAGE("error: unknown node type");
             }
             pin_list.push_back(pin);
         } else {
-            MESSAGE("error: unknown node type");
+            PK_MESSAGE("error: unknown node type");
         }
     }
 

@@ -28,40 +28,40 @@ namespace picker {
 extern bool is_debug;
 extern char* lib_random_hash;
 
-#define OUTPUT(o, fmt, ...)                                                    \
+#define PK_OUTPUT(o, fmt, ...)                                                 \
     {                                                                          \
         fprintf(o, fmt, ##__VA_ARGS__);                                        \
     }
-#define MESSAGE(fmt, ...)                                                      \
+#define PK_MESSAGE(fmt, ...)                                                   \
     {                                                                          \
-        OUTPUT(stdout, fmt, ##__VA_ARGS__);                                    \
-        OUTPUT(stdout, "%s\n", "");                                            \
+        PK_OUTPUT(stdout, fmt, ##__VA_ARGS__);                                 \
+        PK_OUTPUT(stdout, "%s\n", "");                                         \
     }
-#define ERROR(fmt, ...)                                                        \
+#define PK_ERROR(fmt, ...)                                                     \
     {                                                                          \
-        OUTPUT(stderr, "%s", "\033[31m")                                       \
-        OUTPUT(stderr, fmt, ##__VA_ARGS__)                                     \
-        OUTPUT(stderr, "%s\n", "\033[0m")                                      \
+        PK_OUTPUT(stderr, "%s", "\033[31m")                                    \
+        PK_OUTPUT(stderr, fmt, ##__VA_ARGS__)                                  \
+        PK_OUTPUT(stderr, "%s\n", "\033[0m")                                   \
     }
-#define DEBUG(fmt, ...)                                                        \
+#define PK_DEBUG(fmt, ...)                                                     \
     {                                                                          \
         if (is_debug) {                                                        \
-            OUTPUT(stderr, "%s", "debug> ");                                   \
-            OUTPUT(stderr, fmt, ##__VA_ARGS__);                                \
-            OUTPUT(stderr, "%s\n", "")                                         \
+            PK_OUTPUT(stderr, "%s", "debug> ");                                \
+            PK_OUTPUT(stderr, fmt, ##__VA_ARGS__);                             \
+            PK_OUTPUT(stderr, "%s\n", "")                                      \
         }                                                                      \
     }
-#define FATAL(fmt, ...)                                                        \
+#define PK_FATAL(fmt, ...)                                                     \
     {                                                                          \
-        OUTPUT(stderr, fmt, ##__VA_ARGS__);                                    \
-        OUTPUT(stderr, "%s\n", "")                                             \
+        PK_OUTPUT(stderr, fmt, ##__VA_ARGS__);                                 \
+        PK_OUTPUT(stderr, "%s\n", "")                                          \
         exit(-1);                                                              \
     }
 
 
 inline void vassert(bool c, std::string msg = "")
 {
-    if (!c) { FATAL("Assert error: %s", msg.c_str()); }
+    if (!c) { PK_FATAL("Assert error: %s", msg.c_str()); }
 }
 
 inline long vtime()
@@ -160,7 +160,7 @@ inline std::map<std::string, std::string> get_default_confilct_map() {
 inline std::string fix_conflict_pin_name(const std::string &in, std::map<std::string, std::string> &pin_map, bool cap_first = false) {
     auto input = lower_case(in);
     if(input.empty()){
-        FATAL("input pin name is empty");
+        PK_FATAL("input pin name is empty");
     }
     // not find in conflict map
     if (pin_map.find(input) == pin_map.end()) {
@@ -309,7 +309,7 @@ inline std::string find_file(std::vector<std::string> fs)
 {
     for (auto f : fs) {
         if (file_exists(f)) {
-            DEBUG("find file: %s", f.c_str());
+            PK_DEBUG("find file: %s", f.c_str());
             return f;
         }
     }
@@ -317,10 +317,9 @@ inline std::string find_file(std::vector<std::string> fs)
     return "";
 }
 
-inline bool write_file(std::string fname, std::string text);
 inline bool write_file(std::string fname, std::string text)
 {
-    MESSAGE("Write file: %s", fname.c_str());
+    PK_MESSAGE("Write file: %s", fname.c_str());
     std::ofstream ofile(fname, std::ios::trunc);
     vassert(ofile.is_open(), "write file(" + fname + ") error");
     ofile << text;
@@ -328,7 +327,6 @@ inline bool write_file(std::string fname, std::string text)
     return true;
 }
 
-inline std::string read_file(std::string fname);
 inline std::string read_file(std::string fname)
 {
     std::ifstream ifile(fname, std::ios::in | std::ios::binary);
@@ -344,10 +342,9 @@ inline std::string read_file(std::string fname)
     throw(errno);
 }
 
-inline std::string read_params(std::string fname);
 inline std::string read_params(std::string fname)
 {
-    MESSAGE("Read params from: %s", fname.c_str());
+    PK_MESSAGE("Read params from: %s", fname.c_str());
     std::ifstream ifile(fname);
     std::string ret;
     if (ifile.is_open()) {
@@ -466,7 +463,7 @@ inline std::string get_template_path()
     if(!tmp.empty()){
         return tmp;
     }
-    FATAL("template not found, please check the installation or mannualy set the source dir path");
+    PK_FATAL("template not found, please check the installation or mannualy set the source dir path");
 }
 inline std::string extract_name(const std::string& input, char delimiter,int isFirst) {
     size_t pos = input.find(delimiter);

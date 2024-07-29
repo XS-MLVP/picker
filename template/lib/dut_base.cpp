@@ -16,7 +16,7 @@ DutBase::DutBase()
 
 DutVcsBase::DutVcsBase()
 {
-    // FATAL("VCS does not support no-args constructor");
+    // XXFatal("VCS does not support no-args constructor");
     exit(-1);
 }
 
@@ -77,11 +77,11 @@ int DutVcsBase::Finish()
 
 void DutVcsBase::SetWaveform(const char *filename)
 {
-    Info("VCS waveform is not supported");
+    XInfo("VCS waveform is not supported");
 };
 void DutVcsBase::SetCoverage(const char *filename)
 {
-    Info("VCS coverage is not supported");
+    XInfo("VCS coverage is not supported");
 };
 
 #endif
@@ -216,11 +216,11 @@ char *locateLibPath()
 {
     Dl_info info;
     if (dladdr((char *)locateLibPath, &info) == 0) {
-        Fatal("Failed to find the shared library path");
+        XFatal("Failed to find the shared library path");
     }
 
     std::string lib_path = info.dli_fname;
-    Info("Shared DPI Library Path: %s", lib_path.c_str());
+    XInfo("Shared DPI Library Path: %s", lib_path.c_str());
 
     // get PWD
     char *pwd = get_current_dir_name();
@@ -250,7 +250,7 @@ inline void vcsLibPathConvert(char *path)
         pend--;
     }
     strncpy(p + plib, "libDPI", 6);
-    Info("vcsLibPath %s", path);
+    XInfo("vcsLibPath %s", path);
 }
 
 int DutUnifiedBase::lib_count     = 0;
@@ -327,7 +327,7 @@ void DutUnifiedBase::init(int argc, const char **argv)
 
     // the main namespace instance doesn't need to load the shared library
     if (!main_ns_flag) {
-        Info("Using main namespace");
+        XInfo("Using main namespace");
 #if defined(USE_VERILATOR)
         this->dut = new DutVerilatorBase(this->argc, this->argv);
 #elif defined(USE_VCS)
@@ -341,20 +341,20 @@ void DutUnifiedBase::init(int argc, const char **argv)
 #ifndef USE_VCS
     // get dynamic library path from argv
     if (this->argc == 0) {
-        Fatal("Shared DPI Library Path is required for Simulator");
+        XFatal("Shared DPI Library Path is required for Simulator");
     }
 
     this->lib_handle =
         dlmopen(LM_ID_NEWLM, this->argv[0], RTLD_NOW | RTLD_DEEPBIND);
     if (!this->lib_handle) {
-        Fatal("Failed to open shared DPI library %s, %s", this->argv[0], dlerror());
+        XFatal("Failed to open shared DPI library %s, %s", this->argv[0], dlerror());
     }
     this->lib_count++;
 
     // create top module
     dlcreates_t *dlcreates =
         (dlcreates_t *)dlsym(this->lib_handle, "dlcreates");
-    if (!dlcreates) { Fatal("Failed to find dlcreates function"); }
+    if (!dlcreates) { XFatal("Failed to find dlcreates function"); }
     this->dut = dlcreates(this->argc, this->argv);
 #endif
 }
@@ -374,7 +374,7 @@ uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
     } else if (towards == -1) {
         strcpy(func_name, name);
     } else {
-        Fatal("Invalid DPI function request %s %d", name, towards);
+        XFatal("Invalid DPI function request %s %d", name, towards);
     }
 
     void *func;
@@ -386,7 +386,7 @@ uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
 
     // internal only support read
     if (func == nullptr && towards == 0) {
-        Fatal("Failed to find DPI function %s", func_name);
+        XFatal("Failed to find DPI function %s", func_name);
     }
     free(func_name);
     return (uint64_t)func;
@@ -411,7 +411,7 @@ int DutUnifiedBase::simStep(uint64_t cycle, bool dump)
     // }
     // step_t *simStep = (step_t *)dlsym(this->lib_handle, "dlstep");
     // if (!simStep) {
-    //     Fatal("Failed to find simStep function");
+    //     XFatal("Failed to find simStep function");
     // }
     // simStep(this->dut, cycle, dump);
     return this->dut->Step(cycle, dump);

@@ -23,7 +23,7 @@ namespace picker { namespace codegen {
         std::string folderPath = filename;
         if(std::filesystem::exists(filename) && !opts.force)
         {
-            MESSAGE("folder already exists");
+            PK_MESSAGE("folder already exists");
             exit(0);
         }else {
             if(std::filesystem::exists(filename)){

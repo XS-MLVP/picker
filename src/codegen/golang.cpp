@@ -123,10 +123,10 @@ namespace picker { namespace codegen {
         std::string erro_message;
         auto golang_location =
             picker::get_xcomm_lib("golang", erro_message);
-        if (golang_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
+        if (golang_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
         auto cpplib_location =
             picker::get_xcomm_lib("lib", erro_message);
-        if (cpplib_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
+        if (cpplib_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
 
         data["__XSPCOMM_LIB__"]    = cpplib_location;
         data["__XSPCOMM_GOLANG__"] = golang_location;

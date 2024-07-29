@@ -161,11 +161,11 @@ namespace codegen {
         std::string erro_message;
         auto cpplib_location =
             picker::get_xcomm_lib("lib", erro_message);
-        if (cpplib_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
+        if (cpplib_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
 
         auto include_location =
             picker::get_xcomm_lib("include", erro_message);
-        if (include_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
+        if (include_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
 
         // Set global render data
         nlohmann::json data;

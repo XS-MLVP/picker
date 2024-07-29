@@ -14,7 +14,7 @@ namespace picker { namespace codegen {
                 std::string src_filename, dst_filename, dst_file_content;
                 src_filename = entry.path().filename().string();
                 dst_filename = dst_dir + "/" + src_filename;
-                MESSAGE("Render file: %s to %s", src_filename.c_str(),
+                PK_MESSAGE("Render file: %s to %s", src_filename.c_str(),
                         dst_filename.c_str());
                 dst_file_content = env.render_file(entry.path().string(), data);
                 write_file(dst_filename, dst_file_content);
@@ -59,7 +59,7 @@ namespace picker { namespace codegen {
                     }
                 }
             } else {
-                FATAL("Unsupported file type: %s\n", path.c_str());
+                PK_FATAL("Unsupported file type: %s\n", path.c_str());
             }
         }
     }
@@ -83,7 +83,7 @@ namespace picker { namespace codegen {
             freq   = std::stoull(frequency.substr(0, frequency.length() - 2));
             period = 1000000000000 / freq;
         } else {
-            FATAL("Unsupported frequency unit: %s\n", frequency.c_str());
+            PK_FATAL("Unsupported frequency unit: %s\n", frequency.c_str());
         } // end if
         vcs_clock_period_h = std::to_string((period >> 1) + (period & 1));
         vcs_clock_period_l = std::to_string(period >> 1);
@@ -169,7 +169,7 @@ namespace picker { namespace codegen {
             filename, dst_dir + "/" + dst_module_name + ".v",
             std::filesystem::copy_options::overwrite_existing);
 
-        MESSAGE("Generate DPI files successfully!");
+        PK_MESSAGE("Generate DPI files successfully!");
     }
 
 }} // namespace picker::codegen

@@ -114,14 +114,14 @@ public:
     void SetCoverage(const std::string filename); // Set coverage file path
 };
 
-#define Fatal(fmt, ...)                                                      \
+#define XFatal(fmt, ...)                                                      \
     do {                                                                       \
         fprintf(stderr, "FATAL: " fmt, ##__VA_ARGS__);                          \
         puts("");                                                              \
         exit(-1);                                                              \
     } while (0)
 
-#define Info(fmt, ...)                                                        \
+#define XInfo(fmt, ...)                                                        \
     do {                                                                       \
         fprintf(stdout, "INFO: " fmt, ##__VA_ARGS__);                           \
         puts("");                                                              \

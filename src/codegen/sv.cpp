@@ -69,7 +69,7 @@ namespace picker { namespace codegen {
                            + env.render(dpi_set_impl_template, data);
             }
             if (pin_connect.length() == 0)
-                FATAL(
+                PK_FATAL(
                     "No port information of src_module was found in the specified file. \nPlease check whether the file name or source module name is correct.");
             pin_connect.pop_back();
             pin_connect.pop_back();
@@ -124,13 +124,13 @@ namespace picker { namespace codegen {
                             " end ",
                             data);
                     else
-                        FATAL(
+                        PK_FATAL(
                             "Verilator trace file must be .vcd or .fst format.\n");
                 }
             } else if (simulator == "vcs") {
                 if (wave_file_name.length() > 0) {
                     if (wave_file_name.ends_with(".fsdb") == false)
-                        FATAL("VCS trace file must be .fsdb format.\n");
+                        PK_FATAL("VCS trace file must be .fsdb format.\n");
                     sv_dump_wave = env.render(
                         "initial begin\n"
                         "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
@@ -139,7 +139,7 @@ namespace picker { namespace codegen {
                         data);
                 }
             } else {
-                FATAL("Unsupported simulator: %s\n", simulator.c_str());
+                PK_FATAL("Unsupported simulator: %s\n", simulator.c_str());
             }
 
             data["__TRACE__"] =

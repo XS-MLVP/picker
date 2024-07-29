@@ -124,10 +124,10 @@ namespace picker { namespace codegen {
         std::string erro_message;
         auto java_location =
             picker::get_xcomm_lib("java/xspcomm-java.jar", erro_message);
-        if (java_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
+        if (java_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
         auto cpplib_location =
             picker::get_xcomm_lib("lib", erro_message);
-        if (cpplib_location.empty()) { FATAL("%s\n", erro_message.c_str()); }
+        if (cpplib_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
 
         data["__XSPCOMM_LIB__"]        = cpplib_location;
         data["__XSPCOMM_JAR__"]        = java_location;
