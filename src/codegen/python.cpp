@@ -10,6 +10,8 @@ namespace picker { namespace codegen {
             "        self.{{pin_uniq_name}}.BindDPIPtr(self.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xport_add_template =
             "        self.xport.Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}}.xdata)\n";
+        static const std::string xport_cascaded_template =
+            "        self.{{port_name}} = self.xport.NewSubPort(\"{{prefix_key}}_\")\n";
 
         /// @brief Export external pin for cpp render
         /// @param pin
@@ -81,6 +83,22 @@ namespace picker { namespace codegen {
             }
         };
 
+        void render_cascaded_signals(std::string prefix, nlohmann::json &signal_tree_json, std::string &cascaded_ports){
+            nlohmann::json data;
+            inja::Environment env;
+            for (auto &[key, port] : signal_tree_json.items()) {
+                if (port.contains("_")) { // ignore leaf node
+                    continue;
+                } else {
+                    std::string port_name = prefix.empty() ? key : prefix + "_" + key;
+                    data["port_name"] = port_name;
+                    data["prefix_key"] = port_name;
+                    cascaded_ports += env.render(xport_cascaded_template, data);
+                    render_cascaded_signals(port_name, port, cascaded_ports);
+                }
+            }
+        }
+
     } // namespace py
 
     void python(picker::export_opts &opts,
@@ -95,7 +113,7 @@ namespace picker { namespace codegen {
         std::string simulator       = opts.sim;
 
         // Codegen Buffers
-        std::string xdata_init, xdata_bindrw, xport_add, swig_constant;
+        std::string xdata_init, xdata_bindrw, xport_add, swig_constant, cascaded_signals;
 
         // Generate External Pin
         py::render_external_pin(external_pin, xdata_init, xdata_bindrw,
@@ -103,6 +121,8 @@ namespace picker { namespace codegen {
         // Generate Internal Signal
         py::render_internal_signal(internal_signal, xdata_init, xdata_bindrw,
                                    xport_add, swig_constant);
+        // Generate Cascaded Porst
+        py::render_cascaded_signals("", signal_tree_json, cascaded_signals);
 
         // Simulator
         std::transform(simulator.begin(), simulator.end(), simulator.begin(),
@@ -124,9 +144,11 @@ namespace picker { namespace codegen {
         data["__SOURCE_MODULE_NAME__"] = src_module_name;
         data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
-        data["__XDATA_INIT__"]    = xdata_init;
-        data["__XDATA_BIND__"]    = xdata_bindrw;
-        data["__XPORT_ADD__"]     = xport_add;
+        data["__XDATA_INIT__"]     = xdata_init;
+        data["__XDATA_BIND__"]     = xdata_bindrw;
+        data["__XPORT_ADD__"]      = xport_add;
+        data["__XPORT_CASCADED__"] = cascaded_signals;
+
         data["__SWIG_CONSTANT__"] = swig_constant;
         data["__USE_SIMULATOR__"] = "USE_" + simulator;
         data["__COPY_XSPCOMM_LIB__"]  = opts.cp_lib;

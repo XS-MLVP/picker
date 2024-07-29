@@ -35,6 +35,9 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         # Add2Port
 {{__XPORT_ADD__}}
 
+        # Cascaded ports
+{{__XPORT_CASCADED__}}
+
     def __del__(self):
         self.Finish()
 
