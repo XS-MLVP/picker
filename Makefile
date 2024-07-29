@@ -33,4 +33,4 @@ test_all:
 	./example/Cache/release-verilator.sh --lang python
 
 clean:
-	rm -rf temp build
+	rm -rf temp build picker_out*
