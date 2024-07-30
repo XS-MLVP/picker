@@ -171,6 +171,7 @@ int DutVerilatorBase::Finish()
 #endif
         ((V{{__TOP_MODULE_NAME__}} *)(this->top))->final();
         delete (V{{__TOP_MODULE_NAME__}} *)(this->top);
+        delete contextp;
         this->top = nullptr;
     }
     return 0;
