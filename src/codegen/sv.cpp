@@ -167,7 +167,7 @@ namespace picker { namespace codegen {
                 [](auto &a, auto &b) { return a.logic_pin < b.logic_pin; });
 
             // split the string by delimiter, only considering the last one in
-            // consecutive delimiters
+            // consecutive delimiters  AAA__1_BBB_C => (AAA_, 1, BBB, C)
             auto split = [](const std::string &str, char delimiter) {
                 std::vector<std::string> tokens;
                 std::stringstream ss;
@@ -219,10 +219,18 @@ namespace picker { namespace codegen {
                 current->pin_type    = signal.logic_pin_type;
             }
 
-            // Auto merge words with '_', if one node has only one child, merge
-            // them
+            // Auto merge words with '_', if one node has only one child and not
+            // number, merge them, (AAA_, 1, BBB, C) => (AAA_, 1, BBB_C)
+            auto is_number = [](const std::string &s) {
+                return !s.empty()
+                       && std::find_if(s.begin(), s.end(), [](unsigned char c) {
+                              return !std::isdigit(c);
+                          }) == s.end();
+            };
+
             std::function<void(TrieNode *)> merge_trie = [&](TrieNode *node) {
-                while (node->children.size() == 1) {
+                while (node->children.size() == 1 && !is_number(node->part_name)
+                       && !is_number(node->children.begin()->first)) {
                     auto child = node->children.begin();
                     node->part_name += "_" + child->second->part_name;
                     TrieNode *temp = child->second;
@@ -255,7 +263,8 @@ namespace picker { namespace codegen {
                     for (auto &child : node->children) {
                         if (child.first != child.second->part_name) {
                             node->children.erase(child.first);
-                            node->children[child.second->part_name] = child.second;
+                            node->children[child.second->part_name] =
+                                child.second;
                         }
                     }
                     for (auto &child : node->children) {
