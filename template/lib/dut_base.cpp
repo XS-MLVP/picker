@@ -160,9 +160,9 @@ int DutVerilatorBase::Finish()
 {
     // Finish Verilator context
     if (this->top != nullptr) {
-#if defined(VL_COVERAGE)
         VerilatedContext *contextp =
             ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp();
+#if defined(VL_COVERAGE)
         if (this->coverage_file_path.size() > 0)
             contextp->coveragep()->write(this->coverage_file_path.c_str());
         else
