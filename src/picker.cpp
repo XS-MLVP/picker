@@ -33,7 +33,7 @@ int set_options_export_rtl(CLI::App &top_app)
 
     // Set DUT RTL Extra Source File List, Optional
     app->add_option(
-        "--fs,--filelist", export_opts.filelist,
+        "--fs,--filelist", export_opts.filelists,
         "DUT .v/.sv source files, contain the top module, split by comma.\n"
         "Or use '*.txt' file  with one RTL file path per line to specify the file list");
 
