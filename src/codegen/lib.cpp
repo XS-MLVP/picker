@@ -31,7 +31,7 @@ namespace picker { namespace codegen {
                       const std::string &ifilelist, std::string &ofilelist)
     {
         std::vector<std::string> path_list;
-        if (ifilelist.ends_with(".txt")) { // read from file
+        if (ifilelist.ends_with(".f") || ifilelist.ends_with(".txt")) { // read from file
             std::ifstream ifs(ifilelist);
             std::string line;
             while (std::getline(ifs, line)) { path_list.push_back(line); }
