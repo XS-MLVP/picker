@@ -28,17 +28,19 @@ namespace picker { namespace codegen {
     }
 
     void gen_filelist(const std::string &source_file,
-                      const std::string &ifilelist, std::string &ofilelist)
+                      const std::vector<std::string> &ifilelists, std::string &ofilelist)
     {
         std::vector<std::string> path_list;
-        if (ifilelist.ends_with(".f") || ifilelist.ends_with(".txt")) { // read from file
-            std::ifstream ifs(ifilelist);
-            std::string line;
-            while (std::getline(ifs, line)) { path_list.push_back(line); }
-        } else { // split by comma
-            std::string line;
-            std::stringstream ss(ifilelist);
-            while (std::getline(ss, line, ',')) { path_list.push_back(line); }
+        for (auto ifilelist: ifilelists) {
+            if (ifilelist.ends_with(".f") || ifilelist.ends_with(".txt")) { // read from file
+                std::ifstream ifs(ifilelist);
+                std::string line;
+                while (std::getline(ifs, line)) { path_list.push_back(line); }
+            } else { // split by comma
+                std::string line;
+                std::stringstream ss(ifilelist);
+                while (std::getline(ss, line, ',')) { path_list.push_back(line); }
+            }
         }
         for (auto &path : path_list) {
             if (path.starts_with("#")) { continue; } // skip comment line
@@ -114,8 +116,9 @@ namespace picker { namespace codegen {
                     dst_module_name = opts.target_module_name,
                     wave_file_name = opts.wave_file_name, simulator = opts.sim,
                     vflag = opts.vflag, cflag = opts.cflag,
-                    ifilelist = opts.filelist, ofilelist, vcs_clock_period_h,
+                    ofilelist, vcs_clock_period_h,
                     vcs_clock_period_l;
+        std::vector<std::string> ifilelists = opts.filelists;
 
         // Build environment
         inja::Environment env;
@@ -135,7 +138,7 @@ namespace picker { namespace codegen {
                          opts.frequency);
 
         // Render lib filelist
-        gen_filelist(filename, ifilelist, ofilelist);
+        gen_filelist(filename, ifilelists, ofilelist);
 
         data["__VCS_CLOCK_PERIOD_HIGH__"]  = vcs_clock_period_h;
         data["__VCS_CLOCK_PERIOD_LOW__"]   = vcs_clock_period_l;
