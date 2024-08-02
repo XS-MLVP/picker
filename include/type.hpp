@@ -17,7 +17,7 @@ typedef struct main_opts {
 
 typedef struct export_opts {
     std::string file;
-    std::string filelist;
+    std::vector<std::string> filelists;
     std::string sim;
     std::string language;
     std::string source_dir;
