@@ -33,4 +33,9 @@ test_all:
 	./example/Cache/release-verilator.sh --lang python
 
 clean:
-	rm -rf temp build picker_out*
+	rm -rf temp build dist picker_out*
+
+wheel: clean
+	cd dependence/xcomm && make wheel
+	NO_BUILD_XSPCOMM=1 pipx run build
+	cp dependence/xcomm/dist/* ./dist

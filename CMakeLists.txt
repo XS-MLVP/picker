@@ -25,7 +25,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 #dependencies
+if ("$ENV{NO_BUILD_XSPCOMM}" STREQUAL "")
 add_subdirectory(dependence/xcomm)
+endif()
 
 # third
 # add_subdirectory(third/type_safe)

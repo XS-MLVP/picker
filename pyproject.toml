@@ -1,0 +1,17 @@
+[build-system]
+requires = ["scikit-build-core"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "picker"
+version = "0.0.1"
+dependencies = [
+    "xspcomm>=0.0.1",
+]
+
+[tool.scikit-build]
+wheel.install-dir = "picker"
+wheel.packages = ["src/python/picker"]
+
+[project.scripts]
+picker = "picker:cmd"
