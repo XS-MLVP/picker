@@ -1,9 +1,9 @@
 
-## DUT通用API和一般驱动流程
+## DUT验证API和一般驱动流程
 
 在DUT中，有XData、XClock、XPort 三类成员变量，如需要调用对应功能可参考：[https://github.com/XS-MLVP/xcomm/blob/master/docs/APIs.cn.md](https://github.com/XS-MLVP/xcomm/blob/master/docs/APIs.cn.md)
 
-### DUT APIs
+### DUT验证APIs
 
 在DUT对应的Class中，以**大驼峰命名**的函数为用户需要使用的常用函数，其他命名方式的函数为内部函数，不建议用户使用。
 
