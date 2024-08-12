@@ -72,7 +72,7 @@ int set_options_export_rtl(CLI::App &top_app)
     // Set Generated Software library module name, Optional, default is the same
     app->add_option(
         "--tname,--target_module_name", export_opts.target_module_name,
-        "Set the module name and file name of target DUT, default is the same as source. For example, -T top, will generate UTtop.cpp and UTtop.hpp with UTtop class");
+        "Set the module name and file name of target DUT, default is the same as source. \nFor example, -T top, will generate UTtop.cpp and UTtop.hpp with UTtop class");
 
     // Set DUT RTL Internal Signal Config File, Optional, default is empty
     app->add_option(
@@ -94,14 +94,14 @@ int set_options_export_rtl(CLI::App &top_app)
                   "Enable coverage, default is not selected as OFF");
 
     // Enable copy xspcomm lib to DUT location
-    app->add_flag("--cp_lib, --copy_xspcomm_lib", export_opts.cp_lib,
-                  "Copy xspcomm lib to generated DUT dir");
+    app->add_option("--cp_lib, --copy_xspcomm_lib", export_opts.cp_lib,
+                    "Copy xspcomm lib to generated DUT dir, default is true")->default_val(true);
 
     // User defined simulator compile args, passthrough. Eg: '-v -x-assign=fast
     // -Wall --trace' || '-C vcs -cc -f filelist.f'
     app->add_option(
         "-V,--vflag", export_opts.vflag,
-        "User defined simulator compile args, passthrough. Eg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'");
+        "User defined simulator compile args, passthrough. \nEg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'");
 
     // User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17
     // -I./include'
