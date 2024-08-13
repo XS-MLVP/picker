@@ -298,8 +298,16 @@ DutUnifiedBase::DutUnifiedBase(std::vector<std::string> args)
 {
     int argc    = 0;
     const char **argv = (const char **)malloc(sizeof(char *) * argc);
-    for (auto arg : args) { argv[argc++] = arg.c_str(); }
+    for (auto arg : args) { 
+        argv[argc] = (char *)malloc(arg.size() + 1);
+        strcpy((char *)argv[argc], arg.c_str());
+        argc++;
+    }
     this->init(argc, argv);
+    for (int i = 0; i < argc; i++) { 
+        XInfo("Initial Args %d: %s", i, argv[i]);
+        free((char *)argv[i]); 
+    }
     free(argv);
 }
 
