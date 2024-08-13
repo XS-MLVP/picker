@@ -62,6 +62,21 @@ sudo -E make install
 > The installation will automatically install the `xspcomm` base library (https://github.com/XS-MLVP/xcomm), which is used to encapsulate the basic types of `RTL` modules, located at `/usr/local/lib/libxspcomm.so`. **You may need to manually set the link directory parameters (-L) during compilation.**   
 > If support for languages such as Java is enabled, the corresponding `xspcomm` multi-language packages will also be installed.  
 
+**picker can also be compiled into a wheel file and installed via pip**
+
+To package picker into a wheel installation package, use the following command:
+
+```bash
+make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang make wheel
+```
+
+After compilation, the wheel file will be located in the dist directory. You can then install it via pip, for example:
+
+```bash
+pip install dist/xspcomm-0.0.1-cp311-cp311-linux_x86_64.whl
+pip install dist/picker-0.0.1-cp311-cp311-linux_x86_64.whl
+```
+
 After installation, execute the `picker` command to except the flow output:
 
 ```

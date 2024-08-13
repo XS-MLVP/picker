@@ -61,6 +61,21 @@ sudo -E make install
 > 安装时会自动安装 `xspcomm`基础库（[https://github.com/XS-MLVP/xcomm](https://github.com/XS-MLVP/xcomm)），该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**  
 > 如果开启了Java等语言支持，还会安装 `xspcomm` 对应的多语言软件包。 
 
+**picker也可以编译为wheel文件，通过pip安装**
+
+通过以下命令把picker打包成wheel安装包：
+
+```bash
+make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang make wheel
+```
+
+编译完成后，wheel文件位于dist目录，然后通过pip安装，例如：
+
+```bash
+pip install dist/xspcomm-0.0.1-cp311-cp311-linux_x86_64.whl
+pip install dist/picker-0.0.1-cp311-cp311-linux_x86_64.whl
+```
+
 安装完成后，执行`picker`命令可以得到以下输出:
 
 ```
