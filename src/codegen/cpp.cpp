@@ -30,6 +30,11 @@ namespace codegen {
             "    this->xport.Add(this->{{pin_uniq_name}}.mName, this->{{pin_uniq_name}});\n";
         static const std::string comment_template =
             "    {{logic_pin_type}} {{logic_pin_length}} {{logic_pin}}\n";
+        static const std::string xport_cascaded_dec_template =
+            "    XPort {{port_name}};\n";
+        static const std::string xport_cascaded_sgn_template =
+            "    this->{{port_name}} = this->xport.NewSubPort(\"{{prefix_key}}_\");\n";
+
 
 #define BIND_DPI_RW                                                            \
     if (pin[i].logic_pin_hb == -1) {                                           \
@@ -134,6 +139,24 @@ namespace codegen {
             }
         };
 
+        void render_cascaded_signals(std::string prefix, nlohmann::json &signal_tree_json,
+                                     std::string &cascaded_ports_dec, std::string &cascaded_ports_sgn){
+            nlohmann::json data;
+            inja::Environment env;
+            for (auto &[key, port] : signal_tree_json.items()) {
+                if (port.contains("_")) { // ignore leaf node
+                    continue;
+                } else {
+                    std::string port_name = prefix.empty() ? key : prefix + "_" + key;
+                    data["port_name"] = port_name;
+                    data["prefix_key"] = port_name;
+                    cascaded_ports_dec += env.render(xport_cascaded_dec_template, data);
+                    cascaded_ports_sgn += env.render(xport_cascaded_sgn_template, data);
+                    render_cascaded_signals(port_name, port, cascaded_ports_dec, cascaded_ports_sgn);
+                }
+            }
+        }
+
     } // namespace cxx
 
     void cpp(picker::export_opts &opts,
@@ -148,7 +171,7 @@ namespace codegen {
 
         // Codegen Buffers
         std::string pin_connect, logic, wire, comments, dpi_export, dpi_impl,
-            xdata_declaration, xdata_reinit, xdata_bindrw, xport_add;
+            xdata_declaration, xdata_reinit, xdata_bindrw, xport_add, cascaded_signals_dec, cascaded_signals_sgn;
 
         // Generate External Pin
         cxx::render_external_pin(external_pin, xdata_declaration, xdata_reinit,
@@ -157,6 +180,8 @@ namespace codegen {
         cxx::render_internal_signal(internal_signal, xdata_declaration,
                                     xdata_reinit, xdata_bindrw, xport_add,
                                     comments);
+        // Generate Cascaded Porst
+        cxx::render_cascaded_signals("", signal_tree_json, cascaded_signals_dec, cascaded_signals_sgn);
 
         std::string erro_message;
         auto cpplib_location =
@@ -179,6 +204,9 @@ namespace codegen {
         data["__XDATA_REINIT__"]      = xdata_reinit;
         data["__XDATA_BIND__"]        = xdata_bindrw;
         data["__XPORT_ADD__"]         = xport_add;
+        data["__XPORT_CASCADED_DEC__"] = cascaded_signals_dec;
+        data["__XPORT_CASCADED_SGN__"] = cascaded_signals_sgn;
+
         data["__COMMENTS__"]          = comments;
         data["__COPY_XSPCOMM_LIB__"]  = opts.cp_lib;
 

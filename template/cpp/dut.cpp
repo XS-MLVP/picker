@@ -53,6 +53,10 @@ void UT{{__TOP_MODULE_NAME__}}::init()
     };
     this->xclock.ReInit(stepfunc, {}, {});
     this->xclock.Add(this->xport);
+
+    // create subport
+{{__XPORT_CASCADED_SGN__}}
+
 }
 
 void UT{{__TOP_MODULE_NAME__}}::InitClock(XData &clk)

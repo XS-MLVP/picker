@@ -20,6 +20,9 @@ public:
     // Ports for binding
     XPort xport;
 
+    // Sub ports
+{{__XPORT_CASCADED_DEC__}}
+
     // Clock for DUT timing
     XClock xclock;
 
