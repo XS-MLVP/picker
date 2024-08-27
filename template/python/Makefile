@@ -25,4 +25,8 @@ compile: copy_xspcomm
 	@cp build/lib${TARGET}.py .
 
 clean:
-	@rm -rf *.fst *.vcd *.fsdb *.log *.key
+	@rm -rf *.fst *.vcd *.fsdb *.log *.key build
+
+purge: clean
+	@rm -rf *.txt Makefile *.hpp *.cmake *.i __pycache__
+	@echo "purge complete"

@@ -33,6 +33,7 @@ endif
 	@rm -rf build cmake cpp mk python java scala golang CMakeLists.txt dut_base.* 2>/dev/null|| true
 	@rm -rf ${TARGET}.cpp filelist.f *.fst 2>/dev/null|| true
 	@mv ${TARGET}/*.v ${TARGET}/*.sv . 2>/dev/null|| true
+	@cd ${TARGET} && make purge
 endif
 
 coverage:

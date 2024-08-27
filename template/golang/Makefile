@@ -31,4 +31,8 @@ compile: copy_xspcomm
 	@mv go.mod golang/src/${TARGET}/
 
 clean:
-	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.a
+	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.a build
+
+purge: clean
+	@ls|grep -v golang|xargs rm -rf
+	@echo "purge complete"

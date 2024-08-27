@@ -23,4 +23,8 @@ compile: copy_xspcomm
 	cmake --build build --config Debug --parallel `nproc`
 	
 clean:
+	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.a build
+
+purge: clean
 	@ls|grep -v ".jar"|xargs rm -rf
+	@echo "purge complete"

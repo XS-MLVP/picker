@@ -25,4 +25,7 @@ compile: copy_xspcomm
 	@cmake --build build --config Release --parallel `nproc`
 
 clean:
-	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.dat
+	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.dat build
+
+purge: clean
+	@echo "purge complete"
