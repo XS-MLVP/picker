@@ -11,6 +11,8 @@ type UT_{{__TOP_MODULE_NAME__}} struct {
     Xport xspcomm.XPort
     // Pins
 {{__XDATA_DECL__}}
+    // SubPorts
+{{__XPORT_CASCADED_DEC__}}
 }
 
 
@@ -42,6 +44,8 @@ func NewUT_{{__TOP_MODULE_NAME__}}(a ...interface{}) *UT_{{__TOP_MODULE_NAME__}}
     // Add to port
 {{__XPORT_ADD__}}
     self.Xclock.Add(self.Xport)
+    // New SubPorts
+{{__XPORT_CASCADED_SGN__}}
     return self
 }
 
