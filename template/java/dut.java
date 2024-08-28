@@ -50,6 +50,8 @@ public class UT_{{__TOP_MODULE_NAME__}} {
 
     // all pins declare
 {{__XDATA_DECL__}}
+    // Subports
+{{ __XPORT_CASCADED_DEC__}}
     private void initDut(){
         this.xport = new XPort();
         this.xclock = new XClock((dump) -> this.dut.simStep(dump));
@@ -60,6 +62,8 @@ public class UT_{{__TOP_MODULE_NAME__}} {
 {{__XDATA_BIND__}}
         // add to port
 {{__XPORT_ADD__}}
+        // new subports
+{{__XPORT_CASCADED_SGN__}}
     }
     public UT_{{__TOP_MODULE_NAME__}}(){
         this.dut = new DutUnifiedBase();
