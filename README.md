@@ -58,7 +58,8 @@ make
 sudo -E make install
 ```
 
-> The default installation path is `/usr/local`, with binary files placed in `/usr/local/bin` and template files in `/usr/local/share/picker`.  
+> The default installation path is `/usr/local`, with binary files placed in `/usr/local/bin` and template files in `/usr/local/share/picker`.
+> If you need to change the installation directory, you can pass arguments to cmake by specifying ARGS, for example: `make ARGS="-DCMAKE_INSTALL_PREFIX=your_install_dir"`
 > The installation will automatically install the `xspcomm` base library (https://github.com/XS-MLVP/xcomm), which is used to encapsulate the basic types of `RTL` modules, located at `/usr/local/lib/libxspcomm.so`. **You may need to manually set the link directory parameters (-L) during compilation.**   
 > If support for languages such as Java is enabled, the corresponding `xspcomm` multi-language packages will also be installed.  
 

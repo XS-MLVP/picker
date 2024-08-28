@@ -57,7 +57,8 @@ make
 sudo -E make install
 ```
 
-> 默认的安装的目标路径是 `/usr/local`， 二进制文件被置于 `/usr/local/bin`，模板文件被置于 `/usr/local/share/picker`。  
+> 默认的安装的目标路径是 `/usr/local`， 二进制文件被置于 `/usr/local/bin`，模板文件被置于 `/usr/local/share/picker`。
+> 如果需要修改安装目录，可以通过指定ARGS给cmake传递参数，例如`make ARGS="-DCMAKE_INSTALL_PREFIX=your_instal_dir"`
 > 安装时会自动安装 `xspcomm`基础库（[https://github.com/XS-MLVP/xcomm](https://github.com/XS-MLVP/xcomm)），该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**  
 > 如果开启了Java等语言支持，还会安装 `xspcomm` 对应的多语言软件包。 
 
