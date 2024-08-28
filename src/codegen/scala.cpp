@@ -10,6 +10,9 @@ namespace picker { namespace codegen {
             "    this.{{pin_uniq_name}}.BindDPIPtr(this.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), this.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xport_add_template =
             "    this.xport.Add(\"{{pin_func_name}}\", this.{{pin_uniq_name}})\n";
+        static const std::string xport_cascaded_sgn_template =
+            "    var {{port_name}} = this.xport.NewSubPort(\"{{prefix_key}}_\")\n";
+
         /// @brief Export external pin for cpp render
         /// @param pin
         /// @param xdata_declaration
@@ -83,6 +86,22 @@ namespace picker { namespace codegen {
             }
         };
 
+        void render_cascaded_signals(std::string prefix, nlohmann::json &signal_tree_json, std::string &cascaded_ports){
+            nlohmann::json data;
+            inja::Environment env;
+            for (auto &[key, port] : signal_tree_json.items()) {
+                if (port.contains("_")) { // ignore leaf node
+                    continue;
+                } else {
+                    std::string port_name = prefix.empty() ? key : prefix + "_" + key;
+                    data["port_name"] = port_name;
+                    data["prefix_key"] = port_name;
+                    cascaded_ports += env.render(xport_cascaded_sgn_template, data);
+                    render_cascaded_signals(port_name, port, cascaded_ports);
+                }
+            }
+        }
+
     } // namespace scala_ns
 
     void scala(picker::export_opts &opts,
@@ -97,7 +116,7 @@ namespace picker { namespace codegen {
 
         // Codegen Buffers
         std::string xdata_init, xdata_bindrw, xport_add,
-            swig_constant;
+            swig_constant, cascaded_signals_sgn;
 
         // Generate External Pin
         scala_ns::render_external_pin(external_pin, dst_module_name,
@@ -107,6 +126,8 @@ namespace picker { namespace codegen {
         scala_ns::render_internal_signal(internal_signal, dst_module_name,
                                         xdata_init, xdata_bindrw,
                                         xport_add, swig_constant);
+        // Generate Cascaded Porst
+        scala_ns::render_cascaded_signals("", signal_tree_json, cascaded_signals_sgn);
 
         // Simulator
         std::transform(simulator.begin(), simulator.end(), simulator.begin(),
@@ -130,6 +151,8 @@ namespace picker { namespace codegen {
         data["__XDATA_INIT__"]    = xdata_init;
         data["__XDATA_BIND__"]    = xdata_bindrw;
         data["__XPORT_ADD__"]     = xport_add;
+        data["__XPORT_CASCADED_SGN__"] = cascaded_signals_sgn;
+
         data["__SWIG_CONSTANT__"] = swig_constant;
         data["__USE_SIMULATOR__"] = "USE_" + simulator;
         data["__COPY_XSPCOMM_LIB__"]  = opts.cp_lib;

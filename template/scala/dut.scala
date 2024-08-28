@@ -33,6 +33,9 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     // Add to port
 {{__XPORT_ADD__}}
 
+    // New Subports
+{{__XPORT_CASCADED_SGN__}}
+
     this.xclock.Add(this.xport)
     
     /*************************************************/
