@@ -180,7 +180,7 @@ namespace codegen {
         cxx::render_internal_signal(internal_signal, xdata_declaration,
                                     xdata_reinit, xdata_bindrw, xport_add,
                                     comments);
-        // Generate Cascaded Porst
+        // Generate Cascaded Ports
         cxx::render_cascaded_signals("", signal_tree_json, cascaded_signals_dec, cascaded_signals_sgn);
 
         std::string erro_message;
