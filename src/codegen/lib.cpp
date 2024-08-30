@@ -31,10 +31,12 @@ namespace picker { namespace codegen {
                       const std::vector<std::string> &ifilelists, std::string &ofilelist)
     {
         std::vector<std::string> path_list;
+        std::string fs_path = "";
         for (auto ifilelist: ifilelists) {
             if (ifilelist.ends_with(".f") || ifilelist.ends_with(".txt")) { // read from file
                 std::ifstream ifs(ifilelist);
                 std::string line;
+                fs_path = std::filesystem::absolute(ifilelist).parent_path().string();
                 while (std::getline(ifs, line)) { path_list.push_back(line); }
             } else { // split by comma
                 std::string line;
@@ -43,14 +45,28 @@ namespace picker { namespace codegen {
             }
         }
         for (auto &path : path_list) {
+            path = picker::trim(path);
             if (path.starts_with("#")) { continue; } // skip comment line
-            path.substr(0, path.find_first_of("#")); // remove comment part
+            path = picker::trim(path.substr(0, path.find_first_of("#"))); // remove comment part
+            if (path.empty()) { continue; } // skip empty line
             if (path == source_file) { continue; }   // skip source file
 
             if (path.ends_with(".sv") || path.ends_with(".v")) { // single file
+                auto target_file = path;
+                if(!std::filesystem::exists(path) && !path.starts_with("/") && !fs_path.empty()) {
+                    PK_ERROR("Cannot find file: %s, try search in path: %s", path.c_str(), fs_path.c_str());
+                    path = (std::filesystem::path(fs_path)/path).string();
+                }
+                if (!std::filesystem::exists(path))PK_FATAL("File not found: %s\n", target_file.c_str());
                 path = std::filesystem::absolute(path).string();
                 ofilelist += path + "\n";
             } else if (path.ends_with("/")) { // directory
+                auto target_dir = path;
+                if(!std::filesystem::exists(path) && !path.starts_with("/") && !fs_path.empty()) {
+                    PK_ERROR("Cannot find directory: %s, try search in path: %s", path.c_str(), fs_path.c_str());
+                    path = (std::filesystem::path(fs_path)/path).string();
+                }
+                if (!std::filesystem::exists(path))PK_FATAL("Directory not found: %s\n", target_dir.c_str());
                 std::filesystem::recursive_directory_iterator iter(path);
                 for (const auto &entry : iter) {
                     if (entry.is_regular_file()) {
