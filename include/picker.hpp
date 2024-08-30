@@ -53,8 +53,9 @@ extern char* lib_random_hash;
     }
 #define PK_FATAL(fmt, ...)                                                     \
     {                                                                          \
+        PK_OUTPUT(stderr, "%sFatal: ", "\033[31m")                             \
         PK_OUTPUT(stderr, fmt, ##__VA_ARGS__);                                 \
-        PK_OUTPUT(stderr, "%s\n", "")                                          \
+        PK_OUTPUT(stderr, "%s\n", "\033[0m")                                   \
         exit(-1);                                                              \
     }
 
@@ -100,16 +101,22 @@ inline std::string trim(std::string s, std::string p)
     return s;
 }
 
-inline std::string trim(std::string s)
-{
-    if (s.empty()) { return s; }
-    s.erase(0, s.find_first_not_of(" "));
-    s.erase(s.find_last_not_of(" ") + 1);
-    s.erase(0, s.find_first_not_of("\r"));
-    s.erase(s.find_last_not_of("\r") + 1);
-    s.erase(0, s.find_first_not_of("\n"));
-    s.erase(s.find_last_not_of("\n") + 1);
+inline std::string ltrim(std::string s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
     return s;
+}
+
+inline std::string rtrim(std::string s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+    return s;
+}
+
+inline std::string trim(std::string s) {
+    return rtrim(ltrim(s));
 }
 
 inline std::vector<std::string> strsplit(std::string str, std::string s = " ")
