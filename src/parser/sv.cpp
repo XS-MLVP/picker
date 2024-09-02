@@ -95,7 +95,13 @@ namespace picker { namespace parser {
                         pin_type = module_token[i]["tag"];
                         pin_high.clear();
                         pin_low.clear();
-                        if (module_token[++i]["tag"] == "[") {
+                        // Skip logic, wire, reg type. We export pins with logic type, these types are not needed yet.
+                        i++;
+                        if( module_token[i]["tag"] == "logic" || module_token[i]["tag"] == "wire" || module_token[i]["tag"] == "reg" ) {
+                            i++;
+                        }
+                        // Parse pin length
+                        if (module_token[i]["tag"] == "[") {
                             while (module_token[++i]["tag"] != ":")
                                 pin_high += param_res(token_res(i));
                             while (module_token[++i]["tag"] != "]")
