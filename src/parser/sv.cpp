@@ -13,38 +13,9 @@ namespace picker { namespace parser {
 
 
 
-    std::vector<picker::sv_signal_define> sv_pin(std::string &filename,
-                                         std::string &src_module_name)
+    std::vector<picker::sv_signal_define> sv_pin(nlohmann::json &module_token,
+                                                 std::string &src_module_name)
     {
-        std::string raw_filename;
-        try
-        {
-            std::filesystem::path filepath = filename;
-            raw_filename = filepath.filename();
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-            return std::vector<picker::sv_signal_define>();
-        }
-
-        PK_MESSAGE("start call!");
-        std::string syntax_cmd =
-            "verible-verilog-syntax --export_json --printtokens " + filename
-            + "> /tmp/" + raw_filename + ".json";
-        exec(syntax_cmd.c_str());
-
-        // read verible-verilog-syntax result
-        auto verible_result = read_file("/tmp/" + raw_filename + ".json");
-
-        PK_MESSAGE("start parse!");
-
-        // nlohmann parse json
-        nlohmann::json module_json = nlohmann::json::parse(verible_result);
-
-        // filter json like 标点符号等
-        PK_MESSAGE("start filter!");
-        auto module_token = module_json[filename]["tokens"];
         // nlohmann::json res_token;
         // for (auto it = module_token.begin(); it != module_token.end();) {
         //     auto itemV    = it.value();
@@ -150,6 +121,7 @@ namespace picker { namespace parser {
 
                     // If is pin
                     sv_signal_define tmp_pin;
+                    tmp_pin.module_name = src_module_name;
                     tmp_pin.logic_pin_type = pin_type;
 
                     if (module_token[i]["tag"]
@@ -173,14 +145,100 @@ namespace picker { namespace parser {
         return pin;
     }
 
-    int sv(picker::export_opts &opts, std::vector<picker::sv_signal_define> &external_pin)
+    std::map<std::string, int> parse_mname_and_numbers(std::vector<std::string> &name_and_nums){
+        // eg: MouduleA,1,ModuleB,3,MouldeC,ModuleE,ModuleF
+        std::string m_name = "";
+        int num = 1;
+        std::map<std::string, int> ret;
+        for(auto v : name_and_nums){
+            v = picker::trim(v);
+            num = 1;
+            if(picker::str_start_with_digit(v)){
+                num = std::stoi(v);
+                if(!m_name.empty()){
+                    ret[m_name] = num;
+                    m_name = "";
+                }else{
+                    PK_MESSAGE("Ignore num: %d, no matched Module find", num)
+                }
+            }else{
+                vassert(!v.empty(), "Find empty Module name in --sname arg");
+                if(!m_name.empty()){
+                    ret[m_name] = num;
+                }
+                m_name = v;
+            }
+        }
+        if(!m_name.empty())ret[m_name] = 1;
+        return ret;
+    }
+
+    std::map<std::string, nlohmann::json> match_module_with_file(
+        std::vector<std::string> files, std::vector<std::string> m_names
+    ){
+        std::map<std::string, nlohmann::json> ret;
+        for(auto f: files){
+            std::string rf;
+            std::filesystem::path fpath = f;
+            rf = fpath.filename();
+            std::string syntax_cmd =
+            "verible-verilog-syntax --export_json --printtokens " + f
+            + "> /tmp/" + rf + ".json";
+            exec(syntax_cmd.c_str());
+            auto mjson = nlohmann::json::parse(read_file("/tmp/" + rf + ".json"));
+            std::vector<std::string> module_list;
+            auto module_token = mjson[f]["tokens"];
+            for (int i = 0; i < module_token.size(); i++){
+                if (module_token[i]["tag"] == "module")
+                    module_list.push_back(module_token[i + 1]["text"]);
+            }
+            if(m_names.empty()){
+                ret[module_list.back()] = mjson;
+                return ret;
+            }
+            for(auto m: m_names){
+                if(picker::contians(module_list, m)){
+                    PK_MESSAGE("find module: %s in file: %s", m.c_str(), f.c_str())
+                    ret[m] = mjson;
+                    break;
+                }
+            }
+        }
+        for(auto m: m_names){
+            vassert(ret.count(m), "Module: " + m + " not find in input file");
+        }
+        return ret;
+    }
+
+    int sv(picker::export_opts &opts, std::vector<picker::sv_module_define> &module_external_pin)
     {
         std::string dst_module_name = opts.target_module_name;
+        std::vector<std::string> m_names;
+        std::map<std::string, nlohmann::json> m_json;
+        std::map<std::string, int> m_nums;
 
-        external_pin = sv_pin(opts.file, opts.source_module_name);
+        if(opts.source_module_name.empty()){
+            if(opts.file.size()!=1)
+            PK_FATAL("When module name not given (--sname),"
+                     " can only parse one .v/.sv file (%d find!)", (int)opts.file.size())
+            m_json = match_module_with_file(opts.file, opts.source_module_name);
+            m_names = picker::key_as_vector(m_json);
+        }else{
+            m_nums = parse_mname_and_numbers(opts.source_module_name);
+            m_names = picker::key_as_vector(m_nums);
+            m_json = match_module_with_file(opts.file, m_names);
+        }
+        auto target_name = picker::join_str_vec(m_names, "_");
+        for(auto &v: m_json){
+            picker::sv_module_define sv_module;
+            sv_module.module_name = v.first;
+            sv_module.module_index = m_nums[sv_module.module_name];
+            sv_module.pins = sv_pin(v.second, sv_module.module_name);
+            module_external_pin.push_back(sv_module);
+        }
 
         opts.target_module_name = opts.target_module_name.size() == 0 ?
-                                      opts.source_module_name :
+                                      target_name:
                                       opts.target_module_name;
         return 0;
     }

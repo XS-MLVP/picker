@@ -8,6 +8,8 @@ picker::export_opts export_opts;
 picker::pack_opts pack_opts;
 char *picker::lib_random_hash;
 
+bool is_debug = false;
+
 std::string to_base62(uint64_t num)
 {
     const std::string base62_chars =
@@ -322,14 +324,14 @@ int main(int argc, char **argv)
 
     // subcommand export
     if (app.get_subcommand_ptr("export")->parsed()) {
-        std::vector<picker::sv_signal_define> sv_pin_result,
+        std::vector<picker::sv_module_define> sv_module_result,
             internal_sginal_result;
         nlohmann::json signal_tree_json;
-        picker::parser::sv(export_opts, sv_pin_result);
+        picker::parser::sv(export_opts, sv_module_result);
         picker::parser::internal(export_opts, internal_sginal_result);
 
-        picker::codegen::lib(export_opts, sv_pin_result, internal_sginal_result,
-                             signal_tree_json);
+        auto sv_pin_result = picker::codegen::lib(export_opts, sv_module_result, internal_sginal_result,
+                                                  signal_tree_json);
 
         std::map<std::string,
                  std::function<void(picker::export_opts &,

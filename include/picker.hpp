@@ -234,6 +234,24 @@ inline bool contians(std::vector<T> v, T a)
     return false;
 }
 
+template <typename T, typename F>
+inline std::vector<T> key_as_vector(std::map<T, F> &input){
+    std::vector<T> keys;
+    for (const auto& pair : input) {
+        keys.push_back(pair.first);
+    }
+    return keys;
+}
+
+inline std::string join_str_vec(const std::vector<std::string>& strings, const std::string& delimiter) {
+    if (strings.empty()) return "";
+    std::string result = strings[0];
+    for (size_t i = 1; i < strings.size(); ++i) {
+        result += delimiter + strings[i];
+    }
+    return result;
+}
+
 inline bool file_exists(std::string f)
 {
     return access(f.c_str(), F_OK) == 0;
@@ -413,6 +431,11 @@ inline std::string get_executable_path()
 inline bool str_start_with(std::string str, std::string prefix)
 {
     return str.find(prefix) == 0;
+}
+
+inline bool str_start_with_digit(const std::string& str) {
+    if (str.empty()) return false;
+    return std::isdigit(str[0]);
 }
 
 inline std::string get_target_path_from(std::string base, std::vector<std::string> paths)

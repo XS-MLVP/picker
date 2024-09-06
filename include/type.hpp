@@ -16,13 +16,13 @@ typedef struct main_opts {
 
 
 typedef struct export_opts {
-    std::string file;
+    std::vector<std::string> file;
     std::vector<std::string> filelists;
     std::string sim;
     std::string language;
     std::string source_dir;
     std::string target_dir;
-    std::string source_module_name;
+    std::vector<std::string> source_module_name;
     std::string target_module_name;
     std::string internal;
     std::string frequency;
@@ -47,11 +47,19 @@ typedef struct pack_opts {
 } pack_opts;
 
 typedef struct sv_signal_define {
+    std::string module_name;
     std::string logic_pin;
     std::string logic_pin_type;
     int logic_pin_hb;
     int logic_pin_lb;
 } sv_signal_define;
+
+typedef struct sv_module_define {
+    std::string module_name;
+    int module_index;
+    std::vector<sv_signal_define> pins;
+} sv_module_define;
+
 typedef struct uvm_parameter {
     std::string name;
     int byte_count;

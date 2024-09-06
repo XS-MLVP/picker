@@ -35,7 +35,7 @@ namespace picker { namespace codegen {
         }
     }
 
-    void gen_filelist(const std::string &source_file,
+    void gen_filelist(const std::vector<std::string> &source_file,
                       const std::vector<std::string> &ifilelists, std::string &ofilelist)
     {
         std::vector<std::string> path_list;
@@ -58,7 +58,7 @@ namespace picker { namespace codegen {
             if (path.starts_with("#")) { continue; } // skip comment line
             path = picker::trim(path.substr(0, path.find_first_of("#"))); // remove comment part
             if (path.empty()) { continue; } // skip empty line
-            if (path == source_file) { continue; }   // skip source file
+            if (picker::contians(source_file, path)) { continue; }   // skip source file
 
             if (check_file_type(path, allow_file_types)) { // file
                 auto target_file = path;
@@ -128,30 +128,30 @@ namespace picker { namespace codegen {
         std::string verilaotr_coverage, vcs_coverage;
     }
 
-    void lib(picker::export_opts &opts,
-             const std::vector<picker::sv_signal_define> &external_pin,
+    std::vector<picker::sv_signal_define> lib(picker::export_opts &opts,
+             const std::vector<picker::sv_module_define> &module_external_pin,
              const std::vector<picker::sv_signal_define> &internal_pin,
              nlohmann::json &signal_tree)
     {
+        std::vector<picker::sv_signal_define> ret;
         // Parse Options
-        std::string filename = opts.file, src_dir = opts.source_dir + "/lib",
+        std::string src_dir = opts.source_dir + "/lib",
                     dst_dir         = opts.target_dir,
-                    src_module_name = opts.source_module_name,
                     dst_module_name = opts.target_module_name,
                     wave_file_name = opts.wave_file_name, simulator = opts.sim,
                     vflag = opts.vflag, cflag = opts.cflag,
                     ofilelist, vcs_clock_period_h,
                     vcs_clock_period_l;
+        std::vector<std::string> files = opts.file;
         std::vector<std::string> ifilelists = opts.filelists;
 
         // Build environment
         inja::Environment env;
         nlohmann::json data;
 
-        data["__SOURCE_MODULE_NAME__"] = src_module_name;
         data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
-        gen_sv_param(data, external_pin, internal_pin, signal_tree,
+        gen_sv_param(data, module_external_pin, internal_pin, signal_tree,
                      wave_file_name, simulator);
         gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag,
                   env, data);
@@ -162,7 +162,7 @@ namespace picker { namespace codegen {
                          opts.frequency);
 
         // Render lib filelist
-        gen_filelist(filename, ifilelists, ofilelist);
+        gen_filelist(files, ifilelists, ofilelist);
 
         data["__VCS_CLOCK_PERIOD_HIGH__"]  = vcs_clock_period_h;
         data["__VCS_CLOCK_PERIOD_LOW__"]   = vcs_clock_period_l;
@@ -191,11 +191,13 @@ namespace picker { namespace codegen {
                 }
             }
         }
-        std::filesystem::copy_file(
-            filename, dst_dir + "/" + dst_module_name + ".v",
-            std::filesystem::copy_options::overwrite_existing);
-
+        for(auto &f: files){
+            std::filesystem::copy_file(
+                f, dst_dir + "/" + dst_module_name + ".v",
+                std::filesystem::copy_options::overwrite_existing);
+        }
         PK_MESSAGE("Generate DPI files successfully!");
+        return ret;
     }
 
 }} // namespace picker::codegen
