@@ -108,7 +108,6 @@ namespace picker { namespace codegen {
         //
         std::string src_dir         = opts.source_dir + "/python";
         std::string dst_dir         = opts.target_dir + "/python";
-        std::string src_module_name = opts.source_module_name;
         std::string dst_module_name = opts.target_module_name;
         std::string simulator       = opts.sim;
 
@@ -140,8 +139,6 @@ namespace picker { namespace codegen {
 
         data["__XSPCOMM_LIB__"]    = cpplib_location;
         data["__XSPCOMM_PYTHON__"] = python_location;
-
-        data["__SOURCE_MODULE_NAME__"] = src_module_name;
         data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
         data["__XDATA_INIT__"]     = xdata_init;
