@@ -3,6 +3,14 @@
 
 namespace picker { namespace codegen {
 
+    bool check_file_type(const std::string src, const std::vector<std::string> &types)
+    {
+        for (const auto &type : types) {
+            if (src.ends_with(type)) { return true; }
+        }
+        return false;
+    }
+
     void recursive_render(std::string &src_dir, std::string &dst_dir,
                           nlohmann::json &data, inja::Environment &env)
     {
@@ -31,9 +39,10 @@ namespace picker { namespace codegen {
                       const std::vector<std::string> &ifilelists, std::string &ofilelist)
     {
         std::vector<std::string> path_list;
+        const std::vector<std::string> allow_file_types = {".sv", ".v", ".cpp", ".c", ".cc", ".cxx", ".so", ".a", ".o"};
         std::string fs_path = "";
         for (auto ifilelist: ifilelists) {
-            if (ifilelist.ends_with(".f") || ifilelist.ends_with(".txt")) { // read from file
+            if (check_file_type(ifilelist, allow_file_types)) { // file
                 std::ifstream ifs(ifilelist);
                 std::string line;
                 fs_path = std::filesystem::absolute(ifilelist).parent_path().string();
@@ -51,7 +60,7 @@ namespace picker { namespace codegen {
             if (path.empty()) { continue; } // skip empty line
             if (path == source_file) { continue; }   // skip source file
 
-            if (path.ends_with(".sv") || path.ends_with(".v")) { // single file
+            if (check_file_type(path, allow_file_types)) { // file
                 auto target_file = path;
                 if(!std::filesystem::exists(path) && !path.starts_with("/") && !fs_path.empty()) {
                     PK_ERROR("Cannot find file: %s, try search in path: %s", path.c_str(), fs_path.c_str());
@@ -71,8 +80,7 @@ namespace picker { namespace codegen {
                 for (const auto &entry : iter) {
                     if (entry.is_regular_file()) {
                         std::string filename = entry.path().filename().string();
-                        if (filename.ends_with(".sv")
-                            || filename.ends_with(".v")) {
+                        if (check_file_type(filename, allow_file_types)) {
                             ofilelist += entry.path().string() + "\n";
                         }
                     }
