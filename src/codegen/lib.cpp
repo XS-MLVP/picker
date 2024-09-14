@@ -42,7 +42,7 @@ namespace picker { namespace codegen {
         const std::vector<std::string> allow_file_types = {".sv", ".v", ".cpp", ".c", ".cc", ".cxx", ".so", ".a", ".o"};
         std::string fs_path = "";
         for (auto ifilelist: ifilelists) {
-            if (check_file_type(ifilelist, allow_file_types)) { // file
+            if (check_file_type(ifilelist, {".txt", ".f"})) { // file
                 std::ifstream ifs(ifilelist);
                 std::string line;
                 fs_path = std::filesystem::absolute(ifilelist).parent_path().string();
