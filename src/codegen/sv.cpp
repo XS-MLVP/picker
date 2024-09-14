@@ -4,8 +4,10 @@
 namespace picker { namespace codegen {
 
     namespace sv {
+        static const std::string sub_module_template =
+            " {{module_name}} {{module_name}}{{module_subfix}}(\n{{pin_connect}}\n );\n";
         static const std::string pin_connect_template =
-            "    .{{logic_pin}}({{logic_pin}}),\n";
+            "    .{{raw_pin}}({{logic_pin}}),\n";
         static const std::string logic_pin_declaration_template =
             "  logic {{logic_pin_length}} {{logic_pin}};\n";
         static const std::string wire_pin_declaration_template =
@@ -35,44 +37,63 @@ namespace picker { namespace codegen {
         /// @param wire
         /// @param dpi_export
         /// @param dpi_impl
-        void render_external_pin(std::vector<picker::sv_signal_define> pin,
-                                 std::string &pin_connect, std::string &logic,
+        std::vector<picker::sv_signal_define> render_external_pin(std::vector<picker::sv_module_define> sv_module_result,
+                                 std::string &inner_modules, std::string &logic,
                                  std::string &wire, std::string &dpi_export,
                                  std::string &dpi_impl)
         {
+            std::vector<picker::sv_signal_define> ret;
             inja::Environment env;
             nlohmann::json data;
-            for (int i = 0; i < pin.size(); i++) {
-                data["logic_pin"]      = pin[i].logic_pin;
-                data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"] = replace_all(pin[i].logic_pin, ".", "_");
-                data["__LIB_DPI_FUNC_NAME_HASH__"] =
-                    std::string(lib_random_hash);
-
-                // Set empty or [hb:lb] for verilog render
-                data["logic_pin_length"] =
-                    pin[i].logic_pin_hb == -1 ?
-                        "" :
-                        "[" + std::to_string(pin[i].logic_pin_hb) + ":"
-                            + std::to_string(pin[i].logic_pin_lb) + "]";
-
-                pin_connect =
-                    pin_connect + env.render(pin_connect_template, data);
-                logic =
-                    logic + env.render(logic_pin_declaration_template, data);
-                wire = wire + env.render(wire_pin_declaration_template, data);
-
-                dpi_export = dpi_export
-                             + env.render(dpi_get_export_template, data)
-                             + env.render(dpi_set_export_template, data);
-                dpi_impl = dpi_impl + env.render(dpi_get_impl_template, data)
-                           + env.render(dpi_set_impl_template, data);
+            auto module_nums = sv_module_result.size();
+            for(int module_index=0; module_index < module_nums; module_index++){
+                auto &module = sv_module_result[module_index];
+                for(int count_index=0; count_index < module.module_nums; count_index++){
+                    auto &pin = module.pins;
+                    std::string pin_connect;
+                    std::string pin_prefix;
+                    if(!(module_nums == 1 && module.module_nums == 1)){
+                        pin_prefix = module.module_name + "_" + std::to_string(count_index) + "_";
+                    }
+                    data["module_subfix"] = "_" + std::to_string(count_index);
+                    data["module_name"] = module.module_name;
+                    for (int i = 0; i < pin.size(); i++) {
+                        picker::sv_signal_define temp_pin = pin[i];
+                        temp_pin.logic_pin = pin_prefix + pin[i].logic_pin;
+                        ret.push_back(temp_pin);  // pins need export
+                        data["raw_pin"]        = pin[i].logic_pin;
+                        data["logic_pin"]      = temp_pin.logic_pin;
+                        data["logic_pin_type"] = pin[i].logic_pin_type;
+                        data["pin_func_name"] = replace_all(temp_pin.logic_pin, ".", "_");
+                        data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
+                        // Set empty or [hb:lb] for verilog render
+                        data["logic_pin_length"] =
+                            pin[i].logic_pin_hb == -1 ?
+                                "" :
+                                "[" + std::to_string(pin[i].logic_pin_hb) + ":"
+                                    + std::to_string(pin[i].logic_pin_lb) + "]";
+                        pin_connect =
+                            pin_connect + env.render(pin_connect_template, data);
+                        logic =
+                            logic + env.render(logic_pin_declaration_template, data);
+                        wire = wire + env.render(wire_pin_declaration_template, data);
+                        dpi_export = dpi_export
+                                     + env.render(dpi_get_export_template, data)
+                                     + env.render(dpi_set_export_template, data);
+                        dpi_impl = dpi_impl + env.render(dpi_get_impl_template, data)
+                                   + env.render(dpi_set_impl_template, data);
+                    }
+                    if (pin_connect.length() == 0)
+                        PK_FATAL(
+                            "No port information of src_module was found in the specified file. \nPlease check whether the file name or source module name is correct.");
+                    pin_connect.pop_back();
+                    pin_connect.pop_back();
+                    data["pin_connect"] = pin_connect;
+                    // inner module
+                    inner_modules = inner_modules + env.render(sub_module_template, data);
+                }
             }
-            if (pin_connect.length() == 0)
-                PK_FATAL(
-                    "No port information of src_module was found in the specified file. \nPlease check whether the file name or source module name is correct.");
-            pin_connect.pop_back();
-            pin_connect.pop_back();
+            return ret;
         }
 
         /// @brief Export internal signal for verilog render, only contains dpi
@@ -296,17 +317,17 @@ namespace picker { namespace codegen {
     /// @param global_render_data
     /// @param external_pin
     /// @param internal_signal
-    void
+    std::vector<picker::sv_signal_define>
     gen_sv_param(nlohmann::json &global_render_data,
-                 const std::vector<picker::sv_module_define> &module_external_pin,
+                 const std::vector<picker::sv_module_define> &sv_module_result,
                  const std::vector<picker::sv_signal_define> &internal_signal,
                  nlohmann::json &signal_tree_json,
                  const std::string &wave_file_name,
                  const std::string &simulator)
     {
-        std::string pin_connect, logic, wire, dpi_export, dpi_impl, signal_tree;
+        std::string inner_modules, logic, wire, dpi_export, dpi_impl, signal_tree;
 
-        sv::render_external_pin(external_pin, pin_connect, logic, wire,
+        auto external_pin = sv::render_external_pin(sv_module_result, inner_modules, logic, wire,
                                 dpi_export, dpi_impl);
         sv::render_internal_signal(internal_signal, dpi_export, dpi_impl);
         sv::render_sv_waveform(simulator, wave_file_name, global_render_data);
@@ -315,10 +336,11 @@ namespace picker { namespace codegen {
 
         global_render_data["__LOGIC_PIN_DECLARATION__"]  = logic;
         global_render_data["__WIRE_PIN_DECLARATION__"]   = wire;
-        global_render_data["__PIN_CONNECT__"]            = pin_connect;
+        global_render_data["__INNER_MODULES__"]          = inner_modules;
         global_render_data["__DPI_FUNCTION_EXPORT__"]    = dpi_export;
         global_render_data["__DPI_FUNCTION_IMPLEMENT__"] = dpi_impl;
         global_render_data["__SIGNAL_TREE__"]            = signal_tree;
+        return external_pin;
     }
 
 }} // namespace picker::codegen

@@ -51,14 +51,12 @@ namespace picker { namespace parser {
                 && module_token[j + 1]["text"] == src_module_name) {
                 std::string pin_type, pin_high, pin_low;
                 for (int i = j + 2; i < module_token.size(); i++) {
-                    printf("%s\n", module_token[i]["tag"].dump().c_str());
-
+                    PK_DEBUG("%s", module_token[i]["tag"].dump().c_str());
                     // Check if is parameter
                     if (module_token[i]["tag"] == "parameter") {
                         pin_type = "parameter";
                         continue;
                     }
-
                     // Record pin type
                     if (module_token[i]["tag"] == "input"
                         || module_token[i]["tag"] == "output"
@@ -121,7 +119,6 @@ namespace picker { namespace parser {
 
                     // If is pin
                     sv_signal_define tmp_pin;
-                    tmp_pin.module_name = src_module_name;
                     tmp_pin.logic_pin_type = pin_type;
 
                     if (module_token[i]["tag"]
@@ -193,13 +190,13 @@ namespace picker { namespace parser {
                     module_list.push_back(module_token[i + 1]["text"]);
             }
             if(m_names.empty()){
-                ret[module_list.back()] = mjson;
+                ret[module_list.back()] = module_token;
                 return ret;
             }
             for(auto m: m_names){
                 if(picker::contians(module_list, m)){
                     PK_MESSAGE("find module: %s in file: %s", m.c_str(), f.c_str())
-                    ret[m] = mjson;
+                    ret[m] = module_token;
                     break;
                 }
             }
@@ -210,21 +207,21 @@ namespace picker { namespace parser {
         return ret;
     }
 
-    int sv(picker::export_opts &opts, std::vector<picker::sv_module_define> &module_external_pin)
+    int sv(picker::export_opts &opts, std::vector<picker::sv_module_define> &sv_module_result)
     {
         std::string dst_module_name = opts.target_module_name;
         std::vector<std::string> m_names;
         std::map<std::string, nlohmann::json> m_json;
         std::map<std::string, int> m_nums;
 
-        if(opts.source_module_name.empty()){
+        if(opts.source_module_name_list.empty()){
             if(opts.file.size()!=1)
             PK_FATAL("When module name not given (--sname),"
                      " can only parse one .v/.sv file (%d find!)", (int)opts.file.size())
-            m_json = match_module_with_file(opts.file, opts.source_module_name);
+            m_json = match_module_with_file(opts.file, opts.source_module_name_list);
             m_names = picker::key_as_vector(m_json);
         }else{
-            m_nums = parse_mname_and_numbers(opts.source_module_name);
+            m_nums = parse_mname_and_numbers(opts.source_module_name_list);
             m_names = picker::key_as_vector(m_nums);
             m_json = match_module_with_file(opts.file, m_names);
         }
@@ -232,9 +229,9 @@ namespace picker { namespace parser {
         for(auto &v: m_json){
             picker::sv_module_define sv_module;
             sv_module.module_name = v.first;
-            sv_module.module_index = m_nums[sv_module.module_name];
+            sv_module.module_nums = m_nums[sv_module.module_name];
             sv_module.pins = sv_pin(v.second, sv_module.module_name);
-            module_external_pin.push_back(sv_module);
+            sv_module_result.push_back(sv_module);
         }
 
         opts.target_module_name = opts.target_module_name.size() == 0 ?

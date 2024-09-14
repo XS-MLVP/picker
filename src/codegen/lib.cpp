@@ -129,7 +129,7 @@ namespace picker { namespace codegen {
     }
 
     std::vector<picker::sv_signal_define> lib(picker::export_opts &opts,
-             const std::vector<picker::sv_module_define> &module_external_pin,
+             const std::vector<picker::sv_module_define> sv_module_result,
              const std::vector<picker::sv_signal_define> &internal_pin,
              nlohmann::json &signal_tree)
     {
@@ -151,7 +151,7 @@ namespace picker { namespace codegen {
 
         data["__TOP_MODULE_NAME__"]    = dst_module_name;
 
-        gen_sv_param(data, module_external_pin, internal_pin, signal_tree,
+        ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree,
                      wave_file_name, simulator);
         gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag,
                   env, data);

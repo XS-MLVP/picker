@@ -8,7 +8,16 @@ picker::export_opts export_opts;
 picker::pack_opts pack_opts;
 char *picker::lib_random_hash;
 
+namespace picker {
 bool is_debug = false;
+}
+
+void check_debug()
+{
+    if (std::getenv("PICKER_DEBUG") != NULL) {
+        picker::is_debug = true;
+    }
+}
 
 std::string to_base62(uint64_t num)
 {
@@ -30,14 +39,14 @@ int set_options_export_rtl(CLI::App &top_app)
 
     // Set DUT RTL Source File, Required
     app->add_option("file", export_opts.file,
-                    "DUT .v/.sv source file, contain the top module")
+                    "DUT .v/.sv source file, contain the top module")->delimiter(',')
         ->required();
 
     // Set DUT RTL Extra Source File List, Optional
     app->add_option(
         "--fs,--filelist", export_opts.filelists,
         "DUT .v/.sv source files, contain the top module, split by comma.\n"
-        "Or use '*.txt' file  with one RTL file path per line to specify the file list");
+        "Or use '*.txt' file  with one RTL file path per line to specify the file list")->delimiter(',');
 
     // Set DUT RTL Simulator, Optional, default is verilator
     app->add_option("--sim", export_opts.sim,
@@ -68,8 +77,8 @@ int set_options_export_rtl(CLI::App &top_app)
 
     // Set DUT RTL Source Module Name, Optional, default is the last module in
     app->add_option(
-        "--sname,--source_module_name", export_opts.source_module_name,
-        "Pick the module in DUT .v file, default is the last module in the -f marked file");
+        "--sname,--source_module_name", export_opts.source_module_name_list,
+        "Pick the module in DUT .v file, default is the last module in the -f marked file")->delimiter(',');
 
     // Set Generated Software library module name, Optional, default is the same
     app->add_option(
@@ -178,6 +187,7 @@ int set_options_main(CLI::App &app)
 
 int main(int argc, char **argv)
 {
+    check_debug();
     CLI::App app{"XDut Generate. \n"
                  "Convert DUT(*.v/*.sv) to C++ DUT libs.\n"};
     set_options_main(app);
@@ -324,8 +334,8 @@ int main(int argc, char **argv)
 
     // subcommand export
     if (app.get_subcommand_ptr("export")->parsed()) {
-        std::vector<picker::sv_module_define> sv_module_result,
-            internal_sginal_result;
+        std::vector<picker::sv_module_define> sv_module_result;
+        std::vector<picker::sv_signal_define> internal_sginal_result;
         nlohmann::json signal_tree_json;
         picker::parser::sv(export_opts, sv_module_result);
         picker::parser::internal(export_opts, internal_sginal_result);
