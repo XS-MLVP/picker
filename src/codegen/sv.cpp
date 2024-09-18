@@ -44,19 +44,21 @@ namespace picker { namespace codegen {
         {
             std::vector<picker::sv_signal_define> ret;
             inja::Environment env;
-            nlohmann::json data;
-            auto module_nums = sv_module_result.size();
-            for(int module_index=0; module_index < module_nums; module_index++){
-                auto &module = sv_module_result[module_index];
+            auto module_diffs = sv_module_result.size();
+            for(int diff_index=0; diff_index < module_diffs; diff_index++){
+                auto &module = sv_module_result[diff_index];
+                PK_DEBUG("module_name: %s, module_nums: %d", module.module_name.c_str(), module.module_nums);
                 for(int count_index=0; count_index < module.module_nums; count_index++){
+                    nlohmann::json data;
+                    std::string pin_connect, pin_prefix;
                     auto &pin = module.pins;
-                    std::string pin_connect;
-                    std::string pin_prefix;
-                    if(!(module_nums == 1 && module.module_nums == 1)){
-                        pin_prefix = module.module_name + "_" + std::to_string(count_index) + "_";
-                    }
-                    data["module_subfix"] = "_" + std::to_string(count_index);
+                    if(module_diffs != 1) pin_prefix = module.module_name + "_";
+                    if(module.module_nums != 1) {
+                        pin_prefix += std::to_string(count_index) + "_";
+                        data["module_subfix"] = "_" + std::to_string(count_index);
+                    } else data["module_subfix"] = "";
                     data["module_name"] = module.module_name;
+                    PK_DEBUG("module_subfix: %s",  data["module_subfix"].dump().c_str());
                     for (int i = 0; i < pin.size(); i++) {
                         picker::sv_signal_define temp_pin = pin[i];
                         temp_pin.logic_pin = pin_prefix + pin[i].logic_pin;
@@ -266,7 +268,7 @@ namespace picker { namespace codegen {
                         node->pin_type    = temp->pin_type;
                     }
                     delete temp;
-                    printf("merge %s\n", node->part_name.c_str());
+                    PK_DEBUG("merge %s\n", node->part_name.c_str());
                 }
                 for (auto &child : node->children) { merge_trie(child.second); }
             };

@@ -34,15 +34,6 @@ namespace picker { namespace parser {
 
         PK_MESSAGE("want module: %s", src_module_name.c_str());
 
-        // 不指明解析的module名，则默认解析文件中最后一个module
-        if (src_module_name.length() == 0) {
-            std::vector<std::string> module_list;
-            for (int i = 0; i < module_token.size(); i++)
-                if (module_token[i]["tag"] == "module")
-                    module_list.push_back(module_token[i + 1]["text"]);
-            src_module_name = module_list.back();
-        }
-
         // 解析module_token，将解析好的pin_name\pin_length\pin_type都push进pin数组并返回。
         std::map<std::string, std::string> parameter_var;
         std::vector<picker::sv_signal_define> pin;
@@ -197,7 +188,7 @@ namespace picker { namespace parser {
                 if(picker::contians(module_list, m)){
                     PK_MESSAGE("find module: %s in file: %s", m.c_str(), f.c_str())
                     ret[m] = module_token;
-                    break;
+                    // todo: can be optimized, only collect matched module tokens instead of all tokens in this file
                 }
             }
         }
@@ -220,11 +211,15 @@ namespace picker { namespace parser {
                      " can only parse one .v/.sv file (%d find!)", (int)opts.file.size())
             m_json = match_module_with_file(opts.file, opts.source_module_name_list);
             m_names = picker::key_as_vector(m_json);
+            for(auto &v: m_names){
+                m_nums[v] = 1;
+            }
         }else{
             m_nums = parse_mname_and_numbers(opts.source_module_name_list);
             m_names = picker::key_as_vector(m_nums);
             m_json = match_module_with_file(opts.file, m_names);
         }
+
         auto target_name = picker::join_str_vec(m_names, "_");
         for(auto &v: m_json){
             picker::sv_module_define sv_module;
@@ -234,9 +229,20 @@ namespace picker { namespace parser {
             sv_module_result.push_back(sv_module);
         }
 
+
         opts.target_module_name = opts.target_module_name.size() == 0 ?
                                       target_name:
                                       opts.target_module_name;
+        for (auto &m : sv_module_result) {
+            PK_DEBUG("Module: %s, nums: %d", m.module_name.c_str(), m.module_nums);
+            for (auto &p : m.pins) {
+                PK_DEBUG("Pin: %s, type: %s, high: %d, low: %d",
+                           p.logic_pin.c_str(), p.logic_pin_type.c_str(),
+                           p.logic_pin_hb, p.logic_pin_lb);
+            }
+        }
+        PK_DEBUG("Target Module: %s", opts.target_module_name.c_str());
+
         return 0;
     }
 }} // namespace picker::parser
