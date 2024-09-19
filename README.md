@@ -117,46 +117,49 @@ The `export` subcommand is used to convert RTL designs into "libraries" correspo
 > $picker export --help
 
 ```bash
-Export RTL Projects Sources as Software libraries such as C++/Python Usage: picker
-export [OPTIONS] file
+Export RTL Projects Sources as Software libraries such as C++/Python
+Usage: picker export [OPTIONS] file...
 
 Positionals:
-  file TEXT REQUIRED          DUT .v/.sv source file, contain the top module
+  file TEXT ... REQUIRED      DUT .v/.sv source file, contain the top module
 
 Options:
   -h,--help                   Print this help message and exit
-  --fs,--filelist TEXT        DUT .v/.sv source files, contain the top module, 
-                              split by comma. Or use '*.txt' file  with one RTL 
-                              file path per line to specify the file list
+  --fs,--filelist TEXT ...    DUT .v/.sv source files, contain the top module, split by comma.
+                              Or use '*.txt' file  with one RTL file path per line to specify the file list
   --sim TEXT [verilator]      vcs or verilator as simulator, default is verilator
-  --lang,--language TEXT:{python,cpp,java,scala,golang} [python] 
-                              Build example project, default is python, choose 
-                              cpp, java or python
-  --sdir,--source_dir TEXT [/usr/local/share/picker/template] 
+  --lang,--language TEXT:{python,cpp,java,scala,golang} [python]
+                              Build example project, default is python, choose cpp, java or python
+  --sdir,--source_dir TEXT [/home/yaozhicheng/workspace/picker/template]
                               Template Files Dir, default is ${picker_install_path}/../picker/template
-  --tdir,--target_dir TEXT [./picker_out] 
+  --tdir,--target_dir TEXT [./picker_out]
                               Codegen render files to target dir, default is ./picker_out
-  --sname,--source_module_name TEXT
-                              Pick the module in DUT .v file, default is the last 
-                              module in the --fs marked file
+  --sname,--source_module_name TEXT ...
+                              Pick the module in DUT .v file, default is the last module in the -f marked file
   --tname,--target_module_name TEXT
-                              Set the module name and file name of target DUT, 
-                              default is the same as source. For example, --tname top, 
-                              will generate UTtop.cpp and UTtop.hpp with UTtop class
-  --internal TEXT             Exported internal signal config file, default is empty, 
-                              means no internal pin
-  -F,--frequency TEXT [100MHz] 
-                              Set the frequency of the **only VCS** DUT, default 
-                              is 100MHz, use Hz, KHz, MHz, GHz as unit
+                              Set the module name and file name of target DUT, default is the same as source.
+                              For example, -T top, will generate UTtop.cpp and UTtop.hpp with UTtop class
+  --internal TEXT             Exported internal signal config file, default is empty, means no internal pin
+  -F,--frequency TEXT [100MHz]
+                              Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit
   -w,--wave_file_name TEXT    Wave file name, emtpy mean don't dump wave
   -c,--coverage               Enable coverage, default is not selected as OFF
-  -V,--vflag TEXT             User defined simulator compile args, passthrough. 
+  --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
+                              Copy xspcomm lib to generated DUT dir, default is true
+  -V,--vflag TEXT             User defined simulator compile args, passthrough.
                               Eg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'
-  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough. 
-                              Eg:'-O3 -std=c++17 -I./include'
+  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'
   --verbose                   Verbose mode
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
+```
+
+Static Multi-Module Support:
+
+When generating the wrapper for `dut_top.sv/v`, picker allows specifying multiple module names and their corresponding quantities using the `--sname` parameter. For example, if there are modules A and B in the design files `a.v` and `b.v` respectively, and you need 2 instances of A and 3 instances of B in the generated DUT, and the combined module name is C (if not specified, the default name will be A_B). This can be achieved using the following command:
+
+```bash
+picker path/a.v,path/b.v --sname A,2,B,3 --tname C
 ```
 
 The `pack` subcommand is used to convert UVM `sequence_item` into other languages and then communicate through TLM (currently supports Python, other languages are under development).
