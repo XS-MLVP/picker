@@ -58,7 +58,7 @@ namespace picker { namespace codegen {
                         data["module_subfix"] = "_" + std::to_string(count_index);
                     } else data["module_subfix"] = "";
                     data["module_name"] = module.module_name;
-                    PK_DEBUG("module_subfix: %s",  data["module_subfix"].dump().c_str());
+                    PK_DEBUG("module_subfix: %s, pin_prefix: %s",  data["module_subfix"].dump().c_str(), pin_prefix.c_str());
                     for (int i = 0; i < pin.size(); i++) {
                         picker::sv_signal_define temp_pin = pin[i];
                         temp_pin.logic_pin = pin_prefix + pin[i].logic_pin;

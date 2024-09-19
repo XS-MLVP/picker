@@ -84,21 +84,19 @@ namespace picker { namespace parser {
                                 parameter_value += param_res(token_res(i));
                             }
                             parameter_var[parameter_name] = parameter_value;
-                            printf("parameter_name: %s, parameter_value: %s\n",
+                            PK_DEBUG("parameter_name: %s, parameter_value: %s",
                                    parameter_name.c_str(),
                                    parameter_value.c_str());
                         }
                         continue;
                     }
 
-                    // printf("%s\n", module_token[i]["tag"].dump().c_str());
-
                     // lambda function to parse and calc pin length wich exprtk
                     exprtk::parser<double> parser;
                     exprtk::expression<double> expression;
                     auto calc_pin_length = [&](const std::string &exp) {
                         if (parser.compile(exp, expression)) {
-                            printf("pin length expression: %s as %f\n",
+                            PK_DEBUG("pin length expression: %s as %f",
                                    exp.c_str(), expression.value());
                             return expression.value();
                         } else {
