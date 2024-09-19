@@ -23,6 +23,7 @@ compile: copy_xspcomm
 	cmake --build build --config Debug --parallel `nproc`
 	@cp build/_${TARGET}.so .
 	@cp build/lib${TARGET}.py .
+	@touch ../__init__.py
 
 clean:
 	@rm -rf *.fst *.vcd *.fsdb *.log *.key build
