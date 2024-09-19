@@ -52,7 +52,7 @@ namespace picker { namespace codegen {
                     nlohmann::json data;
                     std::string pin_connect, pin_prefix;
                     auto &pin = module.pins;
-                    if(module_diffs != 1) pin_prefix = module.module_name + "_";
+                    if(module_diffs != 1 || module.module_nums != 1) pin_prefix = module.module_name + "_";
                     if(module.module_nums != 1) {
                         pin_prefix += std::to_string(count_index) + "_";
                         data["module_subfix"] = "_" + std::to_string(count_index);
@@ -255,11 +255,15 @@ namespace picker { namespace codegen {
                 while (node->children.size() == 1 && !is_number(node->part_name)
                        && !is_number(node->children.begin()->first)) {
                     auto child = node->children.begin();
-                    node->part_name += "_" + child->second->part_name;
+                    if (node->part_name.size() > 0) {
+                        node->part_name += "_";
+                    }
+                    node->part_name += child->second->part_name;
                     TrieNode *temp = child->second;
                     node->children.clear();
                     for (auto &schild : temp->children) {
                         node->children[schild.first] = schild.second;
+                        PK_DEBUG("transfer son %s\n", schild.first.c_str());
                     }
                     if (temp->isEndOfWord) {
                         node->isEndOfWord = true;
@@ -273,6 +277,11 @@ namespace picker { namespace codegen {
                 for (auto &child : node->children) { merge_trie(child.second); }
             };
             merge_trie(root);
+            if( root->part_name != "" ) {
+                TrieNode *new_root = new TrieNode();
+                new_root->children[root->part_name] = root;
+                root = new_root;
+            } // if root is not empty, json generator may lost the root part
 
             // convert the TRIE to json
             std::function<void(TrieNode *, nlohmann::json &)> trie_to_json =
@@ -285,12 +294,16 @@ namespace picker { namespace codegen {
                     }
                     for (auto &child : node->children) {
                         if (child.first != child.second->part_name) {
+                            PK_DEBUG("JSON child rename %s to %s\n",
+                                     child.first.c_str(),
+                                     child.second->part_name.c_str());
                             node->children.erase(child.first);
                             node->children[child.second->part_name] =
                                 child.second;
                         }
                     }
                     for (auto &child : node->children) {
+                        PK_DEBUG("JSON child %s\n", child.first.c_str());
                         nlohmann::json child_json;
                         trie_to_json(child.second, child_json);
                         json[child.first] = child_json;
