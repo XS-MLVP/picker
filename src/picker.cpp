@@ -214,6 +214,7 @@ int main(int argc, char **argv)
     std::string hash_name   = to_base62(mrand48() << 32 | mrand48());
     picker::lib_random_hash = new char[hash_name.size() + 1];
     std::copy(hash_name.begin(), hash_name.end(), picker::lib_random_hash);
+    picker::lib_random_hash[hash_name.size()] = '\0';
 
     if (main_opts.show_default_template_path) {
         auto temp_path = picker::get_template_path();
