@@ -200,6 +200,12 @@ picker在生成dut_top.sv/v的封装时，可以通过`--sname`参数指定多�
 picker path/a.v,path/b.v --sname A,2,B,3 --tname C
 ```
 
+环境变量：
+
+- `DUMPVARS_OPTION`: 设置`$dumpvars`的option参数。例如`DUMPVARS_OPTION="+mda" picker ....` 开启vcs中数组波形的支持。
+- `SIMULATOR_FLAGS`: 传递给后端仿真器的参数。具体可参考所使用的后端仿真器文档。
+
+
 ##### pack:
 * `file`: 必需。待解析的UVM transaction文件
 * `--example, -e`: 可选。根据UVM的transaction生成示例项目。
