@@ -135,9 +135,9 @@ namespace picker { namespace codegen {
         {
             inja::Environment env;
             std::string sv_dump_wave, trace, dum_var_options;
-            dum_var_options = picker::get_env("PICKER_DUM_VAR_OPTIONS", "");
+            dum_var_options = picker::get_env("DUMPVARS_OPTION", "");
             if(!dum_var_options.empty()){
-                PK_DEBUG("Find PICKER_DUM_VAR_OPTIONS=%s", dum_var_options.c_str());
+                PK_DEBUG("Find DUMPVARS_OPTION=%s", dum_var_options.c_str());
                 dum_var_options = ", \""+dum_var_options + "\"";
             }
             data["__WAVE_FILE_NAME__"] = wave_file_name;
