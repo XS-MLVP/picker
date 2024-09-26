@@ -507,6 +507,15 @@ inline std::string extract_name(const std::string& input, char delimiter,int isF
     return input; // 如果没有找到分隔符，则返回整个字符串
 }
 
+inline std::string get_env(std::string key, std::string default_value = ""){
+    const char* value = std::getenv(key.c_str());
+    if (value) {
+        return std::string(value);
+    } else {
+        return default_value;
+    }
+}
+
 inline std::string getCurrentTime() {
     auto now = std::chrono::system_clock::now();
     std::time_t now_c = std::chrono::system_clock::to_time_t(now);
