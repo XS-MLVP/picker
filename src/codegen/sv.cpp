@@ -134,8 +134,14 @@ namespace picker { namespace codegen {
                                 nlohmann::json &data)
         {
             inja::Environment env;
-            std::string sv_dump_wave, trace;
+            std::string sv_dump_wave, trace, dum_var_options;
+            dum_var_options = picker::get_env("PICKER_DUM_VAR_OPTIONS", "");
+            if(!dum_var_options.empty()){
+                PK_DEBUG("Find PICKER_DUM_VAR_OPTIONS=%s", dum_var_options.c_str());
+                dum_var_options = ", \""+dum_var_options + "\"";
+            }
             data["__WAVE_FILE_NAME__"] = wave_file_name;
+            data["__DUMP_VAR_OPTIONS__"] = dum_var_options;
             if (simulator == "verilator") {
                 if (wave_file_name.length() > 0) {
                     if (wave_file_name.ends_with(".vcd")
@@ -143,7 +149,7 @@ namespace picker { namespace codegen {
                         sv_dump_wave = env.render(
                             "initial begin\n"
                             "    $dumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
-                            "    $dumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
+                            "    $dumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
                             " end ",
                             data);
                     else
@@ -157,7 +163,7 @@ namespace picker { namespace codegen {
                     sv_dump_wave = env.render(
                         "initial begin\n"
                         "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
-                        "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top);\n"
+                        "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
                         " end ",
                         data);
                 }
