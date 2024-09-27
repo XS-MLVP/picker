@@ -42,7 +42,7 @@ class example_monitor extends {{className}}_xmonitor;
             `uvm_fatal("example_env","vritual_interface must be set for vif!!!")
     endfunction
 
-    task transaction_sub({{className}} tr);
+    task sequence_send({{className}} tr);
         @(posedge vif.clk iff(vif.valid));
         newtr = new("newtr");
         tr.randomize();
@@ -65,7 +65,7 @@ class example_driver extends {{className}}_xdriver;
         ap = new("ap",this);      
     endfunction
 
-    function transaction_pub({{className}} tr);
+    function sequence_receive({{className}} tr);
         ap.write(tr);
         `uvm_info("example_driver", $sformatf("uvm pub message: \n%s",tr.sprint()), UVM_LOW)
     endfunction
@@ -154,6 +154,7 @@ class example_env extends uvm_env;
     endfunction
 
     function void connect_phase (uvm_phase phase);
+        // if your driver/monitor contain a port you need to cast xagent.{{className}}_xmon to your monitor
         $cast(mon,xagent.{{className}}_xmon);
         scb.subscribe_port.connect(sub_fifo.blocking_get_export);
         mon.ap.connect(sub_fifo.analysis_export);

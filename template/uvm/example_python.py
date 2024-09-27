@@ -6,40 +6,23 @@
 #              pub the object to UVM
 # Version    : {{version}}
 
-import tlm_pbsb as u
 import sys
 sys.path.append('../')
 from {{className}}_xagent import *
 
-def subscribe_message(message,publish):
-    transaction_list= {{className}}_list(message).transaction_list
-    # convert msg to pthon class
-    for transaction in transaction_list:
-        print("python sub tr", vars(transaction))
-        publish_message(transaction,publish)
-
-
-def publish_message({{className}},publish):
-    uvm_message = {{className}}.to_msg()
-    publish.SendMsg(uvm_message)
-    
-
-def test_msg():
-    # build publish and subscribe channel
-    publish = u.TLMPub("{{className}}")
-    subscribe = u.TLMSub("{{className}}", lambda a: subscribe_message(a.as_bytes(),publish))
-
-    # connect channel
-    publish.Connect()
-    subscribe.Connect()
-
-    # initial vcs
-    u.tlm_vcs_init("_tlm_pbsb.so", "-no_save")
-
-    for i in range(500):
-        # step uvm + systemc
-        u.step(1)
-
 
 if __name__ == "__main__":
-    test_msg()
+    
+    def receive_sequence(message):
+        """
+        handle received sequence from UVM
+        this function only send it to UVM, you can customize this function according to your needs
+        """
+
+        sequence = {{className}}(message)
+        print("python receive sequence",{%for data in variables -%} sequence.{{data.name}}.value{%if not loop.is_last -%}, {%endif -%}{%endfor -%})
+        sequence.send(env)
+
+    agent = Agent("{{className}}","{{className}}",receive_sequence)
+    
+    agent.run(500)
