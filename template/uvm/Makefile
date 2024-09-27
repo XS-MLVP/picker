@@ -40,7 +40,7 @@ VCS    = vcs -q -sysc=deltasync -lca -full64 \
         -CFLAGS -DVCS ${UVM_HOME}/src/dpi/uvm_dpi.cc
 
 all: 
-	make clean comp run 
+	make clean comp copy_xspcomm run 
 
 clean:
 	rm -rf simv* work csrc ucli.key vc_hdrs.h vcs.log AN* *.log *.log.cmp *.vpd DVE* .vlogan* _tlm_pbsb* tlm_pbsb.py  tlmps.cpp  tlmps.h __pycache__
