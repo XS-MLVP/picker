@@ -53,6 +53,8 @@ comp:
 	$(VCS_ELAB) -e VcsMain -full64 sv_main ${VCS_HOME}/linux64/lib/vcs_tls.o -slave
 	mv simv _tlm_pbsb.so
 	mv simv.daidir _tlm_pbsb.so.daidir
-
+copy_xspcomm:
+	@echo "Try copy python module: xspcomm"
+	@cp -r {{__XSPCOMM_PYTHON__}} xspcomm
 run:	
 	LD_PRELOAD=./_tlm_pbsb.so python3 example_python.py

@@ -22,8 +22,8 @@ class {{className}}_xmonitor extends uvm_monitor;
 
     function new(string name, uvm_component parent=null);
         super.new(name,parent);
+        uvm_config_db#(bit)::get(this,"","{{className}}_exist_xmonitor",exist_xmonitor);
         if(exist_xmonitor) begin
-            uvm_config_db#(bit)::get(this,"","{{className}}_exist_xmonitor",exist_xmonitor);
             out = new("out",this);
         end
         
