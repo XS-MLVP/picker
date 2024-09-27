@@ -1,4 +1,4 @@
-
+PYTHON_INCLUDE:="/usr/include/python3.6m"
 ifndef UVMC_HOME
 $(error UVMC_HOME is not set)
 endif
@@ -14,12 +14,12 @@ endif
 ifndef PYTHON_INCLUDE
 $(error PYTHON_INCLUDE is not set)
 endif
-PYTHON_INCLUDE:="/usr/include/python3.6m"
+
 
 VERBOSE=+UVM_VERBOSITY=UVM_MEDIUM
 
 SYSCAN  = syscan -cpp g++ -cc gcc -full64 -cflags -g -cflags -DVCS -cflags -I. \
-                -tlm2 -cflags -I${VCS_HOME}/include/systemc233/tlm_utils \
+                -tlm2 -cflags -I${VCS_HOME}/include/systemc232/tlm_utils \
                 -cflags -I${UVMC_HOME}/src/connect/sc ${UVMC_HOME}/src/connect/sc/uvmc.cpp
 
 VLOGAN  = vlogan -q \

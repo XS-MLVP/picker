@@ -22,10 +22,8 @@ class {{className}}_xmonitor extends uvm_monitor;
 
     function new(string name, uvm_component parent=null);
         super.new(name,parent);
-        if(!uvm_config_db#(bit)::get(this,"","{{className}}_exist_xmonitor",exist_xmonitor)) begin
-            `uvm_fatal("CFGERR", "Could not get monitor or driver type")
-        end
         if(exist_xmonitor) begin
+            uvm_config_db#(bit)::get(this,"","{{className}}_exist_xmonitor",exist_xmonitor);
             out = new("out",this);
         end
         
@@ -38,13 +36,13 @@ class {{className}}_xmonitor extends uvm_monitor;
     virtual task run_phase(uvm_phase phase);
         while(1) begin
             tr = new("tr");
-            transaction_sub(tr);
+            sequence_send(tr);
             send_tr(tr);    
         end
     endtask
 
 
-    virtual task transaction_sub({{className}} tr);
+    virtual task sequence_send({{className}} tr);
 
     endtask
 
@@ -193,10 +191,10 @@ class {{className}}_xdriver extends uvm_driver;
         {%endif -%}
         {%endfor -%}
         delay.reset();
-        transaction_pub(tr);
+        sequence_receive(tr);
     endtask
 
-    virtual function transaction_pub({{className}} tr);
+    virtual function sequence_receive({{className}} tr);
 
     endfunction
 endclass
