@@ -2,7 +2,7 @@
 class adder_trans extends uvm_sequence_item;
   rand bit [7:0] a;
   rand bit [7:0] b;
-  rand bit [7:0] sum;
+
   
   `uvm_object_utils(adder_trans)
   

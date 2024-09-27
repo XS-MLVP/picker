@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
         sequence = {{className}}(message)
         print("python receive sequence",{%for data in variables -%} sequence.{{data.name}}.value{%if not loop.is_last -%}, {%endif -%}{%endfor -%})
-        sequence.send(env)
+        sequence.send(agent)
 
     agent = Agent("{{className}}","{{className}}",receive_sequence)
     

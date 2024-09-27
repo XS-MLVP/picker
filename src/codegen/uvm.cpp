@@ -34,7 +34,12 @@ namespace picker { namespace codegen {
             if (opts.example){
                 std::filesystem::create_directory(filename+"/example");
             }
-        }    
+        }
+        std::string erro_message;
+        auto python_location =
+            picker::get_xcomm_lib("python/xspcomm", erro_message);
+        if (python_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
+        data["__XSPCOMM_PYTHON__"] = python_location;
         inja::json data;
         data["variables"] = inja::json::array();
         data["useType"] = 1;
