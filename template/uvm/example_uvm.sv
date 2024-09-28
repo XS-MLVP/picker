@@ -47,7 +47,7 @@ class example_monitor extends {{className}}_xmonitor;
         newtr = new("newtr");
         tr.randomize();
         ap.write(tr);
-        `uvm_info("example_monitor", $sformatf("uvm sub message: \n%s",tr.sprint()), UVM_LOW)  
+        `uvm_info("example_monitor", $sformatf("uvm send sequence: \n%s",tr.sprint()), UVM_LOW)  
         endtask
 endclass
 
@@ -139,7 +139,7 @@ class example_env extends uvm_env;
         xagt_cfg = new("xagt_cfg");
         xagt_cfg.mon_type = example_monitor::get_type();
         xagt_cfg.drv_type = example_driver::get_type();
-        uvm_config_db#({{className}}_xagent_config)::set(null, "", "{{className}}_xagt_cfg", xagt_cfg);
+        uvm_config_db#({{className}}_xagent_config)::set(null, "", "{{className}}_xagent_config", xagt_cfg);
     endfunction
 
     // initial env component and component
