@@ -227,7 +227,7 @@ class {{className}}_xagent extends uvm_agent;
 
     function new(string name,uvm_component parent = null);
         super.new(name,parent);
-        if (!uvm_config_db#({{className}}_xagent_config)::get(this, "", "{{className}}_xagt_cfg", cfg)) begin
+        if (!uvm_config_db#({{className}}_xagent_config)::get(this, "", "{{className}}_xagent_config", cfg)) begin
             `uvm_fatal("CFGERR", "Could not get xagent_config")
         end 
         else if(cfg.mon_type == null && cfg.drv_type ==null) begin
@@ -250,14 +250,16 @@ class {{className}}_xagent extends uvm_agent;
 
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
-
+        
         if(cfg.mon_type != null) begin
-          mon_inst = cfg.mon_type.create_component("{{className}}_sub",this);
-          $cast({{className}}_xmon, mon_inst);
+            mon_channel = $sformatf("%s%s", cfg.mon_channel_name,"_sub");
+            mon_inst = cfg.mon_type.create_component(mon_channel,this);
+            $cast({{className}}_xmon, mon_inst);
         end
         if(cfg.drv_type != null) begin
-          drv_inst = cfg.drv_type.create_component("{{className}}_pub",this);
-          $cast({{className}}_xdrv,drv_inst);
+            drv_channel = $sformatf("%s%s", cfg.drv_channel_name,".pub");
+            drv_inst = cfg.drv_type.create_component(drv_channel,this);
+            $cast({{className}}_xdrv,drv_inst);
         end
         
     endfunction

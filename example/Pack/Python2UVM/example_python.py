@@ -1,15 +1,15 @@
 import sys
 sys.path.append('../')
-from xsp_seq_xagent import *
+from adder_trans_xagent import *
 
 if __name__ == "__main__":
 
-    env = Env("adder_trans")
+    agent = Agent("adder_trans")
     sequence = adder_trans()
 
     for i in range(10):
         sequence.a.value = i
         sequence.b.value = i + 1
-        sequence.sum.value = sequence.a.value + sequence.b.value
+        sequence.send(agent)
     
-    env.run(30)
+    agent.run(200)

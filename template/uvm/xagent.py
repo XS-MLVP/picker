@@ -37,11 +37,12 @@ class {{className}}:
     this class is used to convert message received from UVM to python class and send sequence to UVM
     """
 
-    def __init__(self, msg):
+    def __init__(self, msg = None):
         {%for data in variables -%}
         self.{{data.name}} = xsp.XData({{data.bit_count}})
         {%endfor -%}
-        self.from_msg(msg)
+        if msg != None:
+            self.from_msg(msg)
 
     
     def from_msg(self,msg):
