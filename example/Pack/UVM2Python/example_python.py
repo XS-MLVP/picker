@@ -1,6 +1,6 @@
 import sys
 sys.path.append('../')
-from adder_trans_xagent import *
+from adder_trans.adder_trans_xagent import *
 
 if __name__ == "__main__":
 
@@ -10,4 +10,4 @@ if __name__ == "__main__":
         
     agent = Agent("","adder_trans",receive_sequence)
     
-    agent.run(200)
+    agent.run(100)
