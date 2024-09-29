@@ -4,6 +4,8 @@
 ## 安装picker
 首先，我们来介绍工具的安装，picker工具的安装可以参考open-verify.cc
 
+在大机房上，提供了安装picker所需要的依赖环境，路径在/nfs/home/songfangyuan/picker_workspace
+`source set_picker_env.sh install_picker`
 
 ## picker的使用
 通过`picker pack xxx_sequence.sv -e`即可生成对应agent和对应的uvm和python双向通信示例代码

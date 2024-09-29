@@ -42,6 +42,10 @@ namespace picker { namespace codegen {
             picker::get_xcomm_lib("python/xspcomm", erro_message);
         if (python_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
         data["__XSPCOMM_PYTHON__"] = python_location;
+        auto xspcomm_include_location =
+            picker::get_xcomm_lib("include", erro_message);
+        if (python_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
+        data["__XSPCOMM_INCLUDE__"] = xspcomm_include_location;
         data["variables"] = inja::json::array();
         data["useType"] = 1;
         data["filepath"] = transaction.filepath;

@@ -1,4 +1,5 @@
 PYTHON_INCLUDE:="/usr/include/python3.6m"
+XSP_COMM_INCLUDE:="{{__XSPCOMM_INCLUDE__}}"
 ifndef UVMC_HOME
 $(error UVMC_HOME is not set)
 endif
