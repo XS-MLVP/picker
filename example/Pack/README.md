@@ -1,5 +1,5 @@
 # 快速开始
-使用`picker pack`功能可以将UVM环境进行打包成动态库，并通过TLM2.0进行UVM和其他高级语言的数据通信
+使用`picker pack`功能可以将UVM环境进行打包成动态库，并通过TLM2.0进行和其他高级语言的数据通信
 picker可以解析UVM中的sequence，生成一个UVM的agent组件和Python的agent类。agent中需要用户实现sequence的构造和处理接收到的sequence。具体的使用方法我们后面再讲。首先，我们来介绍picker工具的安装
 
 ## 安装picker
@@ -10,8 +10,12 @@ picker可以解析UVM中的sequence，生成一个UVM的agent组件和Python的a
 通过`source set_picker_env.sh`命令，可以配置安装picker环境变量，并将picker源码复制到当前路径下，之后执行
 ```
 cd picker
-make
-make install
+busb -Is make
+busb -Is make install
+```
+大机房上没有root权限，需要安装到用户自己的.local下，需要在修改/picker/Makefile中第17行, 在原有的基础上加上如下命令
+```
+-DCMAKE_INSTALL_PREFIX=/nfs/home/songfangyuan/.local/
 ```
 即可完成安装
 
