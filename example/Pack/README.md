@@ -13,9 +13,9 @@ cd picker
 busb -Is make
 busb -Is make install
 ```
-大机房上没有root权限，需要安装到用户自己的.local下，需要在修改/picker/Makefile中第17行, 在原有的基础上加上如下命令
+大机房上没有root权限，需要安装到用户自己的.local下，需要修改/picker/Makefile中第17行, 在原有的基础上添加如下命令
 ```
--DCMAKE_INSTALL_PREFIX=/nfs/home/songfangyuan/.local/
+-DCMAKE_INSTALL_PREFIX=/nfs/home/<USER_HOME>/.local/
 ```
 即可完成安装
 
