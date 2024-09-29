@@ -1,8 +1,10 @@
 # 快速开始
-在安装好picker工具以后，可以通过picker的pack命令，根据指定的sequence生成一个UVM的agent组件和Python的agent类，分别在UVM和Python中import对应的agent并完成相应的配置，来实现UVM和Python的通信
+使用`picker pack`功能可以将UVM环境进行打包成动态库，并通过TLM2.0进行UVM和其他高级语言的数据通信
+picker可以解析UVM中的sequence，生成一个UVM的agent组件和Python的agent类。agent中需要用户实现sequence的构造和处理接收到的sequence。具体的使用方法我们后面再讲。首先，我们来介绍picker工具的安装
 
 ## 安装picker
-首先，我们来介绍工具的安装，手动安装picker以及相关依赖，可以参考open-verify.cc
+
+手动安装picker以及相关依赖，可以参考网站 open-verify.cc
 
 在北京开源芯片研究院大机房上使用时，我们提供了安装picker所需要的依赖环境，路径在/nfs/home/songfangyuan/picker_workspace
 通过`source set_picker_env.sh`命令，可以配置安装picker环境变量，并将picker源码复制到当前路径下，之后执行
@@ -13,7 +15,7 @@ make install
 ```
 即可完成安装
 
-由于安装picker需要gcc11以上的版本，使用picker将UVM环境打包，需要使用特定的gcc版本，如gcc7.3，以及uvmc
+由于安装picker需要gcc11以上的版本，使用picker将UVM环境打包，需要使用特定的gcc版本，如gcc7.3, gcc6.2, gcc5.2等，以及uvmc
 使用`source set_picker_env.sh pack`可以将上述内容复制到当前路径下，并配置到环境变量中
 
 ## 测试Examples
@@ -27,7 +29,7 @@ bash example/Pack/release-pack.sh --receive
 bash example/Pack/release-pack.sh --both
 ```
 
-## picker的使用
+## picker Pack 介绍
 通过`picker pack xxx_sequence.sv -e`即可生成对应agent和对应的uvm和python双向通信示例代码
 
 文件结构如下：
