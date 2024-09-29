@@ -2,13 +2,34 @@
 在安装好picker工具以后，可以通过picker的pack命令，根据指定的sequence生成一个UVM的agent组件和Python的agent类，分别在UVM和Python中import对应的agent并完成相应的配置，来实现UVM和Python的通信
 
 ## 安装picker
-首先，我们来介绍工具的安装，picker工具的安装可以参考open-verify.cc
+首先，我们来介绍工具的安装，手动安装picker以及相关依赖，可以参考open-verify.cc
 
-在大机房上，提供了安装picker所需要的依赖环境，路径在/nfs/home/songfangyuan/picker_workspace
-`source set_picker_env.sh install_picker`
+在北京开源芯片研究院大机房上使用时，我们提供了安装picker所需要的依赖环境，路径在/nfs/home/songfangyuan/picker_workspace
+通过`source set_picker_env.sh`命令，可以配置安装picker环境变量，并将picker源码复制到当前路径下，之后执行
+```
+cd picker
+make
+make install
+```
+即可完成安装
+
+由于安装picker需要gcc11以上的版本，使用picker将UVM环境打包，需要使用特定的gcc版本，如gcc7.3，以及uvmc
+使用`source set_picker_env.sh pack`可以将上述内容复制到当前路径下，并配置到环境变量中
+
+## 测试Examples
+
+```
+# send: UVM send some sequence to Python
+bash example/Pack/release-pack.sh --send
+# receive: Python send some sequence to UVM
+bash example/Pack/release-pack.sh --receive
+# both: UVM send some sequence to Python , then Python send them to UVM and compare
+bash example/Pack/release-pack.sh --both
+```
 
 ## picker的使用
 通过`picker pack xxx_sequence.sv -e`即可生成对应agent和对应的uvm和python双向通信示例代码
+
 文件结构如下：
 ```
 sequence_name
@@ -179,14 +200,14 @@ endclass
 if __name__ == "__main__":
 
     agent = Agent("adder_trans")
-    sequence = adder_trans()
-
+    
     for i in range(10):
+        sequence = adder_trans()
         sequence.a.value = i
         sequence.b.value = i + 1
         sequence.send(agent)
+        agent.run(1)
     
-    agent.run(30)
 
 ```
 

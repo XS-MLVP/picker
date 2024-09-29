@@ -1,7 +1,7 @@
 import uvm_pkg::*;
 import uvmc_pkg::*;
-`include "../../adder_trans.sv";
-`include "../adder_trans_xagent.sv";
+`include "../adder_trans.sv";
+`include "../adder_trans/adder_trans_xagent.sv";
 interface example_interface(input clk, input rst_n);
     int data;
     logic valid;
