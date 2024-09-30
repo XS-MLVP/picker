@@ -6,37 +6,51 @@ picker可以解析UVM中的sequence，生成一个UVM的agent组件和Python的a
 
 手动安装picker以及相关依赖，可以参考网站 open-verify.cc
 
-在北京开源芯片研究院大机房上使用时，我们提供了安装picker所需要的依赖环境，路径在/nfs/home/songfangyuan/picker_workspace
-通过`source set_picker_env.sh`命令，可以配置安装picker环境变量，并将picker源码复制到当前路径下，之后执行
-```
-cd picker
-busb -Is make
-busb -Is make install
-```
-大机房上没有root权限，需要安装到用户自己的.local下，需要修改/picker/Makefile中第17行, 在原有的基础上添加如下命令
-```
--DCMAKE_INSTALL_PREFIX=/nfs/home/<USER_HOME>/.local/
-```
-即可完成安装
-
-由于安装picker需要gcc11以上的版本，使用picker将UVM环境打包，需要使用特定的gcc版本，如gcc7.3, gcc6.2, gcc5.2等，以及uvmc
-使用`source set_picker_env.sh pack`可以将上述内容复制到当前路径下，并配置到环境变量中
+在北京开源芯片研究院大机房上使用时，我们提供了picker以及所需要的依赖，通过执行`/nfs/home/songfangyuan/picker_workspace/set_picker_env.sh`脚本，即可将picker添加到环境变量中
+`source set_picker_env.sh pack`
+执行命令并检查是否安装成功
+`bsub -Is picker --help`
+注：picker目前有pack和export两个功能，所需依赖不同若想使用`picker export`,请执行如下命令
+`source set_picker_env.sh export`
 
 ## 测试Examples
-
 ```
 # send: UVM send some sequence to Python
-bash example/Pack/release-pack.sh --send
+bash example/Pack/release-pack.sh send
+
 # receive: Python send some sequence to UVM
-bash example/Pack/release-pack.sh --receive
+bash example/Pack/release-pack.sh receive
+
 # both: UVM send some sequence to Python , then Python send them to UVM and compare
-bash example/Pack/release-pack.sh --both
+bash example/Pack/release-pack.sh both
 ```
+注：picker pack 运行需要 gcc7.3，uvmc等相关依赖，若果运行失败，请检查环境变量中是否配置
 
 ## picker Pack 介绍
-通过`picker pack xxx_sequence.sv -e`即可生成对应agent和对应的uvm和python双向通信示例代码
+在本节中，我们简单介绍一下上面的例子,以双向通信为例
+在/example/Pack路径下，我们提供了一个加法器的sequence，adder_trans.sv,内容如下
+```
+class adder_trans extends uvm_sequence_item;
+  rand bit [7:0] a;
+  rand bit [7:0] b;
+  
+  `uvm_object_utils_begin(adder_trans)
+    `uvm_field_int(a,UVM_ALL_ON)
+    `uvm_field_int(b,UVM_ALL_ON)
+  `uvm_component_utils_end
 
-文件结构如下：
+  function new(string name = "adder_trans");
+    super.new(name);
+  endfunction
+  
+  function void display();
+    $display("Transaction: a=%d, b=%d", a, b);
+  endfunction
+endclass
+```
+通过`picker pack adder_trans.sv -e`即可生成agent和对应双向通信的示例代码
+
+picker生成的文件结构如下：
 ```
 sequence_name
 |-- sequence_name_xagent.sv
@@ -44,19 +58,21 @@ sequence_name
 |-- example
 |   |--example_uvm.sv
 |   |--example_python.py
+|   |--Makefile
 ```
 
 进入`example`目录，执行`make`命令即可运行
 
-- UVM agent 包括xmonitor和xdriver两个基类，xagent_config配置类，通过TLM2.0 将sequence打包成字节流发送到Python，以及接收Python发送来的字节流并解析为sequence，用户可以根据需要实现 UVM => Python, Python => UVM, UVM <=> Python的数据传输
+- UVM agent 包括xmonitor和xdriver两个基类，xagent_config配置类，将sequence打包成字节流并通过 TLM2.0 发送到Python，以及接收Python发送来的字节流并解析为sequence，用户可以根据需要实现 UVM => Python, Python => UVM, UVM <=> Python的数据传输
     - xmonitor负责从interface上读取sequence并发送到Python，其中的sequence_send()用于构建待发送的sequence，需要由用户实现
     - xdriver负责接收Python发送来的sequence，其中的sequence_receive()用于c处理接收到的sequence()，根据需求由用户实现
     - 用户需要继承基类创建自己的driver，monitor组件，并实现上述方法
     - 在实例化agent时，通过xagent_config,将用户定义的driver和monitor组件配置给agent
-- Python agent 包含驱动UVM的Agent(),和sequence的定义
+- Python agent 包含驱动UVM的Agent(),和sequence的定义，发送，接收方法
 
-通过`picker pack xxx_sequence.sv -e` 的`-e`参数可以产生`xxx_sequence`对应的UVM和Python的双向通信的示例，下面两个例子演示UVM和Python之间的单向通信
+通过`picker pack <sequence_name>.sv -e` 的`-e`参数可以产生`<sequence_name>`对应的UVM和Python的双向通信的示例，下面两个例子演示UVM和Python之间的单向通信
 下面我们将通过一个加法器的sequence来演示如何实现通信，该部分代码位于/example/pack目录下
+
 # UVM发送到Python
 进入/example/pack/目录下，执行`picker pack adder_trans.sv `,即可生成对应的文件，将/example/pack/Python2UVM，运行`make`命令
 ## UVM端
