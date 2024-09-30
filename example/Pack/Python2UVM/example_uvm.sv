@@ -1,7 +1,7 @@
 import uvm_pkg::*;
 import uvmc_pkg::*;
 `include "../adder_trans.sv"
-`include "../adder_trans.adder_trans_xagent.sv"
+`include "../adder_trans/adder_trans_xagent.sv"
 
 interface example_interface(input clk, input rst_n);
     int data;
@@ -10,7 +10,6 @@ endinterface
 
 class example_driver extends adder_trans_xdriver;
     `uvm_component_utils(example_driver);
-
 
     function new (string name = "example_driver", uvm_component parent = null);
         super.new(name,parent);
