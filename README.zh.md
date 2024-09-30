@@ -210,8 +210,8 @@ picker path/a.v,path/b.v --sname A,2,B,3 --tname C
 ##### pack:
 * `file`: 必需。待解析的UVM transaction文件
 * `--example, -e`: 可选。根据UVM的transaction生成示例项目。
-* `--force， -c`: 可选。若以存在picker根据当前transaction解析出的文件，通过该命令可强制删除该文件，并重新生成
-* `--rename, -r`: 可选。配置生成文件以及生成的agent的名称，默认为transactio名。
+* `--force， -c`: 可选。若已存在picker根据当前transaction解析出的文件，通过该命令可强制删除该文件，并重新生成
+* `--rename, -r`: 可选。配置生成文件以及生成的agent的名称，默认为transaction名。
 
 ### 测试Examples
 
