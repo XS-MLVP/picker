@@ -3,7 +3,6 @@
 picker可以解析UVM中的sequence，生成一个UVM的agent组件和Python的agent类。agent中需要用户实现sequence的构造和处理接收到的sequence。具体的使用方法我们后面再讲。首先，我们来介绍picker工具的安装
 
 ## 安装picker
-
 手动安装picker以及相关依赖，可以参考网站 open-verify.cc
 
 picker Pack命令依赖
@@ -19,6 +18,7 @@ picker Pack命令依赖
 `source set_picker_env.sh export`
 
 ## 测试Examples
+在picker源码目录下运行
 ```
 # send: UVM send some sequence to Python
 bash example/Pack/release-pack.sh send
