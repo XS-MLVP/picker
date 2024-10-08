@@ -6,6 +6,11 @@ picker可以解析UVM中的sequence，生成一个UVM的agent组件和Python的a
 
 手动安装picker以及相关依赖，可以参考网站 open-verify.cc
 
+picker Pack命令依赖
+1. `gcc7.3`等可编译systemc的版本
+2. `UVMC` 
+3. `VCS`
+
 在北京开源芯片研究院大机房上使用时，我们提供了picker以及所需要的依赖，通过执行`/nfs/home/songfangyuan/picker_workspace/set_picker_env.sh`脚本，即可将picker添加到环境变量中
 `source set_picker_env.sh pack`
 执行命令并检查是否安装成功
@@ -24,7 +29,7 @@ bash example/Pack/release-pack.sh receive
 # both: UVM send some sequence to Python , then Python send them to UVM and compare
 bash example/Pack/release-pack.sh both
 ```
-注：picker pack 运行需要 gcc7.3，uvmc等相关依赖，若果运行失败，请检查环境变量中是否配置
+注：picker pack 运行需要 gcc7.3，uvmc等相关依赖，若果运行失败，请检查环境变量中是否配置。若运行成功，将打印出UVM和Python通信的数据
 
 ## picker Pack 介绍
 在本节中，我们简单介绍一下上面的例子,以双向通信为例
