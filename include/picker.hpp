@@ -8,6 +8,7 @@
 #include <set>
 #include <unistd.h>
 #include <filesystem>
+#include <functional>
 #include "type.hpp"
 #include "json.hpp"
 #include "inja.hpp"
@@ -524,4 +525,16 @@ inline std::string getCurrentTime() {
     oss << std::put_time(&now_tm, "%Y-%m-%d %H:%M:%S");
     return oss.str();
 }
+
+inline std::string get_hostname() {
+    char hostname[1024];
+    gethostname(hostname, sizeof(hostname));
+    return std::string(hostname);
+}
+
+inline std::string get_node_uuid(){
+    std::hash<std::string> hasher;
+    return std::to_string(hasher(get_hostname() + std::to_string(getpid())));
+}
+
 } // namespace picker
