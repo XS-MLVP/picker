@@ -114,6 +114,8 @@ public:
     void SetCoverage(const std::string filename); // Set coverage file path
 };
 
+extern bool enable_xinfo;
+
 #define XFatal(fmt, ...)                                                      \
     do {                                                                       \
         fprintf(stderr, "FATAL: " fmt, ##__VA_ARGS__);                          \
@@ -121,8 +123,8 @@ public:
         exit(-1);                                                              \
     } while (0)
 
-#define XInfo(fmt, ...)                                                        \
-    do {                                                                       \
-        fprintf(stdout, "INFO: " fmt, ##__VA_ARGS__);                           \
-        puts("");                                                              \
+#define XInfo(fmt, ...)                                                         \
+    do {                                                                        \
+        if(enable_xinfo){fprintf(stdout, "INFO: " fmt, ##__VA_ARGS__);           \
+        puts("");}                                                              \
     } while (0)

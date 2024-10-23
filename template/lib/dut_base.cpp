@@ -1,9 +1,13 @@
 #include "dut_base.hpp"
 #include <dlfcn.h>
 #include <unistd.h>
+#include <string>
+#include <cstdlib>
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
+
+bool enable_xinfo = true;
 
 DutBase::DutBase()
 {
@@ -313,6 +317,17 @@ DutUnifiedBase::DutUnifiedBase(std::vector<std::string> args)
 
 void DutUnifiedBase::init(int argc, const char **argv)
 {
+    // check whether the ENABLE_XINFO is set
+    const char *enable_xinfo_env = std::getenv("ENABLE_XINFO");
+    if (enable_xinfo_env) {
+        auto value = std::string(enable_xinfo_env);
+        if (value == "0") {
+            enable_xinfo = false;
+        }
+        if (value == "1") {
+            enable_xinfo = true;
+        }
+    }
     // hold argc and argv for later use
     this->argc = argc;
     this->argv = (char **)malloc(sizeof(char *) * (argc + 128));
