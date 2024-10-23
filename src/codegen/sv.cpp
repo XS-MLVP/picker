@@ -269,7 +269,7 @@ namespace picker { namespace codegen {
                     node->children.clear();
                     for (auto &schild : temp->children) {
                         node->children[schild.first] = schild.second;
-                        PK_DEBUG("transfer son %s\n", schild.first.c_str());
+                        PK_DEBUG("transfer son %s", schild.first.c_str());
                     }
                     if (temp->isEndOfWord) {
                         node->isEndOfWord = true;
@@ -278,7 +278,7 @@ namespace picker { namespace codegen {
                         node->pin_type    = temp->pin_type;
                     }
                     delete temp;
-                    PK_DEBUG("merge %s\n", node->part_name.c_str());
+                    PK_DEBUG("merge %s", node->part_name.c_str());
                 }
                 for (auto &child : node->children) { merge_trie(child.second); }
             };
@@ -300,7 +300,7 @@ namespace picker { namespace codegen {
                     }
                     for (auto &child : node->children) {
                         if (child.first != child.second->part_name) {
-                            PK_DEBUG("JSON child rename %s to %s\n",
+                            PK_DEBUG("JSON child rename %s to %s",
                                      child.first.c_str(),
                                      child.second->part_name.c_str());
                             node->children.erase(child.first);
@@ -309,7 +309,7 @@ namespace picker { namespace codegen {
                         }
                     }
                     for (auto &child : node->children) {
-                        PK_DEBUG("JSON child %s\n", child.first.c_str());
+                        PK_DEBUG("JSON child %s", child.first.c_str());
                         nlohmann::json child_json;
                         trie_to_json(child.second, child_json);
                         json[child.first] = child_json;

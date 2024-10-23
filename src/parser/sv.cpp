@@ -164,14 +164,12 @@ namespace picker { namespace parser {
     ){
         std::map<std::string, nlohmann::json> ret;
         for(auto f: files){
-            std::string rf;
-            std::filesystem::path fpath = f;
-            rf = fpath.filename();
+            std::string fpath = "/tmp/" + std::filesystem::path(f).filename().string() + std::string(lib_random_hash) + picker::get_node_uuid() + ".json";
             std::string syntax_cmd =
             "verible-verilog-syntax --export_json --printtokens " + f
-            + "> /tmp/" + rf + ".json";
+            + "> " + fpath;
             exec(syntax_cmd.c_str());
-            auto mjson = nlohmann::json::parse(read_file("/tmp/" + rf + ".json"));
+            auto mjson = nlohmann::json::parse(read_file(fpath));
             std::vector<std::string> module_list;
             auto module_token = mjson[f]["tokens"];
             for (int i = 0; i < module_token.size(); i++){
@@ -189,6 +187,8 @@ namespace picker { namespace parser {
                     // todo: can be optimized, only collect matched module tokens instead of all tokens in this file
                 }
             }
+            PK_DEBUG("rm -f %s", fpath.c_str());
+            exec(("rm -f " + fpath).c_str());
         }
         for(auto m: m_names){
             vassert(ret.count(m), "Module: " + m + " not find in input file");
