@@ -203,9 +203,6 @@ picker path/a.v,path/b.v --sname A,2,B,3 --tname C
 环境变量：
 
 - `DUMPVARS_OPTION`: 设置`$dumpvars`的option参数。例如`DUMPVARS_OPTION="+mda" picker ....` 开启vcs中数组波形的支持。
-- `SIMULATOR_FLAGS`: 传递给后端仿真器的参数。具体可参考所使用的后端仿真器文档。
-- `CFLAGS`: 设置后端仿真器的`-cflags`参数。
-
 
 ##### pack:
 * `file`: 必需。待解析的UVM transaction文件

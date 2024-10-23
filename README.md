@@ -165,8 +165,6 @@ picker path/a.v,path/b.v --sname A,2,B,3 --tname C
 Environment Variables:
 
 - `DUMPVARS_OPTION`: Sets the option parameter for `$dumpvars`. For example, `DUMPVARS_OPTION="+mda" picker ....` enables array waveform support in VCS.
-- `SIMULATOR_FLAGS`: Parameters passed to the backend simulator. Refer to the documentation of the specific backend simulator for details.
-- `CFLAGS`: Sets the `-cflags` parameter for the backend simulator.
 
 The `pack` subcommand is used to convert UVM `sequence_item` into other languages and then communicate through TLM (currently supports Python, other languages are under development).
 
