@@ -85,6 +85,13 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def RunStep(self,i: int):
         return self.xclock.RunStep(i)
 
+    def __setattr__(self, name, value):
+        assert not isinstance(getattr(self, name, None),
+                              (xsp.XPin, xsp.XData)), \
+        f"XPin and XData of DUT are read-only, do you mean to set the value of the signal? please use `{name}.value = ` instead."
+        return super().__setattr__(name, value)
+
+
 if __name__=="__main__":
     dut=DUT{{__TOP_MODULE_NAME__}}()
     dut.Step(100)
