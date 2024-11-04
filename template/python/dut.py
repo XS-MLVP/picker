@@ -20,6 +20,9 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.xport  = xsp.XPort()
         self.xclock.Add(self.xport)
         self.event = self.xclock.getEvent()
+
+        self.__xpins_to_clear_tag__ = []
+
         # set output files
         if kwargs.get("waveform_filename"):
             self.dut.SetWaveform(kwargs.get("waveform_filename"))
@@ -41,6 +44,11 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def __del__(self):
         self.Finish()
 
+    def __clear_tags__(self):
+        for xpin in self.__xpins_to_clear_tag__:
+            xpin.__original_value__ = None
+        self.__xpins_to_clear_tag__ = []
+
     ################################
     #         User APIs            #
     ################################
@@ -48,6 +56,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.xclock.Add(self.xport[name])
 
     def Step(self, i:int = 1):
+        self.__clear_tags__()
         self.xclock.Step(i)
 
     def StepRis(self, callback, args=(), kwargs={}):
