@@ -1,3 +1,5 @@
+CURRENT_DIR := $(shell pwd)
+
 all: test clean
 	@echo "All complete"
 
@@ -30,4 +32,7 @@ clean:
 
 purge: clean
 	@rm -rf *.txt Makefile *.hpp *.cmake *.i __pycache__
+	@rm ../example.py ../__init__.py || true
+	@mv ./* ../ || true
 	@echo "purge complete"
+	@rm -rf $(CURRENT_DIR)
