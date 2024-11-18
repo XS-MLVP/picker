@@ -69,12 +69,6 @@ int set_options_export_rtl(CLI::App &top_app)
            "Template Files Dir, default is ${picker_install_path}/../picker/template")
         ->default_val(picker::get_template_path());
 
-    // Set DUT RTL Target Dir, Optional, default is ./picker_out
-    app->add_option(
-           "--tdir,--target_dir", export_opts.target_dir,
-           "Codegen render files to target dir, default is ./picker_out")
-        ->default_val("./picker_out");
-
     // Set DUT RTL Source Module Name, Optional, default is the last module in
     app->add_option(
         "--sname,--source_module_name", export_opts.source_module_name_list,
@@ -84,6 +78,12 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_option(
         "--tname,--target_module_name", export_opts.target_module_name,
         "Set the module name and file name of target DUT, default is the same as source. \nFor example, -T top, will generate UTtop.cpp and UTtop.hpp with UTtop class");
+
+    // Set DUT RTL Target Dir, Optional, default is TNAME
+    app->add_option(
+           "--tdir,--target_dir", export_opts.target_dir,
+           "Target directory to store all the results. If it ends with '/' or is empty, \nthe directory name will be the same as the target module name")
+        ->default_val("");
 
     // Set DUT RTL Internal Signal Config File, Optional, default is empty
     app->add_option(

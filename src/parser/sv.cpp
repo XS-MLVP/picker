@@ -231,6 +231,10 @@ namespace picker { namespace parser {
         opts.target_module_name = opts.target_module_name.size() == 0 ?
                                       target_name:
                                       opts.target_module_name;
+        if (opts.target_dir.size() == 0 || opts.target_dir.back() == '/') {
+            opts.target_dir += opts.target_module_name;
+            PK_DEBUG("Set target dir to target module name: %s", opts.target_dir.c_str());
+        }
         for (auto &m : sv_module_result) {
             PK_DEBUG("Module: %s, nums: %d", m.module_name.c_str(), m.module_nums);
             for (auto &p : m.pins) {

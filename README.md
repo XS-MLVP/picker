@@ -132,13 +132,13 @@ Options:
                               Build example project, default is python, choose cpp, java or python
   --sdir,--source_dir TEXT [/home/yaozhicheng/workspace/picker/template]
                               Template Files Dir, default is ${picker_install_path}/../picker/template
-  --tdir,--target_dir TEXT [./picker_out]
-                              Codegen render files to target dir, default is ./picker_out
   --sname,--source_module_name TEXT ...
                               Pick the module in DUT .v file, default is the last module in the -f marked file
   --tname,--target_module_name TEXT
                               Set the module name and file name of target DUT, default is the same as source.
                               For example, -T top, will generate UTtop.cpp and UTtop.hpp with UTtop class
+  --tdir,--target_dir TEXT    Target directory to store all the results. If it ends with '/' or is empty,
+                              the directory name will be the same as the target module name
   --internal TEXT             Exported internal signal config file, default is empty, means no internal pin
   -F,--frequency TEXT [100MHz]
                               Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit

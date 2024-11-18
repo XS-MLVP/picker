@@ -14,7 +14,7 @@ namespace picker { namespace codegen {
     void recursive_render(std::string &src_dir, std::string &dst_dir,
                           nlohmann::json &data, inja::Environment &env)
     {
-        if(!std::filesystem::create_directory(dst_dir)){
+        if(!std::filesystem::create_directories(dst_dir)){
             PK_FATAL("Create: %s fail, please check if it is already exists", dst_dir.c_str());
         };
         // Render all files in src_dir to dst_dir
