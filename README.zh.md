@@ -130,12 +130,13 @@ Options:
   --lang,--language TEXT:{python,cpp,java,scala,golang} [python]
                               Build example project, default is python, choose cpp, java or python
   --sdir,--source_dir TEXT    Template Files Dir, default is ${picker_install_path}/../picker/template
-  --tdir,--target_dir TEXT    Codegen render files to target dir, default is ./picker_out
   --sname,--source_module_name TEXT ...
                               Pick the module in DUT .v file, default is the last module in the -f marked file
   --tname,--target_module_name TEXT
                               Set the module name and file name of target DUT, default is the same as source.
                               For example, -T top, will generate UTtop.cpp and UTtop.hpp with UTtop class
+  --tdir,--target_dir TEXT    Target directory to store all the results. If it ends with '/' or is empty,
+                              the directory name will be the same as the target module name
   --internal TEXT             Exported internal signal config file, default is empty, means no internal pin
   -F,--frequency TEXT [100MHz]
                               Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit
@@ -178,9 +179,9 @@ Options:
 * `--sim TEXT [verilator]`: 可选。使用 vcs 或 verilator 作为模拟器，默认是 verilator
 * `--lang,--language TEXT:{python,cpp,java,scala,golang} [python]`: 可选。构建示例项目，默认是 python，可选择 cpp、java 或 python
 * `--sdir,--source_dir TEXT`: 可选。模板文件目录，默认是 ${picker_install_path}/../picker/template
-* `--tdir,--target_dir TEXT`: 可选。代码生成渲染文件的目标目录，默认是 ./picker_out
 * `--sname,--source_module_name TEXT ...`: 可选。在 DUT .v 文件中选择模块，默认是 -f 标记的文件中的最后一个模块
 * `--tname,--target_module_name TEXT`: 可选。设置目标 DUT 的模块名和文件名，默认与源相同。例如，-T top 将生成 UTtop.cpp 和 UTtop.hpp，并包含 UTtop 类
+* `--tdir,--target_dir TEXT`: 可选。代码生成渲染文件的目标目录，默认为DUT的模块名。如果该参数以'/'结尾，则在该参数指定的目录中创建以DUT模块名的子目录。
 * `--internal TEXT`: 可选。导出的内部信号配置文件，默认为空，表示没有内部引脚
 * `-F,--frequency TEXT [100MHz]`: 可选。设置 **仅 VCS** DUT 的频率，默认是 100MHz，可以使用 Hz、KHz、MHz、GHz 作为单位
 * `-w,--wave_file_name TEXT`: 可选。波形文件名，空表示不导出波形
