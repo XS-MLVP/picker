@@ -1,4 +1,7 @@
-from UT_Adder import *
+try:
+    from UT_Adder import *
+except:
+    from Adder import *
 
 import random
 

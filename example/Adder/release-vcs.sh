@@ -25,7 +25,11 @@ else
     cp example/Adder/example.cpp picker_out_adder/Adder/cpp/
 fi
 
-cd picker_out_adder && make EXAMPLE=ON
+# go to the Adder directory and make all
+cd picker_out_adder/Adder && make EXAMPLE=ON
+
+# go back to the root directory
+cd ../
 
 if [[ $@ != *"cpp"* ]]; then
     echo "'cannot allocate memory in static TLS block'error for VCS is expected, please ignore it"
