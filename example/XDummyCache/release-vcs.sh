@@ -10,11 +10,11 @@ then
     exit
 fi
 
-rm -rf picker_out_XDummyCache/
-./build/bin/picker export example/XDummyCache/XDummyCache.v --autobuild true --sim vcs -w XDummyCache.fsdb --sname XDummyCache --tdir ./picker_out/temp --sdir template $@
+rm -rf ./picker_out
+./build/bin/picker export example/XDummyCache/Cache.sv --autobuild true --sim vcs -w XDumyCache.fsdb --sname XDumyCache --tdir ./picker_out/temp --sdir template $@
 
 if [[ $@ == *"python"* ]]; then
     cd ./picker_out/temp
     echo "'cannot allocate memory in static TLS block'error for VCS is expected, please ignore it"
-    LD_PRELOAD=./libUTXDummyCache.so python3 example.py
+    LD_PRELOAD=./libUTXDumyCache.so python3 example.py
 fi
