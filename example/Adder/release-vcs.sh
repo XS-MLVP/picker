@@ -11,18 +11,18 @@ then
 fi
 
 rm -rf picker_out_adder/
-./build/bin/picker export example/Adder/Adder.v --autobuild false --sim vcs -w Adder.fsdb --sname Adder --tdir picker_out_adder --sdir template $@
+./build/bin/picker export example/Adder/Adder.v --autobuild false --sim vcs -w Adder.fsdb --sname Adder --tdir picker_out_adder/ --sdir template $@
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
-    cp example/Adder/example.py picker_out_adder/python/
+    cp example/Adder/example.py picker_out_adder/Adder/python/
 elif [[ $@ == *"java"* ]]; then
-    cp example/Adder/example.java picker_out_adder/java/
+    cp example/Adder/example.java picker_out_adder/Adder/java/
 elif [[ $@ == *"scala"* ]]; then
-    cp example/Adder/example.scala picker_out_adder/scala/
+    cp example/Adder/example.scala picker_out_adder/Adder/scala/
 elif [[ $@ == *"golang"* ]]; then
-    cp example/Adder/example.go picker_out_adder/golang/
+    cp example/Adder/example.go picker_out_adder/Adder/golang/
 else
-    cp example/Adder/example.cpp picker_out_adder/cpp/
+    cp example/Adder/example.cpp picker_out_adder/Adder/cpp/
 fi
 
 cd picker_out_adder && make EXAMPLE=ON
@@ -32,18 +32,18 @@ if [[ $@ != *"cpp"* ]]; then
 fi
 
 if [[ $@ == *"python"* ]]; then
-    LD_PRELOAD=./UT_Adder/libUTAdder.so python3 example.py
+    LD_PRELOAD=./Adder/libUTAdder.so python3 example.py
 fi
 
 if [[ $@ == *"scala"* ]]; then
-    LD_PRELOAD=./UT_Adder/libUTAdder.so scala -cp ./UT_Adder/UT_Adder-scala.jar:./UT_Adder/xspcomm-scala.jar -ea com.ut.example
+    LD_PRELOAD=./Adder/libUTAdder.so scala -cp ./Adder/UT_Adder-scala.jar:./Adder/xspcomm-scala.jar -ea com.ut.example
 fi
 
 if [[ $@ == *"java"* ]]; then
-    LD_PRELOAD=./UT_Adder/libUTAdder.so java -cp ./UT_Adder/UT_Adder-java.jar:./UT_Adder/xspcomm-java.jar -ea com.ut.example
+    LD_PRELOAD=./Adder/libUTAdder.so java -cp ./Adder/UT_Adder-java.jar:./Adder/xspcomm-java.jar -ea com.ut.example
 fi
 
 if [[ $@ == *"golang"* ]]; then
-    LD_PRELOAD=./UT_Adder/golang/src/UT_Adder/libUTAdder.so GO111MODULE=off GOPATH="`pwd`/UT_Adder/golang" go build example.go
-    LD_PRELOAD=./UT_Adder/golang/src/UT_Adder/libUTAdder.so GO111MODULE=off GOPATH="`pwd`/UT_Adder/golang" ./example
+    LD_PRELOAD=./Adder/golang/src/UT_Adder/libUTAdder.so GO111MODULE=off GOPATH="`pwd`/Adder/golang" go build example.go
+    LD_PRELOAD=./Adder/golang/src/UT_Adder/libUTAdder.so GO111MODULE=off GOPATH="`pwd`/Adder/golang" ./example
 fi
