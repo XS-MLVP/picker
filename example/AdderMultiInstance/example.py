@@ -1,4 +1,10 @@
-from UT_Adder import *
+try:
+    from UT_Adder import *
+except:
+    try:
+        from Adder import *
+    except:
+        from __init__ import *
 
 import random
 
