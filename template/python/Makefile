@@ -32,7 +32,7 @@ clean:
 
 purge: clean
 	@rm -rf *.txt Makefile *.hpp *.cmake *.i __pycache__
-	@rm ../example.py ../__init__.py || true
+	@rm ../__init__.py || true
 	@mv ./* ../ || true
 	@echo "purge complete"
 	@rm -rf $(CURRENT_DIR)
