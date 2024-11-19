@@ -76,6 +76,7 @@ int DutVcsBase::Step(uint64_t ncycle, bool dump)
 int DutVcsBase::Finish()
 {
     // Finish VCS context
+    finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
     return 0;
 };
 
