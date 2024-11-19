@@ -22,8 +22,4 @@ fi
 
 # run cache codegen
 rm -rf temp 
-./build/bin/picker export example/XDummyCache/Cache.sv --autobuild false --sdir ./template --tdir ./temp  --sname XDumyCache --tname Cache -w Cache.fst --sim verilator $@
-
-# build cache
-cd temp && make
-echo "build cache done, all you need has been generated in temp/release"
+./build/bin/picker export example/XDummyCache/Cache.sv --autobuild true --sdir ./template --tdir ./picker_out/temp  --sname XDumyCache --tname Cache -w Cache.fst --sim verilator $@
