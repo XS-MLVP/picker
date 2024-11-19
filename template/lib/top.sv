@@ -10,4 +10,6 @@ module {{__TOP_MODULE_NAME__}}_top;
 
 {{__SV_DUMP_WAVE__}}
 
+{{__EXTEND_SV__}}
+
 endmodule

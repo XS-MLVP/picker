@@ -30,6 +30,12 @@ namespace picker { namespace codegen {
             "    {{logic_pin}}=value;\n"
             "  endfunction\n\n";
 
+        static const std::string dpi_finish_sv_template =
+            "  export \"DPI-C\" function finish_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "  function void finish_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    $finish;\n"
+            "  endfunction\n";
+
         /// @brief Export external pin for verilog render, contains pin connect,
         /// @param pin
         /// @param pin_connect
@@ -147,10 +153,10 @@ namespace picker { namespace codegen {
                     if (wave_file_name.ends_with(".vcd")
                         || wave_file_name.ends_with(".fst"))
                         sv_dump_wave = env.render(
-                            "initial begin\n"
+                            "  initial begin\n"
                             "    $dumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
                             "    $dumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
-                            " end ",
+                            "  end",
                             data);
                     else
                         PK_FATAL(
@@ -161,10 +167,10 @@ namespace picker { namespace codegen {
                     if (wave_file_name.ends_with(".fsdb") == false)
                         PK_FATAL("VCS trace file must be .fsdb format.\n");
                     sv_dump_wave = env.render(
-                        "initial begin\n"
+                        "  initial begin\n"
                         "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
                         "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
-                        " end ",
+                        "  end",
                         data);
                 }
             } else {
@@ -331,6 +337,14 @@ namespace picker { namespace codegen {
             delete_trie(root);
         }
 
+        void render_extend_sv(nlohmann::json &global_data, std::string &extend_sv)
+        {
+            inja::Environment env;
+            nlohmann::json data;
+            data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
+            extend_sv = env.render(dpi_finish_sv_template, data);
+        }
+
     } // namespace sv
     /// @brief generate system verilog wrapper file contains
     /// __PIN_CONNECT__ , __LOGIC_PIN_DECLARATION__ , __WIRE_PIN_DECLARATION__
@@ -346,7 +360,7 @@ namespace picker { namespace codegen {
                  const std::string &wave_file_name,
                  const std::string &simulator)
     {
-        std::string inner_modules, logic, wire, dpi_export, dpi_impl, signal_tree;
+        std::string inner_modules, logic, wire, dpi_export, dpi_impl, signal_tree, extend_sv;
 
         auto external_pin = sv::render_external_pin(sv_module_result, inner_modules, logic, wire,
                                 dpi_export, dpi_impl);
@@ -354,12 +368,15 @@ namespace picker { namespace codegen {
         sv::render_sv_waveform(simulator, wave_file_name, global_render_data);
         sv::render_signal_tree(external_pin, internal_signal, signal_tree,
                                signal_tree_json);
+        sv::render_extend_sv(global_render_data, extend_sv);
 
         global_render_data["__LOGIC_PIN_DECLARATION__"]  = logic;
         global_render_data["__WIRE_PIN_DECLARATION__"]   = wire;
         global_render_data["__INNER_MODULES__"]          = inner_modules;
         global_render_data["__DPI_FUNCTION_EXPORT__"]    = dpi_export;
         global_render_data["__DPI_FUNCTION_IMPLEMENT__"] = dpi_impl;
+        global_render_data["__EXTEND_SV__"]              = extend_sv;
+        global_render_data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
         global_render_data["__SIGNAL_TREE__"]            = signal_tree;
         return external_pin;
     }
