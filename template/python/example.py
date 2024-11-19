@@ -3,7 +3,7 @@ try:
 except:
     try:
         from {{__TOP_MODULE_NAME__}} import *
-    except
+    except:
         from __init__ import *
 
 
