@@ -1,4 +1,11 @@
-from UT_RandomGenerator import *
+try:
+    from UT_RandomGenerator import *
+except:
+    try:
+        from RandomGenerator import *
+    except:
+        from __init__ import *
+
 import random
 
 class LSRF_16:
