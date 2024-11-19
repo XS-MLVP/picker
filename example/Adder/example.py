@@ -54,9 +54,9 @@ def main():
         
         assert o_dut.sum == o_ref.sum, "sum mismatch"
 
-    dut.Finish()
-    
     print("Test Passed, destroy UTAdder")
+    dut.Finish() # When using VCS, DUT.Finish() will exit the program, so it should be the last line of the program
+
 
 if __name__ == "__main__":
     main()
