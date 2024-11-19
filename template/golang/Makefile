@@ -1,3 +1,5 @@
+CURRENT_DIR := $(shell pwd)
+
 all: test clean
 	@echo "All complete"
 
@@ -35,4 +37,6 @@ clean:
 
 purge: clean
 	@ls|grep -v golang|xargs rm -rf
+	@mv ./* ../ || true
 	@echo "purge complete"
+	@rm -rf $(CURRENT_DIR)
