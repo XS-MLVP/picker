@@ -14,7 +14,7 @@ rm -rf picker_out_adder/
 ./build/bin/picker export example/Adder/Adder.v --autobuild false --sim vcs -w Adder.fsdb --sname Adder --tdir picker_out_adder/ --sdir template $@
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
-    cp example/Adder/example.py picker_out_adder/Adder/python/
+    cp example/Adder/example.py picker_out_adder/
 elif [[ $@ == *"java"* ]]; then
     cp example/Adder/example.java picker_out_adder/Adder/java/
 elif [[ $@ == *"scala"* ]]; then
