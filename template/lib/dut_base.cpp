@@ -334,7 +334,9 @@ void DutUnifiedBase::init(int argc, const char **argv)
     this->argv = (char **)malloc(sizeof(char *) * (argc + 128));
     memset(this->argv, -1, sizeof(char *) * (argc + 128));
     for (size_t i = 0; i < argc; i++) {
-        this->argv[i] = (char *)malloc(strlen(argv[i]) + 1);
+        auto tsize = strlen(argv[i]) + 32;
+        this->argv[i] = (char *)malloc(tsize);
+        memset(this->argv[i], 0, tsize);
         strcpy(this->argv[i], argv[i]);
     }
 
