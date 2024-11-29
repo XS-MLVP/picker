@@ -1,4 +1,3 @@
-
 # <image src="/image/picker-logo.png" width="32px" height="32px" />Picker: Pick your favorite language to verify your chip.
 
 > A codegen tool for chip verification, which can provide C++/Python interfaces for the RTL designs.
@@ -15,6 +14,7 @@ English | [中文](README.zh.md)
 This tool allows users to perform chip unit testing based on existing software testing frameworks, such as pytest, junit, TestNG, go test, etc.
 
 Advantages of verification based on picker:
+
 1. No RTL design leakage: After conversion by picker, the original design files (.v) are transformed into binary files (.so). Verification can still be performed without the original design files, and the verifier cannot access the RTL source code.
 1. Reduced compilation time: When the DUT (Design Under Test) is stable, it only needs to be compiled once (packaged into a .so file).
 1. Wide user range: Provides multiple programming interfaces, covering developers of different languages.
@@ -22,6 +22,7 @@ Advantages of verification based on picker:
 1. Automated UVM transaction encapsulation: Achieves communication between UVM and Python through automated UVM transaction encapsulation.
 
 Currently supported RTL simulators by picker:
+
 1. Verilator
 1. Synopsys VCS
 
@@ -51,17 +52,17 @@ make init
 ```bash
 cd picker
 make
-# You can enable support for other languages by 
+# You can enable support for other languages by
 #   using `make BUILD_XSPCOMM_SWIG=python,java,scala,golang`.
-# Each language requires its own development environment, 
+# Each language requires its own development environment,
 #   which needs to be configured separately, such as `javac` for Java.
 sudo -E make install
 ```
 
 > The default installation path is `/usr/local`, with binary files placed in `/usr/local/bin` and template files in `/usr/local/share/picker`.
 > If you need to change the installation directory, you can pass arguments to cmake by specifying ARGS, for example: `make ARGS="-DCMAKE_INSTALL_PREFIX=your_install_dir"`
-> The installation will automatically install the `xspcomm` base library (https://github.com/XS-MLVP/xcomm), which is used to encapsulate the basic types of `RTL` modules, located at `/usr/local/lib/libxspcomm.so`. **You may need to manually set the link directory parameters (-L) during compilation.**   
-> If support for languages such as Java is enabled, the corresponding `xspcomm` multi-language packages will also be installed.  
+> The installation will automatically install the `xspcomm` base library (https://github.com/XS-MLVP/xcomm), which is used to encapsulate the basic types of `RTL` modules, located at `/usr/local/lib/libxspcomm.so`. **You may need to manually set the link directory parameters (-L) during compilation.**  
+> If support for languages such as Java is enabled, the corresponding `xspcomm` multi-language packages will also be installed.
 
 **picker can also be compiled into a wheel file and installed via pip**
 
@@ -81,7 +82,7 @@ pip install dist/picker-0.0.1-cp311-cp311-linux_x86_64.whl
 After installation, execute the `picker` command to except the flow output:
 
 ```
-XDut Generate. 
+XDut Generate.
 Convert DUT(*.v/*.sv) to C++ DUT libs.
 
 Usage: ./build/bin/picker [OPTIONS] [SUBCOMMAND]
@@ -147,8 +148,9 @@ Options:
   --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
                               Copy xspcomm lib to generated DUT dir, default is true
   -V,--vflag TEXT             User defined simulator compile args, passthrough.
-                              Eg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'||'-V '"-cm line -cm_dir /xxx"''
-  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'
+                              Eg: '-V -x-assign=fast -Wall --trace' ||'-V '"-cm line -cm_dir /abs_path_to_store_coverage_data"''
+  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough.
+                              Eg:'-O3 -std=c++17 -I./include'|| '-C vcs -cc -f filelist.f'
   --verbose                   Verbose mode
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
@@ -186,6 +188,7 @@ Options:
 ```
 
 ### Test Examples
+
 After picker compilation, execute the following commands in the picker directory to test the examples:
 
 ```
@@ -202,7 +205,6 @@ bash example/RandomGenerator/release-verilator.sh --lang cpp
 bash example/RandomGenerator/release-verilator.sh --lang python
 bash example/RandomGenerator/release-verilator.sh --lang java
 ```
-
 
 ### More Documents
 
