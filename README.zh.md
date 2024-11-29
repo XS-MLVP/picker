@@ -145,8 +145,9 @@ Options:
   --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
                               Copy xspcomm lib to generated DUT dir, default is true
   -V,--vflag TEXT             User defined simulator compile args, passthrough.
-                              Eg: '-V -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'||'-V '"-cm line -cm_dir /xxx"''
-  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'
+                              Eg: '-V -x-assign=fast -Wall --trace' || '-V '"-cm line -cm_dir /abs_path_to_store_coverage_data"''
+  -C,--cflag TEXT             User defined gcc/clang compile command,   passthrough.
+                              Eg:'-O3 -std=c++17 -I./include' || '-C vcs -cc -f filelist.f'||
   --verbose                   Verbose mode
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
@@ -189,8 +190,8 @@ Options:
 - `-w,--wave_file_name TEXT`: 可选。波形文件名，空表示不导出波形
 - `-c,--coverage`: 可选。启用覆盖率，默认不选择为 OFF
 - `--cp_lib,--copy_xspcomm_lib BOOLEAN [1]`: 可选。将 xspcomm 库复制到生成的 DUT 目录，默认是 true
-- `-V,--vflag TEXT`: 可选。用户定义的模拟器编译参数，透传。例如：'-V -x-assign=fast -Wall --trace' 或 '-C vcs -cc -f filelist.f';模拟器使用 vcs 时，导出行覆盖率: '-V '"-cm line -cm_dir /xxx"''
-- `-C,--cflag TEXT`: 可选。用户定义的 gcc/clang 编译命令，透传。例如：'-O3 -std=c++17 -I./include'
+- `-V,--vflag TEXT`: 可选。用户定义的模拟器编译参数，透传。例如：'-V -x-assign=fast -Wall --trace';模拟器使用 vcs 时，导出行覆盖率: '-V '"-cm line -cm_dir /abs_path_to_store_coverage_data"''
+- `-C,--cflag TEXT`: 可选。用户定义的 gcc/clang 编译命令，透传。例如：'-O3 -std=c++17 -I./include'或'-C vcs -cc -f filelist.f'
 - `--verbose`: 可选。详细模式
 - `-e,--example`: 可选。构建示例项目，默认是 OFF
 - `--autobuild BOOLEAN [1]`: 可选。自动构建生成的项目，默认是 true
