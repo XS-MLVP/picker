@@ -149,9 +149,9 @@ Options:
   --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
                               Copy xspcomm lib to generated DUT dir, default is true
   -V,--vflag TEXT             User defined simulator compile args, passthrough.
-                              Eg: '-V -x-assign=fast -Wall --trace' ||'-V '"-cm line -cm_dir /abs_path_to_store_coverage_data"''
+                              Eg: -V '"-cm line -cm_dir /abs_path_to_store_coverage_data"'
   -C,--cflag TEXT             User defined gcc/clang compile command, passthrough.
-                              Eg:'-O3 -std=c++17 -I./include'|| '-C vcs -cc -f filelist.f'
+                              Eg: -C '"-O3 -std=c++17 -I./include"'
   --verbose                   Verbose mode
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
