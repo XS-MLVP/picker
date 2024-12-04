@@ -304,15 +304,18 @@ namespace picker { namespace codegen {
                         json["Low"]  = node->low_bit;
                         json["_"]    = true;
                     }
-                    for (auto &child : node->children) {
+                    std::vector<std::pair<std::string, std::string>> rename_keys;
+                    for (const auto &child : node->children) {
                         if (child.first != child.second->part_name) {
                             PK_DEBUG("JSON child rename %s to %s",
                                      child.first.c_str(),
                                      child.second->part_name.c_str());
-                            node->children.erase(child.first);
-                            node->children[child.second->part_name] =
-                                child.second;
+                            rename_keys.emplace_back(child.first, child.second->part_name);
                         }
+                    }
+                    for (const auto &rename : rename_keys) {
+                        node->children[rename.second] = node->children[rename.first];
+                        node->children.erase(rename.first);
                     }
                     for (auto &child : node->children) {
                         PK_DEBUG("JSON child %s", child.first.c_str());
