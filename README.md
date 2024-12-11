@@ -69,6 +69,7 @@ sudo -E make install
 To package picker into a wheel installation package, use the following command:
 
 ```bash
+pip install pipx # install dependency
 make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang make wheel
 ```
 
@@ -161,7 +162,7 @@ Static Multi-Module Support:
 When generating the wrapper for `dut_top.sv/v`, picker allows specifying multiple module names and their corresponding quantities using the `--sname` parameter. For example, if there are modules A and B in the design files `a.v` and `b.v` respectively, and you need 2 instances of A and 3 instances of B in the generated DUT, and the combined module name is C (if not specified, the default name will be A_B). This can be achieved using the following command:
 
 ```bash
-picker path/a.v,path/b.v --sname A,2,B,3 --tname C
+picker export path/a.v,path/b.v --sname A,2,B,3 --tname C
 ```
 
 Environment Variables:

@@ -67,6 +67,7 @@ sudo -E make install
 通过以下命令把 picker 打包成 wheel 安装包：
 
 ```bash
+pip install pipx # 安装依赖
 make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang make wheel
 ```
 
@@ -201,7 +202,7 @@ Options:
 picker 在生成 dut_top.sv/v 的封装时，可以通过`--sname`参数指定多个模块名称和对应的数量。例如在 a.v 和 b.v 设计文件中分别有模块 A 和 B，需要 DUT 中有 2 个 A，3 个 B，生成的模块名称为 C（若不指定，默认名称为 A_B），则可执行如下命令：
 
 ```bash
-picker path/a.v,path/b.v --sname A,2,B,3 --tname C
+picker export path/a.v,path/b.v --sname A,2,B,3 --tname C
 ```
 
 环境变量：
