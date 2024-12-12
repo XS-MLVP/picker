@@ -4,8 +4,7 @@ int64_t random_int64()
 {
     static std::random_device rd;
     static std::mt19937_64 generator(rd());
-    static std::uniform_int_distribution<int64_t> distribution(INT64_MIN,
-                                                               INT64_MAX);
+    static std::uniform_int_distribution<int64_t> distribution(INT64_MIN, INT64_MAX);
     return distribution(generator);
 }
 
@@ -51,13 +50,12 @@ int main()
             carry = carry || sum < i.cin;
 
             o_ref.sum  = sum;
-            o_ref.cout = carry ;
+            o_ref.cout = carry;
         };
 
         dut_cal();
         ref_cal();
-        printf("[cycle %lu] a=0x%lx, b=0x%lx, cin=0x%lx\n", dut->xclock.clk, i.a,
-               i.b, i.cin);
+        printf("[cycle %lu] a=0x%lx, b=0x%lx, cin=0x%lx\n", dut->xclock.clk, i.a, i.b, i.cin);
         printf("DUT: sum=0x%lx, cout=0x%lx\n", o_dut.sum, o_dut.cout);
         printf("REF: sum=0x%lx, cout=0x%lx\n", o_ref.sum, o_ref.cout);
         Assert(o_dut.sum == o_ref.sum, "sum mismatch");
