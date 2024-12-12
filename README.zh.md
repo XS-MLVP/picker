@@ -146,7 +146,7 @@ Options:
   --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
                               Copy xspcomm lib to generated DUT dir, default is true
   -V,--vflag TEXT             User defined simulator compile args, passthrough.
-                              Eg: -V '"-cm line -cm_dir /abs_path_to_store_coverage_data"'
+                              Eg: Using vcs simulator for exporting line coverage, -V '"-cm line -cm_dir /abs_path_to_store_coverage_data"'
   -C,--cflag TEXT             User defined gcc/clang compile command,   passthrough.
                               Eg: -C '"-O3 -std=c++17 -I./include"' 
   --verbose                   Verbose mode
