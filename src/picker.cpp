@@ -14,15 +14,12 @@ bool is_debug = false;
 
 void check_debug()
 {
-    if (std::getenv("PICKER_DEBUG") != NULL) {
-        picker::is_debug = true;
-    }
+    if (std::getenv("PICKER_DEBUG") != NULL) { picker::is_debug = true; }
 }
 
 std::string to_base62(uint64_t num)
 {
-    const std::string base62_chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const std::string base62_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     std::string result;
     do {
         result = base62_chars[num % 62] + result;
@@ -33,46 +30,40 @@ std::string to_base62(uint64_t num)
 
 int set_options_export_rtl(CLI::App &top_app)
 {
-    auto app = top_app.add_subcommand(
-        "export",
-        "Export RTL Projects Sources as Software libraries such as C++/Python");
+    auto app = top_app.add_subcommand("export", "Export RTL Projects Sources as Software libraries such as C++/Python");
 
     // Set DUT RTL Source File, Required
-    app->add_option("file", export_opts.file,
-                    "DUT .v/.sv source file, contain the top module")->delimiter(',')
+    app->add_option("file", export_opts.file, "DUT .v/.sv source file, contain the top module")
+        ->delimiter(',')
         ->required();
 
     // Set DUT RTL Extra Source File List, Optional
-    app->add_option(
-        "--fs,--filelist", export_opts.filelists,
-        "DUT .v/.sv source files, contain the top module, split by comma.\n"
-        "Or use '*.txt' file  with one RTL file path per line to specify the file list")->delimiter(',');
+    app->add_option("--fs,--filelist", export_opts.filelists,
+                    "DUT .v/.sv source files, contain the top module, split by comma.\n"
+                    "Or use '*.txt' file  with one RTL file path per line to specify the file list")
+        ->delimiter(',');
 
     // Set DUT RTL Simulator, Optional, default is verilator
-    app->add_option("--sim", export_opts.sim,
-                    "vcs or verilator as simulator, default is verilator")
+    app->add_option("--sim", export_opts.sim, "vcs or verilator as simulator, default is verilator")
         ->default_val("verilator");
 
     // Set DUT RTL Language, Optional, default is python
-    std::vector<std::string> select_languages = {"python", "cpp", "java",
-                                                 "scala", "golang"};
-    app->add_option(
-           "--lang,--language", export_opts.language,
-           "Build example project, default is python, choose cpp, java or python")
+    std::vector<std::string> select_languages = {"python", "cpp", "java", "scala", "golang"};
+    app->add_option("--lang,--language", export_opts.language,
+                    "Build example project, default is python, choose cpp, java or python")
         ->default_val("python")
         ->check(CLI::IsMember(select_languages));
 
     // Set DUT RTL Source Dir, Optional, default is
     // ${picker_install_path}/../picker/template
-    app->add_option(
-           "--sdir,--source_dir", export_opts.source_dir,
-           "Template Files Dir, default is ${picker_install_path}/../picker/template")
+    app->add_option("--sdir,--source_dir", export_opts.source_dir,
+                    "Template Files Dir, default is ${picker_install_path}/../picker/template")
         ->default_val(picker::get_template_path());
 
     // Set DUT RTL Source Module Name, Optional, default is the last module in
-    app->add_option(
-        "--sname,--source_module_name", export_opts.source_module_name_list,
-        "Pick the module in DUT .v file, default is the last module in the -f marked file")->delimiter(',');
+    app->add_option("--sname,--source_module_name", export_opts.source_module_name_list,
+                    "Pick the module in DUT .v file, default is the last module in the -f marked file")
+        ->delimiter(',');
 
     // Set Generated Software library module name, Optional, default is the same
     app->add_option(
@@ -86,27 +77,24 @@ int set_options_export_rtl(CLI::App &top_app)
         ->default_val("");
 
     // Set DUT RTL Internal Signal Config File, Optional, default is empty
-    app->add_option(
-        "--internal", export_opts.internal,
-        "Exported internal signal config file, default is empty, means no internal pin");
+    app->add_option("--internal", export_opts.internal,
+                    "Exported internal signal config file, default is empty, means no internal pin");
 
     // Simulate frequncy while using VCS simulator, Optional, default is 100MHz
-    app->add_option(
-           "-F,--frequency", export_opts.frequency,
-           "Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit")
+    app->add_option("-F,--frequency", export_opts.frequency,
+                    "Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit")
         ->default_val("100MHz");
 
     // Dump wave file name, Optional, default is empty means don't dump wave
-    app->add_option("-w,--wave_file_name", export_opts.wave_file_name,
-                    "Wave file name, emtpy mean don't dump wave");
+    app->add_option("-w,--wave_file_name", export_opts.wave_file_name, "Wave file name, emtpy mean don't dump wave");
 
     // Enable coverage, Optional, default is OFF
-    app->add_flag("-c,--coverage", export_opts.coverage,
-                  "Enable coverage, default is not selected as OFF");
+    app->add_flag("-c,--coverage", export_opts.coverage, "Enable coverage, default is not selected as OFF");
 
     // Enable copy xspcomm lib to DUT location
     app->add_option("--cp_lib, --copy_xspcomm_lib", export_opts.cp_lib,
-                    "Copy xspcomm lib to generated DUT dir, default is true")->default_val(true);
+                    "Copy xspcomm lib to generated DUT dir, default is true")
+        ->default_val(true);
 
     // User defined simulator compile args, passthrough. Eg: '-v -x-assign=fast
     // -Wall --trace' || '-C vcs -cc -f filelist.f'
@@ -116,9 +104,8 @@ int set_options_export_rtl(CLI::App &top_app)
 
     // User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17
     // -I./include'
-    app->add_option(
-        "-C,--cflag", export_opts.cflag,
-        "User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'");
+    app->add_option("-C,--cflag", export_opts.cflag,
+                    "User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'");
 
     // app->add_option(
     //     "-r,--rename", export_opts.rename,
@@ -126,10 +113,8 @@ int set_options_export_rtl(CLI::App &top_app)
     //     -std=c++17 -I./include'");
 
     app->add_flag("--verbose", export_opts.verbose, "Verbose mode");
-    app->add_flag("-e,--example", export_opts.example,
-                  "Build example project, default is OFF");
-    app->add_option("--autobuild", export_opts.autobuild,
-                    "Auto build the generated project, default is true")
+    app->add_flag("-e,--example", export_opts.example, "Build example project, default is OFF");
+    app->add_option("--autobuild", export_opts.autobuild, "Auto build the generated project, default is true")
         ->default_val(true);
 
     return 0;
@@ -137,24 +122,16 @@ int set_options_export_rtl(CLI::App &top_app)
 
 int set_options_pack_message(CLI::App &top_app)
 {
-    auto app = top_app.add_subcommand(
-        "pack", "Pack UVM transaction as a UVM agent and Python class");
+    auto app = top_app.add_subcommand("pack", "Pack UVM transaction as a UVM agent and Python class");
 
     // Set DUT RTL Source File, Required
-    app->add_flag(
-        "-e,--example", pack_opts.example,
-        "Generate example project based on transaction, default is OFF");
+    app->add_flag("-e,--example", pack_opts.example, "Generate example project based on transaction, default is OFF");
 
-    app->add_flag(
-        "-c,--force", pack_opts.force,
-        "Force delete folder when the code has already generated by picker");
+    app->add_flag("-c,--force", pack_opts.force, "Force delete folder when the code has already generated by picker");
 
-    app->add_option("file", pack_opts.files,
-                    "Sv source file, contain the transaction define")
-        ->required();
+    app->add_option("file", pack_opts.files, "Sv source file, contain the transaction define")->required();
 
-    app->add_option("-r,--rename", pack_opts.rename,
-                    "Rename transaction name in picker generate code");
+    app->add_option("-r,--rename", pack_opts.rename, "Rename transaction name in picker generate code");
 
     return 0;
 }
@@ -162,26 +139,18 @@ int set_options_pack_message(CLI::App &top_app)
 int set_options_main(CLI::App &app)
 {
     app.add_flag("-v, --version", main_opts.version, "Print version");
-    app.add_flag("--show_default_template_path",
-                 main_opts.show_default_template_path,
-                 "Print default template path");
-    app.add_flag("--show_xcom_lib_location_cpp",
-                 main_opts.show_xcom_lib_location_cpp,
+    app.add_flag("--show_default_template_path", main_opts.show_default_template_path, "Print default template path");
+    app.add_flag("--show_xcom_lib_location_cpp", main_opts.show_xcom_lib_location_cpp,
                  "Print xspcomm lib and include location");
-    app.add_flag("--show_xcom_lib_location_java",
-                 main_opts.show_xcom_lib_location_java,
+    app.add_flag("--show_xcom_lib_location_java", main_opts.show_xcom_lib_location_java,
                  "Print xspcomm-java.jar location");
-    app.add_flag("--show_xcom_lib_location_scala",
-                 main_opts.show_xcom_lib_location_scala,
+    app.add_flag("--show_xcom_lib_location_scala", main_opts.show_xcom_lib_location_scala,
                  "Print xspcomm-scala.jar location");
-    app.add_flag("--show_xcom_lib_location_python",
-                 main_opts.show_xcom_lib_location_python,
+    app.add_flag("--show_xcom_lib_location_python", main_opts.show_xcom_lib_location_python,
                  "Print python module xspcomm location");
-    app.add_flag("--show_xcom_lib_location_golang",
-                 main_opts.show_xcom_lib_location_golang,
+    app.add_flag("--show_xcom_lib_location_golang", main_opts.show_xcom_lib_location_golang,
                  "Print golang module xspcomm location");
-    app.add_flag("--check", main_opts.check,
-                 "check install location and supproted languages");
+    app.add_flag("--check", main_opts.check, "check install location and supproted languages");
     return 0;
 }
 
@@ -204,8 +173,7 @@ int main(int argc, char **argv)
     // handel main options here
     // if need version, print version
     if (main_opts.version) {
-        PK_MESSAGE("version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH,
-                GIT_DIRTY);
+        PK_MESSAGE("version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
         exit(0);
     }
 
@@ -244,8 +212,7 @@ int main(int argc, char **argv)
         exit(0);
     }
     if (main_opts.show_xcom_lib_location_java) {
-        auto java_location =
-            picker::get_xcomm_lib("java/xspcomm-java.jar", erro_message);
+        auto java_location = picker::get_xcomm_lib("java/xspcomm-java.jar", erro_message);
         if (java_location.size() == 0) {
             PK_ERROR("%s", erro_message.c_str());
             exit(1);
@@ -254,8 +221,7 @@ int main(int argc, char **argv)
         exit(0);
     }
     if (main_opts.show_xcom_lib_location_scala) {
-        auto scala_location =
-            picker::get_xcomm_lib("java/xspcomm-scala.jar", erro_message);
+        auto scala_location = picker::get_xcomm_lib("java/xspcomm-scala.jar", erro_message);
         if (scala_location.size() == 0) {
             PK_ERROR("%s", erro_message.c_str());
             exit(1);
@@ -282,46 +248,36 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-
     int lang_index            = 0;
-    const char *check_libs[]  = {"include", "java/xspcomm-java.jar",
-                                 "scala/xspcomm-scala.jar", "python", "golang"};
+    const char *check_libs[]  = {"include", "java/xspcomm-java.jar", "scala/xspcomm-scala.jar", "python", "golang"};
     const char *check_langs[] = {"Cpp", "Java", "Scala", "Python", "Golang"};
-    std::map<std::string, int> lang_map = {
-        {"cpp", 0}, {"java", 1}, {"scala", 2}, {"python", 3}, {"golang", 4}};
+    std::map<std::string, int> lang_map = {{"cpp", 0}, {"java", 1}, {"scala", 2}, {"python", 3}, {"golang", 4}};
     if (main_opts.check) {
-        PK_MESSAGE("[OK ] Version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH,
-                GIT_HASH, GIT_DIRTY);
+        PK_MESSAGE("[OK ] Version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
         PK_MESSAGE("[OK ] Exec path: %s", picker::get_executable_path().c_str());
         auto temp_path = picker::get_template_path();
         if (temp_path.empty()) {
             PK_MESSAGE("[Err] Can't find default template path");
         } else {
             PK_MESSAGE("[OK ] Template path: %s", temp_path.c_str());
-
         }
         int i = 0;
         for (auto lang : check_langs) {
-            auto lib_location =
-                picker::get_xcomm_lib(check_libs[i], erro_message);
+            auto lib_location = picker::get_xcomm_lib(check_libs[i], erro_message);
             if (lib_location.size() == 0) {
-                PK_ERROR("[Err] Support %6s (find: '%s' fail)", lang,
-                      check_libs[i]);
+                PK_ERROR("[Err] Support %6s (find: '%s' fail)", lang, check_libs[i]);
             } else {
-                PK_MESSAGE("[OK ] Support %6s (find: '%s' success)", lang,
-                        lib_location.c_str());
+                PK_MESSAGE("[OK ] Support %6s (find: '%s' success)", lang, lib_location.c_str());
             }
             i += 1;
         }
         exit(0);
     }
     if (export_opts.language.size() != 0) {
-        lang_index = lang_map[export_opts.language];
-        auto lib_location =
-            picker::get_xcomm_lib(check_libs[lang_index], erro_message);
+        lang_index        = lang_map[export_opts.language];
+        auto lib_location = picker::get_xcomm_lib(check_libs[lang_index], erro_message);
         if (lib_location.size() == 0) {
-            PK_ERROR("[Err] Support %6s (find: '%s' fail)",
-                  check_langs[lang_index], check_libs[lang_index]);
+            PK_ERROR("[Err] Support %6s (find: '%s' fail)", check_langs[lang_index], check_libs[lang_index]);
             exit(1);
         }
     }
@@ -341,24 +297,16 @@ int main(int argc, char **argv)
         picker::parser::sv(export_opts, sv_module_result);
         picker::parser::internal(export_opts, internal_sginal_result);
 
-        auto sv_pin_result = picker::codegen::lib(export_opts, sv_module_result, internal_sginal_result,
-                                                  signal_tree_json);
+        auto sv_pin_result =
+            picker::codegen::lib(export_opts, sv_module_result, internal_sginal_result, signal_tree_json);
 
-        std::map<std::string,
-                 std::function<void(picker::export_opts &,
-                                    std::vector<picker::sv_signal_define>,
-                                    std::vector<picker::sv_signal_define>,
-                                    nlohmann::json &
-                                    )>> func_map = {
-                {"cpp", picker::codegen::cpp},
-                {"python", picker::codegen::python},
-                {"java", picker::codegen::java},
-                {"scala", picker::codegen::scala},
-                {"golang", picker::codegen::golang},
+        std::map<std::string, std::function<void(picker::export_opts &, std::vector<picker::sv_signal_define>,
+                                                 std::vector<picker::sv_signal_define>, nlohmann::json &)>>
+            func_map = {
+                {"cpp", picker::codegen::cpp},     {"python", picker::codegen::python}, {"java", picker::codegen::java},
+                {"scala", picker::codegen::scala}, {"golang", picker::codegen::golang},
             };
-        func_map[export_opts.language](export_opts, sv_pin_result,
-                                       internal_sginal_result,
-                                       signal_tree_json);
+        func_map[export_opts.language](export_opts, sv_pin_result, internal_sginal_result, signal_tree_json);
         // build the result with make
         if (export_opts.autobuild) {
             const std::string cmd = "cd " + export_opts.target_dir + " && make";
@@ -382,8 +330,7 @@ int main(int argc, char **argv)
                     uvm_transaction.name = pack_opts.rename[i];
                     i++;
                 }
-                picker::codegen::gen_uvm_param(pack_opts, uvm_transaction,
-                                               filename);
+                picker::codegen::gen_uvm_param(pack_opts, uvm_transaction, filename);
             }
             exit(0);
         }

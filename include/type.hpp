@@ -14,7 +14,6 @@ typedef struct main_opts {
     bool check;
 } main_opts;
 
-
 typedef struct export_opts {
     std::vector<std::string> file;
     std::vector<std::string> filelists;
@@ -38,10 +37,9 @@ typedef struct export_opts {
     std::string rname;
 } export_opts;
 
-
 typedef struct pack_opts {
     std::vector<std::string> files;
-    std::vector<std::string> rename;    
+    std::vector<std::string> rename;
     bool example;
     bool force;
 } pack_opts;
@@ -66,9 +64,9 @@ typedef struct uvm_parameter {
     int is_marcro;
     std::string macro_name;
     std::string current_index;
-}uvm_parameter;
+} uvm_parameter;
 
-typedef struct uvm_transaction_define{
+typedef struct uvm_transaction_define {
     std::string name;
     std::string filepath;
     std::string transaction_name;
@@ -76,5 +74,5 @@ typedef struct uvm_transaction_define{
     std::string data_now;
     std::vector<uvm_parameter> parameters;
 
-}uvm_transaction_define;
+} uvm_transaction_define;
 } // namespace picker
