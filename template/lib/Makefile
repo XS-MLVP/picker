@@ -14,8 +14,7 @@ export COVERAGE := {{__COVERAGE__}}
 all: release 
 
 compile:
-	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) \
-		-DSIMULATOR_FLAGS=$(SIMULATOR_FLAGS) -DCFLAGS=$(CFLAGS) -DCOVERAGE=$(COVERAGE)
+	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCFLAGS=$(CFLAGS) -DCOVERAGE=$(COVERAGE)
 	cmake --build build --config Debug --parallel `nproc`
 
 release: compile
@@ -29,7 +28,6 @@ ifeq ($(COVERAGE), OFF)
 	@rm Makefile
 	@rm *.v *.sv
 endif
-
 	@rm -rf build cmake cpp mk python java scala golang CMakeLists.txt dut_base.* 2>/dev/null|| true
 	@rm -rf ${TARGET}.cpp filelist.f *.fst 2>/dev/null|| true
 	@mv ${TARGET}/*.v ${TARGET}/*.sv . 2>/dev/null|| true

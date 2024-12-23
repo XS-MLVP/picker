@@ -61,6 +61,21 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     def SetCoverage(self, filename: str):
         self.dut.SetCoverage(filename)
+    
+    def CheckPoint(self, name: str):
+        self.dut.CheckPoint(name)
+
+    def Restore(self, name: str):
+        self.dut.Restore(name)
+    
+    def GetVPIFuncPtr(self, name: str):
+        return self.dut.GetVPIFuncPtr(name)
+
+    def GetVPIHandleObj(self, name: str):
+        return self.dut.GetVPIHandleObj(name)
+    
+    def VPIInternalSignalList(self, prefix="", deep=99):
+        return self.dut.VPIInternalSignalList(prefix, deep)
 
     def Finish(self):
         self.dut.Finish()
