@@ -80,6 +80,9 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_option("--internal", export_opts.internal,
                     "Exported internal signal config file, default is empty, means no internal pin");
 
+    app->add_flag("--checkpoints", export_opts.checkpoints, "Enable checkpoints, save/restore , default is OFF");
+    app->add_flag("--vpi", export_opts.vpi, "Enable VPI, for flexible internal signal access default is OFF");
+
     // Simulate frequncy while using VCS simulator, Optional, default is 100MHz
     app->add_option("-F,--frequency", export_opts.frequency,
                     "Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit")

@@ -24,6 +24,8 @@ typedef struct export_opts {
     std::vector<std::string> source_module_name_list;
     std::string target_module_name;
     std::string internal;
+    bool checkpoints;
+    bool vpi;
     std::string frequency;
     std::string wave_file_name;
     bool coverage;
