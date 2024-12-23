@@ -22,6 +22,11 @@ public:
     virtual void SetWaveform(const char *filename) = 0;
     // Set coverage file path
     virtual void SetCoverage(const char *filename) = 0;
+    // Save Model Status with Simulator Capabilities
+    virtual int CheckPoint(const char* filename) = 0;
+    // Load Model Status with Simulator Capabilities
+    virtual int Restore(const char* filename) = 0;
+
 };
 
 #if defined(USE_VERILATOR)
@@ -32,6 +37,7 @@ private:
 
 public:
     // Verilator Context and Top Module
+    std::string sv_scope = "TOP.{{__TOP_MODULE_NAME__}}_top";
     void *top;
     void init(int, char **);
     DutVerilatorBase();
@@ -41,6 +47,8 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void SetCoverage(const char *filename);
+    int CheckPoint(const char* filename);
+    int Restore(const char* filename);
 };
 extern "C" {
     DutVerilatorBase *dlcreates(int argc, char **argv);
@@ -64,6 +72,7 @@ protected:
     uint64_t vcs_clock_period[3];
 
 public:
+    std::string sv_scope = "{{__TOP_MODULE_NAME__}}_top";
     void init(int, char **);
     DutVcsBase(int argc, char **argv);
     [[deprecated("VCS does not support no-args constructor")]] DutVcsBase();
@@ -72,6 +81,8 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void SetCoverage(const char *filename);
+    int CheckPoint(const char* filename);
+    int Restore(const char* filename);
 };
 
 #endif
@@ -86,6 +97,7 @@ protected:
     void* lib_handle;
     int argc;
     char **argv;
+    
 #if defined(USE_VERILATOR)
     DutVerilatorBase *dut;
 #elif defined(USE_VCS)
@@ -109,13 +121,23 @@ public:
     int Finish();
     uint64_t GetDPIHandle(char *name, int towards);
     uint64_t GetDPIHandle(std::string name, int towards);
+    uint64_t GetVPIFuncPtr(char *name);
+    uint64_t GetVPIFuncPtr(std::string name);
+    uint64_t GetVPIHandleObj(char *name);
+    uint64_t GetVPIHandleObj(std::string name);
+    std::vector<std::string> VPIInternalSignalList(char *name, int depth);
+    std::vector<std::string> VPIInternalSignalList(std::string name, int depth);
     void SetWaveform(const char *filename); // Set waveform file path
     void SetWaveform(const std::string filename); // Set waveform file path
     void SetCoverage(const char *filename); // Set coverage file path
     void SetCoverage(const std::string filename); // Set coverage file path
+    int CheckPoint(const char* filename);
+    int CheckPoint(const std::string filename);
+    int Restore(const char* filename);
+    int Restore(const std::string filename);
 };
 
-extern bool enable_xinfo;
+extern int enable_xinfo;
 
 #define XFatal(fmt, ...)                                                      \
     do {                                                                       \
@@ -128,4 +150,16 @@ extern bool enable_xinfo;
     do {                                                                        \
         if(enable_xinfo){fprintf(stdout, "INFO: " fmt, ##__VA_ARGS__);           \
         puts("");}                                                              \
+    } while (0)
+
+#define XDebug(fmt, ...)                                                        \
+    do {                                                                        \
+        if(enable_xinfo > 1){fprintf(stdout, "DEBUG: " fmt, ##__VA_ARGS__);          \
+        puts("");}                                                              \
+    } while (0)
+
+#define XWarning(fmt, ...)                                                      \
+    do {                                                                        \
+        fprintf(stderr, "WARNING: " fmt, ##__VA_ARGS__);                         \
+        puts("");                                                               \
     } while (0)
