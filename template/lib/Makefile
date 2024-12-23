@@ -10,11 +10,13 @@ export TLANG := {{__TARGET_LANGUAGE__}}
 export SIMULATOR_FLAGS := {{__VFLAG__}}
 export CFLAGS := {{__CFLAG__}}
 export COVERAGE := {{__COVERAGE__}}
+export CHECKPOINTS := {{__CHECKPOINTS__}}
+export VPI := {{__VPI__}}
 
 all: release 
 
 compile:
-	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCFLAGS=$(CFLAGS) -DCOVERAGE=$(COVERAGE)
+	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT)
 	cmake --build build --config Debug --parallel `nproc`
 
 release: compile

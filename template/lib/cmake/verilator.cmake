@@ -34,6 +34,18 @@ if(SIMULATOR STREQUAL "verilator")
 	else()
 		set(COVERAGE_FLAG "")
 	endif()
+	# set save/restore flags
+	if(${CHECKPOINTS} STREQUAL "ON")
+		add_definitions(-DVL_SAVEABLE)
+		set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--savable")
+	endif()
+	# set vpi flags
+	if(${VPI} STREQUAL "ON")
+		add_definitions(-DVL_VPI)
+		# add vpi flags in SIMULATOR_FLAGS
+		set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--vpi" "--public-flat-rw")
+	endif()
+	
 
 	set(VERILATE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/DPI${ModuleName})
 	include_directories(${VERILATE_DIRECTORY})

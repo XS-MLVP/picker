@@ -157,6 +157,8 @@ namespace picker { namespace codegen {
         data["__VERBOSE__"]                = opts.verbose ? "ON" : "OFF";
         data["__EXAMPLE__"]                = opts.example ? "ON" : "OFF";
         data["__COVERAGE__"]               = opts.coverage ? "ON" : "OFF";
+        data["__CHECKPOINTS__"]            = opts.checkpoints ? "ON" : "OFF";
+        data["__VPI__"]                    = opts.vpi ? "ON" : "OFF";
         data["__TARGET_LANGUAGE__"]        = opts.language;
         data["__FILELIST__"]               = ofilelist;
         data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);

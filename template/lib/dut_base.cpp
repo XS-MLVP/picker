@@ -209,13 +209,36 @@ void DutVerilatorBase::SetCoverage(const char *filename)
 #endif
 };
 
-int DutVerilatorBase::CheckPoint(const char *filename) {
-    // ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->checkpoint(filename);
+#if defined(VL_SAVEABLE)
+#include "verilated_save.h"
+int DutVerilatorBase::CheckPoint(const char *filename)
+{
+    VerilatedSave os;
+    os.open(filename);
+    os << this->cycle;
+    os << *(V{{__TOP_MODULE_NAME__}} *)(top);
+    return this->cycle;
 };
 
-int DutVerilatorBase::Restore(const char *filename) {
-    // ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->restore(filename);
+int DutVerilatorBase::Restore(const char *filename)
+{
+    VerilatedRestore os;
+    os.open(filename);
+    os >> this->cycle;
+    os >> *(V{{__TOP_MODULE_NAME__}} *)(top);
+    return this->cycle;
 };
+#else
+int DutVerilatorBase::CheckPoint(const char *filename)
+{
+    XFatal("Verilator checkpoint is not enabled");
+};
+
+int DutVerilatorBase::Restore(const char *filename)
+{
+    XFatal("Verilator restore is not enabled");
+};
+#endif
 
 DutVerilatorBase *dlcreates(int argc, char **argv)
 {
@@ -412,7 +435,7 @@ uint64_t DutUnifiedBase::GetVPIFuncPtr(std::string name)
     return (uint64_t)func;
 }
 
-uint64_t DutUnifiedBase::GetVPIHandleObj(const char* name)
+uint64_t DutUnifiedBase::GetVPIHandleObj(const char *name)
 {
     return this->GetVPIHandleObj(std::string(name));
 }
@@ -420,8 +443,8 @@ uint64_t DutUnifiedBase::GetVPIHandleObj(const char* name)
 uint64_t DutUnifiedBase::GetVPIHandleObj(std::string name)
 {
     uint64_t _get_vpi_handle_name = this->GetVPIFuncPtr("vpi_handle_by_name");
-    std::string scope   = name.size() > 0 ? this->dut->sv_scope + "." + name : this->dut->sv_scope;
-    uint64_t vpi_handle = ((uint64_t(*)(char *, uint32_t))_get_vpi_handle_name)((char *)scope.c_str(), 0);
+    std::string scope             = name.size() > 0 ? this->dut->sv_scope + "." + name : this->dut->sv_scope;
+    uint64_t vpi_handle           = ((uint64_t(*)(char *, uint32_t))_get_vpi_handle_name)((char *)scope.c_str(), 0);
     return vpi_handle;
 }
 

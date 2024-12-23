@@ -11,6 +11,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines -ftls-model=global-dynamic 
 set(SIMULATOR_FLAGS "$ENV{SIMULATOR_FLAGS}")
 set(CFLAGS "$ENV{CFLAGS}")
 set(COVERAGE "$ENV{COVERAGE}")
+set(CHECKPOINTS "$ENV{CHECKPOINTS}")
+set(VPI "$ENV{VPI}")
 
 # Non-root install
 set(CMAKE_BUILD_RPATH $ORIGIN)
