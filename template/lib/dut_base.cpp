@@ -395,36 +395,33 @@ uint64_t DutUnifiedBase::GetDPIHandle(std::string name, int towards)
     return this->GetDPIHandle((char *)name.c_str(), towards);
 }
 
-uint64_t DutUnifiedBase::GetVPIFuncPtr(std::string name)
+uint64_t DutUnifiedBase::GetVPIFuncPtr(const char *name)
 {
-    return this->GetVPIFuncPtr((char *)name.c_str());
+    return this->GetVPIFuncPtr(std::string(name));
 }
 
-uint64_t DutUnifiedBase::GetVPIFuncPtr(char *name)
+uint64_t DutUnifiedBase::GetVPIFuncPtr(std::string name)
 {
     void *func;
     if (this->lib_handle != nullptr) {
-        func = dlsym(this->lib_handle, name);
+        func = dlsym(this->lib_handle, name.c_str());
     } else {
-        func = dlsym(RTLD_DEFAULT, name);
+        func = dlsym(RTLD_DEFAULT, name.c_str());
     }
-    if (func == nullptr) { XInfo("Failed to find VPI function %s", name); }
+    if (func == nullptr) { XInfo("Failed to find VPI function %s", name.c_str()); }
     return (uint64_t)func;
+}
+
+uint64_t DutUnifiedBase::GetVPIHandleObj(const char* name)
+{
+    return this->GetVPIHandleObj(std::string(name));
 }
 
 uint64_t DutUnifiedBase::GetVPIHandleObj(std::string name)
 {
-    return this->GetVPIHandleObj((char *)name.c_str());
-}
-
-uint64_t DutUnifiedBase::GetVPIHandleObj(char *name)
-{
-    // vpi_handle_by_name(char *name, vpiHandle scope)
-    // typedef PLI_UINT32 *vpiHandle
-
     uint64_t _get_vpi_handle_name = this->GetVPIFuncPtr("vpi_handle_by_name");
-    std::string scope   = strlen(name) > 0 ? this->dut->sv_scope + "." + std::string(name) : this->dut->sv_scope;
-    uint64_t vpi_handle = ((uint64_t(*)(char *, uint32_t))_get_vpi_handle_name)((char *)scope.c_str(), NULL);
+    std::string scope   = name.size() > 0 ? this->dut->sv_scope + "." + name : this->dut->sv_scope;
+    uint64_t vpi_handle = ((uint64_t(*)(char *, uint32_t))_get_vpi_handle_name)((char *)scope.c_str(), 0);
     return vpi_handle;
 }
 
@@ -520,10 +517,10 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
     };
 
     // Start iterating the initial scope
-    vpi_handle_t vpi_handle = _get_vpi_handle_name((char *)scope.c_str(), NULL);
+    vpi_handle_t vpi_handle = _get_vpi_handle_name((char *)scope.c_str(), 0);
     XDebug("Traversing %s %d", scope.c_str(), depth);
-    if (vpi_handle == NULL) { XFatal("Failed to find VPI handle %s", scope.c_str()); }
-    XDebug("Found VPI handle %p, type %ld", vpi_handle, _vpi_get(vpiType, vpi_handle));
+    if (vpi_handle == 0) { XFatal("Failed to find VPI handle %s", scope.c_str()); }
+    XDebug("Found VPI handle 0x%lx, type %ld", vpi_handle, _vpi_get(vpiType, vpi_handle));
 
     // Traverse the VPI handle
     traverse(vpi_handle, depth);

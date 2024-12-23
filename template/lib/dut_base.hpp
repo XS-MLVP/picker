@@ -23,10 +23,9 @@ public:
     // Set coverage file path
     virtual void SetCoverage(const char *filename) = 0;
     // Save Model Status with Simulator Capabilities
-    virtual int CheckPoint(const char* filename) = 0;
+    virtual int CheckPoint(const char *filename) = 0;
     // Load Model Status with Simulator Capabilities
-    virtual int Restore(const char* filename) = 0;
-
+    virtual int Restore(const char *filename) = 0;
 };
 
 #if defined(USE_VERILATOR)
@@ -47,12 +46,12 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void SetCoverage(const char *filename);
-    int CheckPoint(const char* filename);
-    int Restore(const char* filename);
+    int CheckPoint(const char *filename);
+    int Restore(const char *filename);
 };
 extern "C" {
-    DutVerilatorBase *dlcreates(int argc, char **argv);
-    void dlstep(DutVerilatorBase *dut, uint64_t ncycle, bool dump);
+DutVerilatorBase *dlcreates(int argc, char **argv);
+void dlstep(DutVerilatorBase *dut, uint64_t ncycle, bool dump);
 }
 #endif
 
@@ -81,8 +80,8 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void SetCoverage(const char *filename);
-    int CheckPoint(const char* filename);
-    int Restore(const char* filename);
+    int CheckPoint(const char *filename);
+    int Restore(const char *filename);
 };
 
 #endif
@@ -94,10 +93,10 @@ class DutUnifiedBase
 protected:
     static int lib_count;
     static bool main_ns_flag; // is there any instance of DutUnifiedBase in main namespace
-    void* lib_handle;
+    void *lib_handle;
     int argc;
     char **argv;
-    
+
 #if defined(USE_VERILATOR)
     DutVerilatorBase *dut;
 #elif defined(USE_VCS)
@@ -121,45 +120,49 @@ public:
     int Finish();
     uint64_t GetDPIHandle(char *name, int towards);
     uint64_t GetDPIHandle(std::string name, int towards);
-    uint64_t GetVPIFuncPtr(char *name);
+    uint64_t GetVPIFuncPtr(const char *name);
     uint64_t GetVPIFuncPtr(std::string name);
-    uint64_t GetVPIHandleObj(char *name);
+    uint64_t GetVPIHandleObj(const char *name);
     uint64_t GetVPIHandleObj(std::string name);
     std::vector<std::string> VPIInternalSignalList(char *name, int depth);
     std::vector<std::string> VPIInternalSignalList(std::string name, int depth);
-    void SetWaveform(const char *filename); // Set waveform file path
+    void SetWaveform(const char *filename);       // Set waveform file path
     void SetWaveform(const std::string filename); // Set waveform file path
-    void SetCoverage(const char *filename); // Set coverage file path
+    void SetCoverage(const char *filename);       // Set coverage file path
     void SetCoverage(const std::string filename); // Set coverage file path
-    int CheckPoint(const char* filename);
+    int CheckPoint(const char *filename);
     int CheckPoint(const std::string filename);
-    int Restore(const char* filename);
+    int Restore(const char *filename);
     int Restore(const std::string filename);
 };
 
 extern int enable_xinfo;
 
-#define XFatal(fmt, ...)                                                      \
-    do {                                                                       \
-        fprintf(stderr, "FATAL: " fmt, ##__VA_ARGS__);                          \
-        puts("");                                                              \
-        exit(-1);                                                              \
+#define XFatal(fmt, ...)                                                                                               \
+    do {                                                                                                               \
+        fprintf(stderr, "FATAL: " fmt, ##__VA_ARGS__);                                                                 \
+        puts("");                                                                                                      \
+        exit(-1);                                                                                                      \
     } while (0)
 
-#define XInfo(fmt, ...)                                                         \
-    do {                                                                        \
-        if(enable_xinfo){fprintf(stdout, "INFO: " fmt, ##__VA_ARGS__);           \
-        puts("");}                                                              \
+#define XInfo(fmt, ...)                                                                                                \
+    do {                                                                                                               \
+        if (enable_xinfo) {                                                                                            \
+            fprintf(stdout, "INFO: " fmt, ##__VA_ARGS__);                                                              \
+            puts("");                                                                                                  \
+        }                                                                                                              \
     } while (0)
 
-#define XDebug(fmt, ...)                                                        \
-    do {                                                                        \
-        if(enable_xinfo > 1){fprintf(stdout, "DEBUG: " fmt, ##__VA_ARGS__);          \
-        puts("");}                                                              \
+#define XDebug(fmt, ...)                                                                                               \
+    do {                                                                                                               \
+        if (enable_xinfo > 1) {                                                                                        \
+            fprintf(stdout, "DEBUG: " fmt, ##__VA_ARGS__);                                                             \
+            puts("");                                                                                                  \
+        }                                                                                                              \
     } while (0)
 
-#define XWarning(fmt, ...)                                                      \
-    do {                                                                        \
-        fprintf(stderr, "WARNING: " fmt, ##__VA_ARGS__);                         \
-        puts("");                                                               \
+#define XWarning(fmt, ...)                                                                                             \
+    do {                                                                                                               \
+        fprintf(stderr, "WARNING: " fmt, ##__VA_ARGS__);                                                               \
+        puts("");                                                                                                      \
     } while (0)
