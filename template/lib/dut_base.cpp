@@ -108,6 +108,10 @@ int DutVcsBase::Restore(const char *filename)
 #include "V{{__TOP_MODULE_NAME__}}__Syms.h"
 #endif
 
+#if defined(VL_VPI)
+#include "verilated_vpi.h"
+#endif
+
 DutVerilatorBase::DutVerilatorBase()
 {
     this->init(0, nullptr);
@@ -158,6 +162,9 @@ int DutVerilatorBase::Step(uint64_t ncycle, bool dump)
     cycle += ncycle;
     if (dump) {
         for (int i = 0; i < ncycle; i++) {
+#if defined(VL_VPI)
+            VerilatedVpi::callValueCbs();
+#endif
             ((V{{__TOP_MODULE_NAME__}} *)(top))->eval();
             ((V{{__TOP_MODULE_NAME__}} *)(top))->contextp()->timeInc(1);
         }

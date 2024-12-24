@@ -142,6 +142,8 @@ Options:
   --tdir,--target_dir TEXT    Target directory to store all the results. If it ends with '/' or is empty,
                               the directory name will be the same as the target module name
   --internal TEXT             Exported internal signal config file, default is empty, means no internal pin
+  --checkpoints               Enable checkpoints, save/restore , default is OFF
+  --vpi                       Enable VPI, for flexible internal signal access default is OFF
   -F,--frequency TEXT [100MHz]
                               Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit
   -w,--wave_file_name TEXT    Wave file name, emtpy mean don't dump wave
