@@ -20,6 +20,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.xport  = xsp.XPort()
         self.xclock.Add(self.xport)
         self.event = self.xclock.getEvent()
+        self.internal_signals = {}
         # set output files
         if kwargs.get("waveform_filename"):
             self.dut.SetWaveform(kwargs.get("waveform_filename"))
@@ -67,13 +68,18 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     def Restore(self, name: str):
         self.dut.Restore(name)
-    
-    def GetVPIFuncPtr(self, name: str):
-        return self.dut.GetVPIFuncPtr(name)
 
-    def GetVPIHandleObj(self, name: str):
-        return self.dut.GetVPIHandleObj(name)
-    
+    def GetInternalSignal(self, name: str):
+        if name not in self.internal_signals:
+            signal = xsp.XData.FromVPI(self.dut.GetVPIHandleObj(name),
+                                       self.dut.GetVPIFuncPtr("vpi_get"),
+                                       self.dut.GetVPIFuncPtr("vpi_get_value"),
+                                       self.dut.GetVPIFuncPtr("vpi_put_value"), name)
+            if signal is None:
+                return None
+            self.internal_signals[name] = xsp.XPin(signal, self.event)
+        return self.internal_signals[name]
+
     def VPIInternalSignalList(self, prefix="", deep=99):
         return self.dut.VPIInternalSignalList(prefix, deep)
 
