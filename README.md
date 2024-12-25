@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 **picker** is a chip verification auxiliary tool with two main functions:
 
-1. **Expot RTL designs into verification modules:** Picker can convert RTL design verification modules (.v/.scala/.sv) into dynamic libraries and provide programming interfaces in multiple high-level languages (currently supporting C++, Python, Java, Scala, Golang) to drive the circuits.
+1. **Expot RTL designs into verification modules:** Picker can convert RTL design verification modules (.v/.scala/.sv) into dynamic libraries and provide programming interfaces in multiple high-level languages (currently supporting C++, Python, Java, Scala, Golang, Lua) to drive the circuits.
 1. **Pack UVM-TLM transaction with other languages:** Picker can automatically encapsulate TLM code based on user-provided UVM sequence_items, providing communication interfaces between UVM and other high-level languages (such as Python).
 
 This tool allows users to perform chip unit testing based on existing software testing frameworks, such as pytest, junit, TestNG, go test, etc.
@@ -53,7 +53,7 @@ make init
 cd picker
 make
 # You can enable support for other languages by
-#   using `make BUILD_XSPCOMM_SWIG=python,java,scala,golang`.
+#   using `make BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua`.
 # Each language requires its own development environment,
 #   which needs to be configured separately, such as `javac` for Java.
 sudo -E make install
@@ -70,7 +70,7 @@ To package picker into a wheel installation package, use the following command:
 
 ```bash
 pip install pipx # install dependency
-make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang make wheel
+make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua make wheel
 ```
 
 After compilation, the wheel file will be located in the dist directory. You can then install it via pip, for example:
@@ -103,6 +103,8 @@ Options:
                               Print python module xspcomm location
   --show_xcom_lib_location_golang
                               Print golang module xspcomm location
+  --show_xcom_lib_location_lua
+                              Print lua module xspcomm location
   --check                     check install location and supproted languages
 
 Subcommands:
@@ -130,8 +132,8 @@ Options:
   --fs,--filelist TEXT ...    DUT .v/.sv source files, contain the top module, split by comma.
                               Or use '*.txt' file  with one RTL file path per line to specify the file list
   --sim TEXT [verilator]      vcs or verilator as simulator, default is verilator
-  --lang,--language TEXT:{python,cpp,java,scala,golang} [python]
-                              Build example project, default is python, choose cpp, java or python
+  --lang,--language TEXT:{python,cpp,java,scala,golang,lua} [python]
+                              Build target project with assigned language, default python
   --sdir,--source_dir TEXT [/home/yaozhicheng/workspace/picker/template]
                               Template Files Dir, default is ${picker_install_path}/../picker/template
   --sname,--source_module_name TEXT ...
@@ -199,10 +201,11 @@ bash example/Adder/release-verilator.sh --lang cpp
 bash example/Adder/release-verilator.sh --lang python
 
 # Default enable cpp and python
-#  for other languages support：make BUILD_XSPCOMM_SWIG=python,java,scala,golang
+#  for other languages support：make BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua
 bash example/Adder/release-verilator.sh --lang java
 bash example/Adder/release-verilator.sh --lang scala
 bash example/Adder/release-verilator.sh --lang golang
+bash example/Adder/release-verilator.sh --lang lua
 
 bash example/RandomGenerator/release-verilator.sh --lang cpp
 bash example/RandomGenerator/release-verilator.sh --lang python

@@ -11,6 +11,7 @@ typedef struct main_opts {
     bool show_xcom_lib_location_scala;
     bool show_xcom_lib_location_golang;
     bool show_xcom_lib_location_python;
+    bool show_xcom_lib_location_lua;
     bool check;
 } main_opts;
 

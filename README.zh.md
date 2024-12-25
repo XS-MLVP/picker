@@ -1,6 +1,6 @@
 # <image src="/image/picker-logo.png" width="32px" height="32px" />Picker: 用你擅长的编程语言进行芯片验证.
 
-> A codegen tool for chip verification, which can provide C++/Python/Java/Scala/Golang interfaces for the RTL designs.
+> A codegen tool for chip verification, which can provide C++/Python/Java/Scala/Golang/Lua interfaces for the RTL designs.
 
 中文 | [English](README.md)
 
@@ -8,7 +8,7 @@
 
 **picker** 是一个芯片验证辅助工具，具有两个主要功能：
 
-1. **打包 RTL 设计验证模块：** picker 可以将 RTL 设计验证模块（.v/.scala/.sv）打包成动态库，并提供多种高级语言（目前支持 C++、Python、Java、Scala、Golang）的编程接口来驱动电路。
+1. **打包 RTL 设计验证模块：** picker 可以将 RTL 设计验证模块（.v/.scala/.sv）打包成动态库，并提供多种高级语言（目前支持 C++、Python、Java、Scala、Golang、Lua）的编程接口来驱动电路。
 1. **UVM-TLM 代码自动生成：** picker 能够基于用户提供的 UVM sequence_item 进行自动化的 TLM 代码封装，提供 UVM 与其他高级语言（如 Python）的通信接口。
 
 该工具允许用户基于现有的软件测试框架，例如 pytest、junit、TestNG、go test 等，进行芯片单元测试。
@@ -52,7 +52,7 @@ make init
 ```bash
 cd picker
 make
-# 可通过 make BUILD_XSPCOMM_SWIG=python,java,scala,golang 开启其他语言支持。
+# 可通过 make BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua 开启其他语言支持。
 # 各语言需要自己的开发环境，需要自行配置，例如javac等
 sudo -E make install
 ```
@@ -68,7 +68,7 @@ sudo -E make install
 
 ```bash
 pip install pipx # 安装依赖
-make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang make wheel
+make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua make wheel
 ```
 
 编译完成后，wheel 文件位于 dist 目录，然后通过 pip 安装，例如：
@@ -101,6 +101,8 @@ Options:
                               Print python module xspcomm location
   --show_xcom_lib_location_golang
                               Print golang module xspcomm location
+  --show_xcom_lib_location_lua
+                              Print lua module xspcomm location
   --check                     check install location and supproted languages
 
 Subcommands:
@@ -128,8 +130,8 @@ Options:
   --fs,--filelist TEXT ...    DUT .v/.sv source files, contain the top module, split by comma.
                               Or use '*.txt' file  with one RTL file path per line to specify the file list
   --sim TEXT [verilator]      vcs or verilator as simulator, default is verilator
-  --lang,--language TEXT:{python,cpp,java,scala,golang} [python]
-                              Build example project, default is python, choose cpp, java or python
+  --lang,--language TEXT:{python,cpp,java,scala,golang,lua} [python]
+                              Build target project with assigned language, default python
   --sdir,--source_dir TEXT    Template Files Dir, default is ${picker_install_path}/../picker/template
   --sname,--source_module_name TEXT ...
                               Pick the module in DUT .v file, default is the last module in the -f marked file
@@ -181,7 +183,7 @@ Options:
 - `-h,--help`: 可选。打印此帮助信息并退出
 - `--fs,--filelist TEXT ...`: 可选。DUT .v/.sv 源文件，包含顶层模块，逗号分隔。或使用 '\*.txt' 文件，每行指定一个 RTL 文件路径来指定文件列表
 - `--sim TEXT [verilator]`: 可选。使用 vcs 或 verilator 作为模拟器，默认是 verilator
-- `--lang,--language TEXT:{python,cpp,java,scala,golang} [python]`: 可选。构建示例项目，默认是 python，可选择 cpp、java 或 python
+- `--lang,--language TEXT:{python,cpp,java,scala,golang,lua} [python]`: 可选。构建示例项目，默认是 python
 - `--sdir,--source_dir TEXT`: 可选。模板文件目录，默认是 ${picker_install_path}/../picker/template
 - `--sname,--source_module_name TEXT ...`: 可选。在 DUT .v 文件中选择模块，默认是 -f 标记的文件中的最后一个模块
 - `--tname,--target_module_name TEXT`: 可选。设置目标 DUT 的模块名和文件名，默认与源相同。例如，-T top 将生成 UTtop.cpp 和 UTtop.hpp，并包含 UTtop 类
@@ -225,10 +227,11 @@ bash example/Adder/release-verilator.sh --lang cpp
 bash example/Adder/release-verilator.sh --lang python
 
 # 默认仅开启 cpp 和 Python 支持
-#   支持其他语言编译命令为：make BUILD_XSPCOMM_SWIG=python,java,scala,golang
+#   支持其他语言编译命令为：make BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua
 bash example/Adder/release-verilator.sh --lang java
 bash example/Adder/release-verilator.sh --lang scala
 bash example/Adder/release-verilator.sh --lang golang
+bash example/Adder/release-verilator.sh --lang lua
 
 bash example/RandomGenerator/release-verilator.sh --lang cpp
 bash example/RandomGenerator/release-verilator.sh --lang python

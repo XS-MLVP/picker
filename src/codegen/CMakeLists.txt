@@ -9,6 +9,7 @@ set(source_file
      golang.cpp
      sv.cpp
      lib.cpp
+     lua.cpp
      uvm.cpp
 )
 

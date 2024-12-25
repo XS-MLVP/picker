@@ -48,9 +48,9 @@ int set_options_export_rtl(CLI::App &top_app)
         ->default_val("verilator");
 
     // Set DUT RTL Language, Optional, default is python
-    std::vector<std::string> select_languages = {"python", "cpp", "java", "scala", "golang"};
+    std::vector<std::string> select_languages = {"python", "cpp", "java", "scala", "golang", "lua"};
     app->add_option("--lang,--language", export_opts.language,
-                    "Build example project, default is python, choose cpp, java or python")
+                    "Build target project with assigned language, default python")
         ->default_val("python")
         ->check(CLI::IsMember(select_languages));
 
@@ -153,6 +153,7 @@ int set_options_main(CLI::App &app)
                  "Print python module xspcomm location");
     app.add_flag("--show_xcom_lib_location_golang", main_opts.show_xcom_lib_location_golang,
                  "Print golang module xspcomm location");
+    app.add_flag("--show_xcom_lib_location_lua", main_opts.show_xcom_lib_location_lua, "Print lua module xspcomm location");
     app.add_flag("--check", main_opts.check, "check install location and supproted languages");
     return 0;
 }
@@ -250,11 +251,20 @@ int main(int argc, char **argv)
         PK_MESSAGE("%s", golang_location.c_str());
         exit(0);
     }
+    if (main_opts.show_xcom_lib_location_lua) {
+        auto lua_location = picker::get_xcomm_lib("lua/luaxspcomm.so", erro_message);
+        if (lua_location.size() == 0) {
+            PK_ERROR("%s", erro_message.c_str());
+            exit(1);
+        }
+        PK_MESSAGE("%s", lua_location.c_str());
+        exit(0);
+    }
 
     int lang_index            = 0;
-    const char *check_libs[]  = {"include", "java/xspcomm-java.jar", "scala/xspcomm-scala.jar", "python", "golang"};
-    const char *check_langs[] = {"Cpp", "Java", "Scala", "Python", "Golang"};
-    std::map<std::string, int> lang_map = {{"cpp", 0}, {"java", 1}, {"scala", 2}, {"python", 3}, {"golang", 4}};
+    const char *check_libs[]  = {"include", "java/xspcomm-java.jar", "scala/xspcomm-scala.jar", "python", "golang", "lua/luaxspcomm.so"};
+    const char *check_langs[] = {"Cpp", "Java", "Scala", "Python", "Golang", "Lua"};
+    std::map<std::string, int> lang_map = {{"cpp", 0}, {"java", 1}, {"scala", 2}, {"python", 3}, {"golang", 4}, {"lua", 5}};
     if (main_opts.check) {
         PK_MESSAGE("[OK ] Version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
         PK_MESSAGE("[OK ] Exec path: %s", picker::get_executable_path().c_str());
@@ -307,7 +317,7 @@ int main(int argc, char **argv)
                                                  std::vector<picker::sv_signal_define>, nlohmann::json &)>>
             func_map = {
                 {"cpp", picker::codegen::cpp},     {"python", picker::codegen::python}, {"java", picker::codegen::java},
-                {"scala", picker::codegen::scala}, {"golang", picker::codegen::golang},
+                {"scala", picker::codegen::scala}, {"golang", picker::codegen::golang}, {"lua", picker::codegen::lua},
             };
         func_map[export_opts.language](export_opts, sv_pin_result, internal_sginal_result, signal_tree_json);
         // build the result with make
