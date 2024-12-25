@@ -21,6 +21,8 @@ elif [[ $@ == *"scala"* ]]; then
     cp example/Adder/example.scala picker_out_adder/Adder/scala/
 elif [[ $@ == *"golang"* ]]; then
     cp example/Adder/example.go picker_out_adder/Adder/golang/
+elif [[ $@ == *"lua"* ]]; then
+    cp example/Adder/example.lua picker_out_adder/Adder/lua/
 else
     cp example/Adder/example.cpp picker_out_adder/Adder/cpp/
 fi

@@ -21,6 +21,7 @@
 #include "codegen/golang.hpp"
 #include "codegen/sv.hpp"
 #include "codegen/lib.hpp"
+#include "codegen/lua.hpp"
 #include "parser/sv.hpp"
 #include "parser/internalcfg.hpp"
 
