@@ -7,16 +7,22 @@
 
 在DUT对应的Class中，以**大驼峰命名**的函数为用户需要使用的常用函数，其他命名方式的函数为内部函数，不建议用户使用。
 
-|编号|API名称|参数|说明|
-|-|--|---|---|
-|1|InitClock(name)|字符类型，时钟引脚，或引脚的名称|初始化时钟，让DUT中的|-XClock绑定对应的引脚|
-|2|Step(i)|int类型时钟周期个数|推进时序电路i个时钟周期|
-|3|StepRis(callback)|函数类型，回调函数|设置上升沿触发的回调函数|
-|4|StepFal(callback)|函数类型，回调函数|设置下降沿触发的回调函数|
-|5|SetWaveform(file)|字符类型，文件名，含路径|设置波形输出的文件|
-|6|SetCoverage(file)|字符类型，文件名，含路径|设置覆盖率输出的文件|
-|7|Finish()|-|结束仿真，保持波形，覆盖率等结果文件|
-|8|RefreshComb()|-|推进组合电路|
+|编号|API名称|参数|返回值|说明|
+|-|--|---|---|---|
+|1|InitClock(name)|字符类型，时钟引脚，或引脚的名称|-|初始化时钟，让DUT中的`XClock`绑定对应的引脚|
+|2|Step(i)|int类型，时钟周期个数|-|推进时序电路i个时钟周期|
+|3|StepRis(callback)|函数类型，回调函数|-|设置上升沿触发的回调函数|
+|4|StepFal(callback)|函数类型，回调函数|-|设置下降沿触发的回调函数|
+|5|SetWaveform(file)|字符类型，文件名，含路径|-|设置波形输出的文件|
+|6|FlushWaveform()|-|-|将波形内容立即刷新到文件中，**频繁调用可能导致FST压缩能力失效**|
+|7|SetCoverage(file)|字符类型，文件名，含路径|-|设置覆盖率输出的文件|
+|8|CheckPoint(file)|字符类型，文件名，含路径|int类型，当前时钟周期|保存当前仿真状态到文件|
+|9|Restore(file)|字符类型，文件名，含路径|int类型，保存时的时钟周期|从文件中恢复仿真状态|
+|10|GetInternalSignal(name)|字符类型，信号名称|XData类型|通过变量名获取的内部信号对象，需要开启 `--vpi`，**影响性能**|
+|11|VPIInternalSignalList(prefix, deep)|字符类型，前缀，深度层级|int类型，信号名称列表|获取内部信号列表，需要开启 `--vpi`|
+|12|Finish()|-|-|结束仿真，保持波形，覆盖率等结果文件|
+|13|RefreshComb()|-|-|推进组合电路|
+
 
 #### C++ 
 ```c++
@@ -25,7 +31,12 @@ void Step(int i = 1);
 void StepRis(std::function<void(uint64_t, void*)>, void*args=nullptr);
 void StepFal(std::function<void(uint64_t, void*)>, void*args=nullptr);
 void SetWaveform(std::string filename);
+void FlushWaveform();
 void SetCoverage(std::string filename);
+int CheckPoint(const std::string filename);
+int Restore(const std::string filename);
+XData GetInternalSignal(const std::string name);
+std::vector<std::string> VPIInternalSignalList(std::string prefix="", int deep=99);
 void Finish();
 void RefreshComb();
 ```
@@ -38,7 +49,12 @@ Step(i:int = 1)
 StepRis(callback: Callable, args=None,  args=(), kwargs={})
 StepFal(callback: Callable, args=None,  args=(), kwargs={})
 SetWaveform(filename)
+FlushWaveform()
 SetCoverage(filename)
+CheckPoint(filename: str) -> int
+Restore(filename: str) -> int
+GetInternalSignal(name: str) -> XData
+VPIInternalSignalList(self, prefix="", deep=99) -> List[str]
 Finish()
 RefreshComb()
 ```

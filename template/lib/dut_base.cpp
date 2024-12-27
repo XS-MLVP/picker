@@ -86,7 +86,10 @@ void DutVcsBase::SetCoverage(const char *filename)
 {
     XInfo("VCS coverage is not supported");
 };
-
+void DutVerilatorBase::FlushWaveform()
+{
+    XInfo("VCS waveform is not supported");
+};
 int DutVcsBase::CheckPoint(const char *filename)
 {
     XFatal("VCS checkpoint is not supported");
@@ -163,9 +166,12 @@ int DutVerilatorBase::Step(uint64_t ncycle, bool dump)
     if (dump) {
         for (int i = 0; i < ncycle; i++) {
 #if defined(VL_VPI)
-            VerilatedVpi::callValueCbs();
+            VerilatedVpi::callValueCbs(); // for vpi_put_value
 #endif
             ((V{{__TOP_MODULE_NAME__}} *)(top))->eval();
+#if defined(VL_VPI)
+            VerilatedVpi::callValueCbs(); // for vpi_get_value
+#endif
             ((V{{__TOP_MODULE_NAME__}} *)(top))->contextp()->timeInc(1);
         }
     } else {
@@ -200,6 +206,17 @@ void DutVerilatorBase::SetWaveform(const char *filename)
 #if defined(VL_TRACE)
     ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp()->dumpfile(filename);
     ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->_traceDumpOpen();
+#else
+    std::cerr << "Verilator waveform is not enabled";
+    exit(-1);
+#endif
+};
+
+void DutVerilatorBase::FlushWaveform()
+{
+#if defined(VL_TRACE)
+    V{{__TOP_MODULE_NAME__}} *topp = (V{{__TOP_MODULE_NAME__}} *)(this->top);
+    topp->rootp->vlSymsp->__Vm_dumperp->flush();
 #else
     std::cerr << "Verilator waveform is not enabled";
     exit(-1);
@@ -492,6 +509,15 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
     vpi_iterate_t _vpi_iterate                = (vpi_iterate_t)this->GetVPIFuncPtr("vpi_iterate");
     vpi_handle_func _vpi_handle               = (vpi_handle_func)this->GetVPIFuncPtr("vpi_handle");
 
+    // Remove extra "TOP" while input name is empty(TOP)
+    std::function<std::string(std::string)> remove_top = [&](std::string sig) {
+#ifdef USE_VERILATOR
+        return sig.substr(4);
+#else
+        return sig;
+#endif
+    };
+
     // Define the lambda function to traverse the VPI handle
     std::function<void(vpi_handle_t, int)> traverse = [&](vpi_handle_t handle, int depth) {
         if (depth == 0) { return; }
@@ -502,7 +528,7 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
         while ((vpi_handle = _vpi_scan(regs)) != 0) {
             char *name = (char *)_vpi_get_str(vpiFullName, vpi_handle);
             XDebug("Found reg %s", name);
-            res.push_back(std::string(name) + " (reg)");
+            res.push_back(remove_top(name));
         }
 
         // get vpi reg array
@@ -510,7 +536,7 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
         while ((vpi_handle = _vpi_scan(reg_arrays)) != 0) {
             char *name = (char *)_vpi_get_str(vpiFullName, vpi_handle);
             XDebug("Found reg array %s", name);
-            res.push_back(std::string(name) + " (reg array)");
+            res.push_back(remove_top(name));
         }
 
         // get vpi net
@@ -518,7 +544,7 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
         while ((vpi_handle = _vpi_scan(nets)) != 0) {
             char *name = (char *)_vpi_get_str(vpiFullName, vpi_handle);
             XDebug("Found net %s", name);
-            res.push_back(std::string(name) + " (net)");
+            res.push_back(remove_top(name));
         }
 
         // get vpi net array
@@ -526,7 +552,7 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
         while ((vpi_handle = _vpi_scan(net_arrays)) != 0) {
             char *name = (char *)_vpi_get_str(vpiFullName, vpi_handle);
             XDebug("Found net array %s", name);
-            res.push_back(std::string(name) + " (net array)");
+            res.push_back(remove_top(name));
         }
 
         // get vpi module
@@ -644,7 +670,10 @@ void DutUnifiedBase::SetWaveform(const std::string filename)
 {
     return this->dut->SetWaveform(filename.c_str());
 }
-
+void DutUnifiedBase::FlushWaveform()
+{
+    return this->dut->FlushWaveform();
+}
 int DutUnifiedBase::CheckPoint(const char *filename)
 {
     return this->dut->CheckPoint(filename);

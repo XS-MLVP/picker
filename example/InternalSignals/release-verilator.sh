@@ -14,6 +14,6 @@ fi
 
 # run cache codegen
 rm -rf ./picker_out 
-./build/bin/picker export example/InternalSignals/vpi.v --autobuild false --sdir ./template --vpi --sname vpi --tdir ./picker_out/InterlSinals --sim verilator --lang python
+./build/bin/picker export example/InternalSignals/vpi.v --autobuild false --sdir ./template --vpi --sname vpi --tdir ./picker_out/InterlSinals --sim verilator --lang python $@
 cp example/InternalSignals/example.py picker_out/InterlSinals/python/
 cd picker_out/InterlSinals && make EXAMPLE=ON
