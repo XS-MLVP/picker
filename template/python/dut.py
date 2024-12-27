@@ -59,6 +59,9 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     def SetWaveform(self, filename: str):
         self.dut.SetWaveform(filename)
+    
+    def FlushWaveform(self):
+        self.dut.FlushWaveform()
 
     def SetCoverage(self, filename: str):
         self.dut.SetCoverage(filename)
