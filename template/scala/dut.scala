@@ -14,6 +14,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.dut.simStep(dump)
         ()
     })
+    val internalSignals: scala.collection.mutable.Map[String, XData] = scala.collection.mutable.Map()
     var xport = new XPort()
 
     def this() = {
@@ -44,6 +45,9 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     def SetWaveform(wave_name: String) = {
         this.dut.SetWaveform(wave_name)
     }
+    def FlushWaveform() = {
+        this.dut.FlushWaveform()
+    }
     def SetCoverage(coverage_name: String) = {
         this.dut.SetCoverage(coverage_name)
     }
@@ -64,6 +68,28 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     }
     def RefreshComb() = {
         this.dut.RefreshComb()
+    }
+    def CheckPoint(check_point: String) = {
+        this.dut.CheckPoint(check_point)
+    }
+    def Restore(check_point: String) = {
+        this.dut.Restore(check_point)
+    }
+    def VPIInternalSignalList(prefix: String, deep: Int): StringVector = {
+        this.dut.VPIInternalSignalList(prefix, deep)
+    }
+    def GetInternalSignal(name: String): XData = {
+        if (this.internalSignals.contains(name)) {
+            return this.internalSignals(name)
+        }
+        val signal = XData.FromVPI(this.dut.GetVPIHandleObj(name),
+                                   this.dut.GetVPIFuncPtr("vpi_get"),
+                                   this.dut.GetVPIFuncPtr("vpi_get_value"),
+                                   this.dut.GetVPIFuncPtr("vpi_put_value"), name)
+        if (signal != null) {
+            this.internalSignals += (name -> signal)
+        }
+        signal
     }
     /*************************************************/
     /*               End of User APIs                */
