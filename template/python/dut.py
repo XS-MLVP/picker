@@ -66,10 +66,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def SetCoverage(self, filename: str):
         self.dut.SetCoverage(filename)
     
-    def CheckPoint(self, name: str):
+    def CheckPoint(self, name: str) -> int:
         self.dut.CheckPoint(name)
 
-    def Restore(self, name: str):
+    def Restore(self, name: str) -> int:
         self.dut.Restore(name)
 
     def GetInternalSignal(self, name: str):
