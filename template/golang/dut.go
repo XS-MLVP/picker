@@ -19,6 +19,7 @@ type UT_{{__TOP_MODULE_NAME__}} struct {
 
 func NewUT_{{__TOP_MODULE_NAME__}}(a ...interface{}) *UT_{{__TOP_MODULE_NAME__}}{
     self := &UT_{{__TOP_MODULE_NAME__}}{}
+    self.internalSignals = make(map[string]xspcomm.XData)
 	if len(a) == 1 {
         strings, ok := a[0].([]string)
         if ok {
@@ -98,10 +99,14 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignal(name string) xspcomm.X
     if v, ok := self.internalSignals[name]; ok {
         return v
     }
-    self.internalSignals[name] = xspcomm.XData.FromVPI(self.Dut.GetVPIHandleObj(name),
-        self.Dut.GetVPIFuncPtr("vpi_get"),
-        self.Dut.GetVPIFuncPtr("vpi_get_value"),
-        self.Dut.GetVPIFuncPtr("vpi_put_value"), name)
+    signal := xspcomm.XDataFromVPI(self.Dut.GetVPIHandleObj(name),
+                                   self.Dut.GetVPIFuncPtr("vpi_get"),
+                                   self.Dut.GetVPIFuncPtr("vpi_get_value"),
+                                   self.Dut.GetVPIFuncPtr("vpi_put_value"), name)
+    if signal == nil {
+        return nil
+    }
+    self.internalSignals[name] = signal
     return self.internalSignals[name]
 }
 
