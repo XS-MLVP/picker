@@ -3,6 +3,7 @@ package com.ut;
 
 import com.xspcomm.*;
 import java.io.File;
+import java.util.*;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
@@ -47,6 +48,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public DutUnifiedBase dut;
     public XPort xport;
     public XClock xclock;
+    private Map<String, XData> internalSignals = new java.util.HashMap<String, XData>();
 
     // all pins declare
 {{__XDATA_DECL__}}
@@ -83,6 +85,9 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public void SetWaveform(String wave_name){
         this.dut.SetWaveform(wave_name);
     }
+    public void FlushWaveform() {
+        this.dut.FlushWaveform();
+    }
     public void SetCoverage(String coverage_name){
         this.dut.SetCoverage(coverage_name);
     }
@@ -98,6 +103,31 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public void StepFal(Consumer<Long> callback){
         this.xclock.StepFal(callback);
     }
+
+    public Integer CheckPoint(String check_point) {
+        return this.dut.CheckPoint(check_point);
+    }
+
+    public Integer Restore(String check_point) {
+        return this.dut.Restore(check_point);
+    }
+
+    public StringVector VPIInternalSignalList(String prefix, int deep) {
+        return this.dut.VPIInternalSignalList(prefix, deep);
+    }
+
+    public XData GetInternalSignal(String name) {
+        if (this.internalSignals.containsKey(name)) {
+            return this.internalSignals.get(name);
+        }
+        XData data = XData.FromVPI(dut.GetVPIHandleObj(name),
+                dut.GetVPIFuncPtr("vpi_get"),
+                dut.GetVPIFuncPtr("vpi_get_value"),
+                dut.GetVPIFuncPtr("vpi_put_value"), name);
+        this.internalSignals.put(name, data);
+        return data;
+    }
+
     public void Finish(){
         this.dut.Finish();
     }
