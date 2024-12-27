@@ -9,6 +9,7 @@ type UT_{{__TOP_MODULE_NAME__}} struct {
     Dut DutUnifiedBase
     Xclock xspcomm.XClock
     Xport xspcomm.XPort
+    internalSignals map[string]xspcomm.XData
     // Pins
 {{__XDATA_DECL__}}
     // SubPorts
@@ -79,6 +80,34 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) StepFal(fc func(uint64)){
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) SetWaveform(filename string){
     self.Dut.SetWaveform(filename)
+}
+
+func (self *UT_{{__TOP_MODULE_NAME__}}) FlushWaveform(){
+    self.Dut.FlushWaveform()
+}
+
+func (self *UT_{{__TOP_MODULE_NAME__}}) CheckPoint(name string) int {
+    return self.Dut.CheckPoint(name)
+}
+
+func (self *UT_{{__TOP_MODULE_NAME__}}) Restore(name string) int {
+    return self.Dut.Restore(name)
+}
+
+func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignal(name string) xspcomm.XData {
+    if v, ok := self.internalSignals[name]; ok {
+        return v
+    }
+    self.internalSignals[name] = xspcomm.XData.FromVPI(self.Dut.GetVPIHandleObj(name),
+        self.Dut.GetVPIFuncPtr("vpi_get"),
+        self.Dut.GetVPIFuncPtr("vpi_get_value"),
+        self.Dut.GetVPIFuncPtr("vpi_put_value"), name)
+    return self.internalSignals[name]
+}
+
+
+func (self *UT_{{__TOP_MODULE_NAME__}}) VPIInternalSignalList(prefix string, deep int) StringVector {
+    return self.Dut.VPIInternalSignalList(prefix, deep)
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) SetCoverage(filename string){
