@@ -32,9 +32,7 @@ if(SIMULATOR STREQUAL "vcs")
 	# CFLAGS Detect IF CFLAGS is not empty, add -cflags to VCS compile
 	separate_arguments(CFLAGS)
 	if(NOT "${CFLAGS}" STREQUAL "")
-		foreach(CFLAG ${CFLAGS})
-			set(SIMULATOR_FLAGS "${SIMULATOR_FLAGS} -cflags '${CFLAG}'")
-		endforeach()
+		set(SIMULATOR_FLAGS "${SIMULATOR_FLAGS} -CFLAGS \"${CFLAGS}\"")
 		message(STATUS "VCS CFLAGS: ${SIMULATOR_FLAGS}")
 	endif()
 
