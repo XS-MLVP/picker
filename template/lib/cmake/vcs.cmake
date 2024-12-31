@@ -31,9 +31,11 @@ if(SIMULATOR STREQUAL "vcs")
 
 	# CFLAGS Detect IF CFLAGS is not empty, add -cflags to VCS compile
 	separate_arguments(CFLAGS)
+	set(SIMULATOR_CFLAGS "")
 	if(NOT "${CFLAGS}" STREQUAL "")
-		set(SIMULATOR_FLAGS "${SIMULATOR_FLAGS} -CFLAGS \"${CFLAGS}\"")
-		message(STATUS "VCS CFLAGS: ${SIMULATOR_FLAGS}")
+		# add -CFLAGS to VCS compile
+		set(SIMULATOR_CFLAGS "-CFLAGS" "${CFLAGS}")
+		message(STATUS "VCS CFLAGS: ${CFLAGS}")
 	endif()
 
 	# Using Compiled vcs dynamic library
@@ -51,7 +53,7 @@ if(SIMULATOR STREQUAL "vcs")
 			COMMAND
 				vcs -e VcsMain -slave ${VCS_TRACE} -sverilog -lca -l compile.log
 				-top ${ModuleName}_top
-				-full64 -timescale=1ns/1ps ${ModuleName}_top.sv ${ModuleName}.v -f
+				-full64 +vpi -timescale=1ns/1ps ${ModuleName}_top.sv ${ModuleName}.v -f
 				filelist.f -o libDPI${ModuleName}.so +modelsave -LDFLAGS "-shared"
 				${SIMULATOR_FLAGS} -P ${VERDI_HOME}/share/PLI/VCS/LINUX64/novas.tab
 				${VERDI_HOME}/share/PLI/VCS/LINUX64/pli.a)
