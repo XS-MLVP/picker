@@ -163,14 +163,14 @@ DutVerilatorBase::~DutVerilatorBase()
 int DutVerilatorBase::Step(uint64_t ncycle, bool dump)
 {
     cycle += ncycle;
+#if defined(VL_VPI)
+    VerilatedVpi::callValueCbs();
+#endif
     if (dump) {
         for (int i = 0; i < ncycle; i++) {
-#if defined(VL_VPI)
-            VerilatedVpi::callValueCbs(); // for vpi_put_value
-#endif
             ((V{{__TOP_MODULE_NAME__}} *)(top))->eval();
 #if defined(VL_VPI)
-            VerilatedVpi::callValueCbs(); // for vpi_get_value
+            VerilatedVpi::callValueCbs(); 
 #endif
             ((V{{__TOP_MODULE_NAME__}} *)(top))->contextp()->timeInc(1);
         }
@@ -178,6 +178,9 @@ int DutVerilatorBase::Step(uint64_t ncycle, bool dump)
         assert(ncycle == 1);
         ((V{{__TOP_MODULE_NAME__}} *)(top))->eval_step();
     }
+#if defined(VL_VPI)
+    VerilatedVpi::callValueCbs(); 
+#endif
 
     return 0;
 };
