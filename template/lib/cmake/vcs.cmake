@@ -33,14 +33,17 @@ if(SIMULATOR STREQUAL "vcs")
 	set(SIMULATOR_CFLAGS "")
 	if(NOT "${CFLAGS}" STREQUAL "")
 		# add -CFLAGS to VCS compile
-		set(SIMULATOR_CFLAGS "-CFLAGS ${CFLAGS}")
+		set(SIMULATOR_CFLAGS "-CFLAGS;${CFLAGS}")
 		message(STATUS "VCS CFLAGS: ${CFLAGS}")
 	endif()
+	separate_arguments(SIMULATOR_CFLAGS NATIVE_COMMAND ${SIMULATOR_CFLAGS})
 	
 	# if vpi is enabled, add SIMULATOR_FLAGS '+vpi' and '-debug_access+all'
 	if(${VPI} STREQUAL "ON")
-		set(SIMULATOR_FLAGS "${SIMULATOR_FLAGS} +vpi -debug_access+all")
+		set(SIMULATOR_FLAGS "${SIMULATOR_FLAGS};+vpi;-debug_access+all")
 	endif()
+	separate_arguments(SIMULATOR_FLAGS NATIVE_COMMAND ${SIMULATOR_FLAGS})
+
 
 	# Using Compiled vcs dynamic library
 	if(NOT "${VCS_DYN}" STREQUAL "")
