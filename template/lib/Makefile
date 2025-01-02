@@ -17,6 +17,7 @@ all: release
 
 compile:
 	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT)
+	cp pli.tab build/pli.tab
 	cmake --build build --config Debug --parallel `nproc`
 
 release: compile
