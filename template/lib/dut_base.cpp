@@ -86,7 +86,7 @@ void DutVcsBase::SetCoverage(const char *filename)
 {
     XInfo("VCS coverage is not supported");
 };
-void DutVerilatorBase::FlushWaveform()
+void DutVcsBase::FlushWaveform()
 {
     XInfo("VCS waveform is not supported");
 };

@@ -62,6 +62,7 @@ if(SIMULATOR STREQUAL "vcs")
 				${SIMULATOR_FLAGS} 
 				${SIMULATOR_CFLAGS}
 				-P ${VERDI_HOME}/share/PLI/VCS/LINUX64/novas.tab
+				-P pli.tab
 				${VERDI_HOME}/share/PLI/VCS/LINUX64/pli.a)
 	endif()
 
