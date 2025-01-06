@@ -40,6 +40,6 @@ wheel: clean
 	NO_BUILD_XSPCOMM=1 pipx run build
 	cp dependence/xcomm/dist/* ./dist
 
-wheel_install:
+wheel_install: wheel
 	pip uninstall -y xspcomm picker
 	pip install dist/xspcomm*.whl dist/picker*.whl
