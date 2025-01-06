@@ -578,7 +578,7 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
     // Start iterating the initial scope
     vpi_handle_t vpi_handle = _get_vpi_handle_name((char *)scope.c_str(), 0);
     XDebug("Traversing %s %d", scope.c_str(), depth);
-    if (vpi_handle == 0) { XFatal("Failed to find VPI handle %s", scope.c_str()); }
+    if (vpi_handle == 0) { XInfo("Failed to find VPI handle %s", scope.c_str()); return res; }
     XDebug("Found VPI handle 0x%lx, type %ld", vpi_handle, _vpi_get(vpiType, vpi_handle));
 
     // Traverse the VPI handle
