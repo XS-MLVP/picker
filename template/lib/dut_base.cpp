@@ -90,6 +90,14 @@ void DutVcsBase::FlushWaveform()
 {
     XInfo("VCS waveform is not supported");
 };
+void DutVcsBase::WaveformOn()
+{
+    XInfo("VCS waveform is not supported");
+};
+void DutVcsBase::WaveformOff()
+{
+    XInfo("VCS waveform is not supported");
+};
 int DutVcsBase::CheckPoint(const char *filename)
 {
     XFatal("VCS checkpoint is not supported");
@@ -225,7 +233,26 @@ void DutVerilatorBase::FlushWaveform()
     exit(-1);
 #endif
 };
-
+void DutVerilatorBase::WaveformOn()
+{
+#if defined(VL_TRACE)
+    V{{__TOP_MODULE_NAME__}} *topp = (V{{__TOP_MODULE_NAME__}} *)(this->top);
+    topp->rootp->vlSymsp->__Vm_dumping = true;
+#else
+    std::cerr << "Verilator waveform is not enabled";
+    exit(-1);
+#endif
+};
+void DutVerilatorBase::WaveformOff()
+{
+#if defined(VL_TRACE)
+    V{{__TOP_MODULE_NAME__}} *topp = (V{{__TOP_MODULE_NAME__}} *)(this->top);
+    topp->rootp->vlSymsp->__Vm_dumping = false;
+#else
+    std::cerr << "Verilator waveform is not enabled";
+    exit(-1);
+#endif
+};
 void DutVerilatorBase::SetCoverage(const char *filename)
 {
 #if defined(VL_COVERAGE)
@@ -676,6 +703,14 @@ void DutUnifiedBase::SetWaveform(const std::string filename)
 void DutUnifiedBase::FlushWaveform()
 {
     return this->dut->FlushWaveform();
+}
+void DutUnifiedBase::WaveformOn()
+{
+    return this->dut->WaveformOn();
+}
+void DutUnifiedBase::WaveformOff()
+{
+    return this->dut->WaveformOff();
 }
 int DutUnifiedBase::CheckPoint(const char *filename)
 {
