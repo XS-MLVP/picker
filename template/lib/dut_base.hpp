@@ -21,8 +21,7 @@ public:
     // Set waveform file path
     virtual void SetWaveform(const char *filename) = 0;
     virtual void FlushWaveform() = 0;
-    virtual void WaveformOn() = 0;
-    virtual void WaveformOff() = 0;
+    virtual void WaveformEnable(bool enable) = 0;
     // Set coverage file path
     virtual void SetCoverage(const char *filename) = 0;
     // Save Model Status with Simulator Capabilities
@@ -49,8 +48,7 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void FlushWaveform();
-    void WaveformOn();
-    void WaveformOff();
+    void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
@@ -86,8 +84,7 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void FlushWaveform();
-    void WaveformOn();
-    void WaveformOff();
+    void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
@@ -138,8 +135,7 @@ public:
     void SetWaveform(const char *filename);       // Set waveform file path
     void SetWaveform(const std::string filename); // Set waveform file path
     void FlushWaveform();
-    void WaveformOn();
-    void WaveformOff();
+    void WaveformEnable(bool enable=true);
     void SetCoverage(const char *filename);       // Set coverage file path
     void SetCoverage(const std::string filename); // Set coverage file path
     int CheckPoint(const char *filename);
