@@ -74,8 +74,11 @@ make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua make wheel
 编译完成后，wheel 文件位于 dist 目录，然后通过 pip 安装，例如：
 
 ```bash
+# 手动安装whl包
 pip install dist/xspcomm-0.0.1-cp311-cp311-linux_x86_64.whl
 pip install dist/picker-0.0.1-cp311-cp311-linux_x86_64.whl
+# 或者通过以下make命令安装
+make wheel_install
 ```
 
 安装完成后，执行`picker`命令可以得到以下输出:
