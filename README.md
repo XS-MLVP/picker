@@ -76,8 +76,11 @@ make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua make wheel
 After compilation, the wheel file will be located in the dist directory. You can then install it via pip, for example:
 
 ```bash
+# Manually install whl packages
 pip install dist/xspcomm-0.0.1-cp311-cp311-linux_x86_64.whl
 pip install dist/picker-0.0.1-cp311-cp311-linux_x86_64.whl
+# Or install using the following make command
+make wheel_install
 ```
 
 After installation, execute the `picker` command to except the flow output:
