@@ -45,6 +45,8 @@ if(SIMULATOR STREQUAL "verilator")
 		# add vpi flags in SIMULATOR_FLAGS
 		set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--vpi" "--public-flat-rw")
 	endif()
+
+	set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--MAKEFLAGS" "-DVL_INLINE_OPT=inline" "-O3")
 	
 
 	set(VERILATE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/DPI${ModuleName})
@@ -66,9 +68,7 @@ if(SIMULATOR STREQUAL "verilator")
 		${VERILATE_DIRECTORY}
 		${COVERAGE_FLAG}
 		${TRACE_FLAG}
-		OPT_SLOW
-		"-O3"
-		OPT_FAST
+		OPT
 		"-O3"
 		VERILATOR_ARGS
 		-Wno-fatal
