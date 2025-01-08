@@ -19,7 +19,7 @@ compile:
 	mkdir -p build
 	cp pli.tab build/pli.tab
 	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT)
-	cmake --build build --config Debug --parallel `nproc`
+	cmake --build build --config release --parallel `nproc`
 
 release: compile
 	@cp -r build/${TARGET} .

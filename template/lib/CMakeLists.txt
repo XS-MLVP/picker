@@ -7,7 +7,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # enable coroutines
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED)
-set(CFLAGS "$ENV{CFLAGS} -ftls-model=global-dynamic -O3")
+set(CFLAGS "$ENV{CFLAGS} -ftls-model=global-dynamic -flto -O3 -march=native")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines ${CFLAGS}")
 set(SIMULATOR_FLAGS "$ENV{SIMULATOR_FLAGS}")
 set(COVERAGE "$ENV{COVERAGE}")
