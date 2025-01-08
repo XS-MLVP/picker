@@ -20,8 +20,8 @@ public:
 
     // Set waveform file path
     virtual void SetWaveform(const char *filename) = 0;
-    virtual void FlushWaveform() = 0;
-    virtual void WaveformEnable(bool enable) = 0;
+    virtual void FlushWaveform()                   = 0;
+    virtual void WaveformEnable(bool enable)       = 0;
     // Set coverage file path
     virtual void SetCoverage(const char *filename) = 0;
     // Save Model Status with Simulator Capabilities
@@ -110,36 +110,70 @@ protected:
 #endif
 
 public:
+    // Multi-arg constructor
     DutUnifiedBase();
     DutUnifiedBase(int argc, char **argv);
     DutUnifiedBase(char *filename);
     DutUnifiedBase(char *filename, int argc, char **argv);
     DutUnifiedBase(std::initializer_list<const char *> args);
     DutUnifiedBase(std::vector<std::string> args);
+
+    // Destructor
     ~DutUnifiedBase();
+
+    // Call simulator instance to initialize
     void init(int, const char **);
-    int simStep();
-    int stepNoDump();
-    int simStep(bool dump);
+
+    // Do simulate
+    int simStep(bool dump); // Simulate 1 cycle
     int simStep(uint64_t cycle, bool dump);
-    int RefreshComb();
+    int RefreshComb(); // Simulate, but time doesn't pass
+
+    // Do simulate with xcomm lib
+    uint64_t pSelf = (uint64_t)this;
+    uint64_t pxcStep = (uint64_t)&xcommStep;
+    static int xcommStep(uint64_t base_ptr, uint64_t cycle, bool dump);
+
+    // Clean up and dump result
     int Finish();
+
+    // Get DPI handle for XData
     uint64_t GetDPIHandle(char *name, int towards);
     uint64_t GetDPIHandle(std::string name, int towards);
+
+    // Get VPI function pointer to use VPI functions
     uint64_t GetVPIFuncPtr(const char *name);
     uint64_t GetVPIFuncPtr(std::string name);
+
+    // Get VPI handle object to apply VPI operations
     uint64_t GetVPIHandleObj(const char *name);
     uint64_t GetVPIHandleObj(std::string name);
+
+    // Iterate all internal signals
     std::vector<std::string> VPIInternalSignalList(char *name, int depth);
     std::vector<std::string> VPIInternalSignalList(std::string name, int depth);
-    void SetWaveform(const char *filename);       // Set waveform file path
-    void SetWaveform(const std::string filename); // Set waveform file path
+
+    // Set waveform file path
+    void SetWaveform(const char *filename);
+    void SetWaveform(const std::string filename);
+
+    // Flush waveform from mem cache to file
     void FlushWaveform();
-    void WaveformEnable(bool enable=true);
-    void SetCoverage(const char *filename);       // Set coverage file path
-    void SetCoverage(const std::string filename); // Set coverage file path
+
+    // Set whether waveform is logged to file or not (time still pass)
+    void WaveformEnable(bool enable = true);
+
+    // Set coverage file path
+    void SetCoverage(const char *filename);      
+    void SetCoverage(const std::string filename); 
+
+    // Save Model Status with Simulator Capabilities
+    // Return current cycle, warning: strictly limited to same design
     int CheckPoint(const char *filename);
     int CheckPoint(const std::string filename);
+
+    // Load Model Status with Simulator Capabilities
+    // Return current cycle, warning: strictly limited to same design
     int Restore(const char *filename);
     int Restore(const std::string filename);
 };

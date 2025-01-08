@@ -624,30 +624,18 @@ uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
     free(func_name);
     return (uint64_t)func;
 }
-
-int DutUnifiedBase::simStep()
-{
-    return this->simStep(1, 1);
-}
-int DutUnifiedBase::stepNoDump()
-{
-    return this->simStep(1, 0);
-}
 int DutUnifiedBase::simStep(bool dump)
 {
     return this->simStep(1, dump);
 }
 int DutUnifiedBase::simStep(uint64_t cycle, bool dump)
 {
-    // if (this->lib_handle == nullptr) {
-    //     return this->dut->Step(cycle, dump);
-    // }
-    // step_t *simStep = (step_t *)dlsym(this->lib_handle, "dlstep");
-    // if (!simStep) {
-    //     XFatal("Failed to find simStep function");
-    // }
-    // simStep(this->dut, cycle, dump);
     return this->dut->Step(cycle, dump);
+}
+int DutUnifiedBase::xcommStep(uint64_t base_ptr, uint64_t cycle, bool dump)
+{
+    DutUnifiedBase *dut = (DutUnifiedBase *)base_ptr;
+    return dut->simStep(cycle, dump);
 }
 int DutUnifiedBase::RefreshComb()
 {
