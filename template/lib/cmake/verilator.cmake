@@ -35,6 +35,7 @@ if(SIMULATOR STREQUAL "verilator")
 		set(COVERAGE_FLAG "")
 	endif()
 	# set save/restore flags
+
 	if(${CHECKPOINTS} STREQUAL "ON")
 		add_definitions(-DVL_SAVEABLE)
 		set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--savable")
@@ -46,7 +47,8 @@ if(SIMULATOR STREQUAL "verilator")
 		set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--vpi" "--public-flat-rw")
 	endif()
 
-	set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--MAKEFLAGS" "-DVL_INLINE_OPT=inline" "-O3")
+	set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--MAKEFLAGS" "-DVL_INLINE_OPT=inline" "-O3" "--instr-count-dpi" "0")
+	message(STATUS "Verilator flags: ${SIMULATOR_FLAGS}")
 	
 
 	set(VERILATE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/DPI${ModuleName})
