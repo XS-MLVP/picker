@@ -9,7 +9,7 @@ namespace picker { namespace codegen {
         static const std::string xdata_bindrw_template =
             "        self.{{pin_uniq_name}}.BindDPIPtr(self.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xdata_bindptr_template =
-            "        self.{{pin_uniq_name}}.BindNativeData(self.dut.NativeSignalGet(\"{{logic_pin}}\"))\n";
+            "        self.{{pin_uniq_name}}.BindNativeData(self.dut.NativeSignalAddr(\"{{logic_pin}}\"))\n";
         static const std::string xport_add_template =
             "        self.xport.Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}}.xdata)\n";
         static const std::string xport_cascaded_template =
