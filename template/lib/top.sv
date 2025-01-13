@@ -1,6 +1,10 @@
-module {{__TOP_MODULE_NAME__}}_top;
+module {{__TOP_MODULE_NAME__}}_top(
+    {{__INOUT_PIN_DECLARATION__}}
+);
 
 {{__LOGIC_PIN_DECLARATION__}}
+
+{{__INOUT_PIN_ASSIGNMENT__}}
 
 {{__INNER_MODULES__}}
 

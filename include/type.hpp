@@ -36,6 +36,7 @@ typedef struct export_opts {
     bool example;
     bool autobuild;
     bool cp_lib;
+    bool native;
     std::vector<std::string> transaction;
     std::string rname;
 } export_opts;

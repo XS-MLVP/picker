@@ -8,6 +8,8 @@ public:
     uint64_t cycle;
     int argc;
     char **argv;
+    std::map<std::string, uint64_t> native_singnals;
+    bool native_singnal_enable = false;
 
     // Initialize
     DutBase();
@@ -28,6 +30,10 @@ public:
     virtual int CheckPoint(const char *filename) = 0;
     // Load Model Status with Simulator Capabilities
     virtual int Restore(const char *filename) = 0;
+    // Has native signal support
+    virtual bool NativeSignalEnabled() { return native_singnal_enable; }
+    virtual uint64_t NativeSignalGet(std::string &name);
+    virtual std::vector<std::string> NativeSignalList(std::string &name, int depth);
 };
 
 #if defined(USE_VERILATOR)
@@ -176,6 +182,11 @@ public:
     // Return current cycle, warning: strictly limited to same design
     int Restore(const char *filename);
     int Restore(const std::string filename);
+
+    // Native signal support
+    bool NativeSignalEnabled();
+    uint64_t NativeSignalGet(std::string name);
+    std::vector<std::string> NativeSignalList(std::string name, int depth=99);
 };
 
 extern int enable_xinfo;

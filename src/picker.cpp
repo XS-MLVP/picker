@@ -110,6 +110,9 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_option("-C,--cflag", export_opts.cflag,
                     "User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'");
 
+    // Use Native signal, optional, default is OFF
+    app->add_flag("--native", export_opts.native, "Use native signal, it only support verilator now, default is OFF");
+
     // app->add_option(
     //     "-r,--rename", export_opts.rename,
     //     "User defined gcc/clang compile command, passthrough. Eg:'-O3
@@ -196,6 +199,14 @@ int main(int argc, char **argv)
         }
         PK_MESSAGE("%s", temp_path.c_str());
         exit(0);
+    }
+
+    // check backend native signal support
+    if (export_opts.native) {
+        if (export_opts.sim != "verilator") {
+            PK_ERROR("Native signal only support by verilator simulator");
+            exit(1);
+        }
     }
 
     // get xcom lib location

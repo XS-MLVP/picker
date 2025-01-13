@@ -3,6 +3,9 @@
 #include <unistd.h>
 #include <string>
 #include <cstdlib>
+#include <sstream>
+#include <vector>
+#include <map>
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -14,6 +17,26 @@ DutBase::DutBase()
     cycle = 0;
     argc  = 0;
     argv  = nullptr;
+}
+
+uint64_t DutBase::NativeSignalGet(std::string &name){
+    if(this->native_singnals.count(name))return this->native_singnals[name];
+    return 0;
+}
+
+std::vector<std::string> DutBase::NativeSignalList(std::string &name, int depth){
+    std::vector<std::string> result;
+    for (const auto& pair : this->native_singnals) {
+        std::string key = pair.first;
+        if (name != ""){
+            if(key.find(name) != 0)continue;
+            key = key.substr(name.length());
+        }
+        if(std::count(key.begin(), key.end(), '.') < depth){
+            result.push_back(pair.first);
+        }
+    }
+    return result;
 }
 
 #if defined(USE_VCS)
@@ -155,6 +178,10 @@ void DutVerilatorBase::init(int argc, char **argv)
 
     // set cycle pointer to 0
     this->cycle = 0;
+
+    // init native signlas
+{{__NATIVE_SIGNAL_INIT__}}
+
 };
 
 DutVerilatorBase::~DutVerilatorBase()
@@ -699,6 +726,18 @@ int DutUnifiedBase::Restore(const char *filename)
 int DutUnifiedBase::Restore(const std::string filename)
 {
     return this->dut->Restore(filename.c_str());
+}
+
+bool DutUnifiedBase::NativeSignalEnabled(){
+    return this->dut->NativeSignalEnabled();
+}
+
+uint64_t DutUnifiedBase::NativeSignalGet(std::string name){
+    return this->dut->NativeSignalGet(name);
+}
+
+std::vector<std::string> DutUnifiedBase::NativeSignalList(std::string name, int depth){
+    return this->dut->NativeSignalList(name, depth);
 }
 
 DutUnifiedBase::~DutUnifiedBase()
