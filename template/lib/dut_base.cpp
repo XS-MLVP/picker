@@ -19,14 +19,32 @@ DutBase::DutBase()
     argv  = nullptr;
 }
 
-uint64_t DutBase::NativeSignalGet(std::string &name){
-    if(this->native_singnals.count(name))return this->native_singnals[name];
-    return 0;
+bool DutBase::NativeSignalEnabled() {
+    return this->native_signal_enable;
+}
+
+native_signal_t DutBase::NativeSignalGet(std::string &name){
+    native_signal_t ret = {
+        .addr = 0,
+        .width = -1
+    };
+    if(this->native_signals.count(name)){
+        ret = this->native_signals[name];
+    }
+    return ret;
+}
+
+uint64_t DutBase::NativeSignalAddr(std::string &name){
+    return this->NativeSignalGet(name).addr;
+}
+
+int DutBase::NativeSignalWidth(std::string &name){
+    return this->NativeSignalGet(name).width;
 }
 
 std::vector<std::string> DutBase::NativeSignalList(std::string &name, int depth){
     std::vector<std::string> result;
-    for (const auto& pair : this->native_singnals) {
+    for (const auto& pair : this->native_signals) {
         std::string key = pair.first;
         if (name != ""){
             if(key.find(name) != 0)continue;
@@ -732,8 +750,16 @@ bool DutUnifiedBase::NativeSignalEnabled(){
     return this->dut->NativeSignalEnabled();
 }
 
-uint64_t DutUnifiedBase::NativeSignalGet(std::string name){
+uint64_t DutUnifiedBase::NativeSignalAddr(std::string name){
+    return this->dut->NativeSignalAddr(name);
+}
+
+native_signal_t DutUnifiedBase::NativeSignalGet(std::string name){
     return this->dut->NativeSignalGet(name);
+}
+
+int DutUnifiedBase::NativeSignalWidth(std::string name){
+    return this->dut->NativeSignalWidth(name);
 }
 
 std::vector<std::string> DutUnifiedBase::NativeSignalList(std::string name, int depth){
