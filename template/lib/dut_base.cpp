@@ -149,9 +149,9 @@ int DutVcsBase::Restore(const char *filename)
 #if defined(USE_VERILATOR)
 #include "verilated.h"
 #include "V{{__TOP_MODULE_NAME__}}.h"
+#include "V{{__TOP_MODULE_NAME__}}___024root.h"
 
 #if defined(VL_TRACE)
-#include "V{{__TOP_MODULE_NAME__}}___024root.h"
 #include "V{{__TOP_MODULE_NAME__}}__Syms.h"
 #endif
 
