@@ -122,6 +122,18 @@ namespace picker { namespace codegen {
         std::string verilaotr_coverage, vcs_coverage;
     }
 
+    native_func get_native_signal_processer(picker::export_opts &opts, nlohmann::json &result){
+        std::string singnal_init   = "    // NativeSignalInit is not enabled";
+        result["__NATIVE_SIGNAL_INIT__"] = singnal_init;
+        if (opts.native) {
+            if (opts.sim != "verilator") {
+                PK_FATAL("Native signal only support by verilator simulator");
+            }
+            return picker::native_verilator::native_signal;
+        }
+        return nullptr;
+    }
+
     std::vector<picker::sv_signal_define> lib(picker::export_opts &opts,
                                               const std::vector<picker::sv_module_define> sv_module_result,
                                               const std::vector<picker::sv_signal_define> &internal_pin,
@@ -151,6 +163,11 @@ namespace picker { namespace codegen {
 
         // Render lib filelist
         gen_filelist(files, ifilelists, ofilelist);
+
+        auto native_signal_processer = picker::codegen::get_native_signal_processer(opts, data);
+        if (native_signal_processer != nullptr) {
+            native_signal_processer(opts, ret, internal_pin, data);
+        }
 
         data["__VCS_CLOCK_PERIOD_HIGH__"]  = vcs_clock_period_h;
         data["__VCS_CLOCK_PERIOD_LOW__"]   = vcs_clock_period_l;

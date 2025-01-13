@@ -9,6 +9,9 @@ namespace picker { namespace codegen {
         static const std::string pin_connect_template           = "    .{{raw_pin}}({{logic_pin}}),\n";
         static const std::string logic_pin_declaration_template = "  logic {{logic_pin_length}} {{logic_pin}};\n";
         static const std::string wire_pin_declaration_template  = "  wire {{logic_pin_length}} {{logic_pin}};\n";
+        static const std::string inout_pin_declaration_template = "  {{io_type}} {{logic_pin_length}} {{__LIB_DPI_FUNC_NAME_HASH__}}_{{logic_pin}},\n";
+        static const std::string inout_pin_iassignment_template  = "  assign {{logic_pin}} = {{__LIB_DPI_FUNC_NAME_HASH__}}_{{logic_pin}};\n";
+        static const std::string inout_pin_oassignment_template  = "  assign {{__LIB_DPI_FUNC_NAME_HASH__}}_{{logic_pin}} = {{logic_pin}};\n";
 
         static const std::string dpi_get_export_template =
             "  export \"DPI-C\" function get_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n";
@@ -41,7 +44,7 @@ namespace picker { namespace codegen {
         /// @param dpi_export
         /// @param dpi_impl
         std::vector<picker::sv_signal_define>
-        render_external_pin(std::vector<picker::sv_module_define> sv_module_result, std::string &inner_modules,
+        render_external_pin(std::vector<picker::sv_module_define> sv_module_result, std::string &inner_modules, std::string &inout_pin, std::string &inout_assi,
                             std::string &logic, std::string &wire, std::string &dpi_export, std::string &dpi_impl)
         {
             std::vector<picker::sv_signal_define> ret;
@@ -67,6 +70,7 @@ namespace picker { namespace codegen {
                         picker::sv_signal_define temp_pin = pin[i];
                         temp_pin.logic_pin                = pin_prefix + pin[i].logic_pin;
                         ret.push_back(temp_pin); // pins need export
+                        data["io_type"]                    = pin[i].logic_pin_type;
                         data["raw_pin"]                    = pin[i].logic_pin;
                         data["logic_pin"]                  = temp_pin.logic_pin;
                         data["logic_pin_type"]             = pin[i].logic_pin_type;
@@ -77,6 +81,7 @@ namespace picker { namespace codegen {
                                                        "" :
                                                        "[" + std::to_string(pin[i].logic_pin_hb) + ":"
                                                            + std::to_string(pin[i].logic_pin_lb) + "]";
+                        inout_pin += env.render(inout_pin_declaration_template, data);
                         pin_connect += env.render(pin_connect_template, data);
                         logic += env.render(logic_pin_declaration_template, data);
                         wire += env.render(wire_pin_declaration_template, data);
@@ -85,6 +90,9 @@ namespace picker { namespace codegen {
                         if (pin[i].logic_pin_type != "output") {
                             dpi_export += env.render(dpi_set_export_template, data);
                             dpi_impl += env.render(dpi_set_impl_template, data);
+                            inout_assi += env.render(inout_pin_iassignment_template, data);
+                        }else{
+                            inout_assi += env.render(inout_pin_oassignment_template, data);
                         }
                     }
                     if (pin_connect.length() == 0)
@@ -331,14 +339,16 @@ namespace picker { namespace codegen {
                                                        nlohmann::json &signal_tree_json,
                                                        const std::string &wave_file_name, const std::string &simulator)
     {
-        std::string inner_modules, logic, wire, dpi_export, dpi_impl, signal_tree, extend_sv;
+        std::string inner_modules, logic, wire, dpi_export, dpi_impl, signal_tree, extend_sv, inout_pin, inout_assi;
 
-        auto external_pin = sv::render_external_pin(sv_module_result, inner_modules, logic, wire, dpi_export, dpi_impl);
+        auto external_pin = sv::render_external_pin(sv_module_result, inner_modules, inout_pin, inout_assi, logic, wire, dpi_export, dpi_impl);
         sv::render_internal_signal(internal_signal, dpi_export, dpi_impl);
         sv::render_sv_waveform(simulator, wave_file_name, global_render_data);
         sv::render_signal_tree(external_pin, internal_signal, signal_tree, signal_tree_json);
         sv::render_extend_sv(global_render_data, extend_sv);
 
+        global_render_data["__INOUT_PIN_DECLARATION__"]   = inout_pin;
+        global_render_data["__INOUT_PIN_ASSIGNMENT__"]    = inout_assi;
         global_render_data["__LOGIC_PIN_DECLARATION__"]  = logic;
         global_render_data["__WIRE_PIN_DECLARATION__"]   = wire;
         global_render_data["__INNER_MODULES__"]          = inner_modules;
