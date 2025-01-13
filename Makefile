@@ -14,7 +14,7 @@ build:
     	echo "https://github.com/chipsalliance/verible/releases/tag/v0.0-3428-gcfcbb82b"; \
 		exit 1; \
 	fi
-	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release $(ARGS)
+	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS)
 	cd build && make -j`nproc`
 
 install: build

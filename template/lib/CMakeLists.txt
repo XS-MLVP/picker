@@ -3,11 +3,15 @@ cmake_minimum_required(VERSION 3.11)
 set(ModuleName ${PROJECT})
 project(${ModuleName} VERSION 1.0)
 
+if(DEFINED CMAKE_BUILD_PARALLEL)
+    set(INNER_CMAKE_BUILD_PARALLEL "=${CMAKE_BUILD_PARALLEL}")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # enable coroutines
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED)
-set(CFLAGS "$ENV{CFLAGS} -ftls-model=global-dynamic -flto -O3 -march=native")
+set(CFLAGS "$ENV{CFLAGS} -ftls-model=global-dynamic -flto${INNER_CMAKE_BUILD_PARALLEL} -O3 -march=native")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines ${CFLAGS}")
 set(SIMULATOR_FLAGS "$ENV{SIMULATOR_FLAGS}")
 set(COVERAGE "$ENV{COVERAGE}")
