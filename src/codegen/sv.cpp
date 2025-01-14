@@ -337,7 +337,7 @@ namespace picker { namespace codegen {
                                                        const std::vector<picker::sv_module_define> &sv_module_result,
                                                        const std::vector<picker::sv_signal_define> &internal_signal,
                                                        nlohmann::json &signal_tree_json,
-                                                       const std::string &wave_file_name, const std::string &simulator)
+                                                       const std::string &wave_file_name, const std::string &simulator, bool native)
     {
         std::string inner_modules, logic, wire, dpi_export, dpi_impl, signal_tree, extend_sv, inout_pin, inout_assi;
 
@@ -346,6 +346,11 @@ namespace picker { namespace codegen {
         sv::render_sv_waveform(simulator, wave_file_name, global_render_data);
         sv::render_signal_tree(external_pin, internal_signal, signal_tree, signal_tree_json);
         sv::render_extend_sv(global_render_data, extend_sv);
+
+        if(!native){
+            inout_pin = "";
+            inout_assi = "";
+        }
 
         global_render_data["__INOUT_PIN_DECLARATION__"]   = inout_pin;
         global_render_data["__INOUT_PIN_ASSIGNMENT__"]    = inout_assi;
