@@ -154,7 +154,7 @@ namespace picker { namespace codegen {
 
         data["__TOP_MODULE_NAME__"] = dst_module_name;
 
-        ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator);
+        ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator, opts.native);
         gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag, env, data);
 
         // Set clock period
