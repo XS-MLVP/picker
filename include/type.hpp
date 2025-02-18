@@ -3,6 +3,12 @@
 
 namespace picker {
 
+
+enum class SignalAccessType : int {
+    DPI = 0,
+    MEM_DIRECT = 1,
+};
+
 typedef struct main_opts {
     bool version;
     bool show_default_template_path;
@@ -36,7 +42,7 @@ typedef struct export_opts {
     bool example;
     bool autobuild;
     bool cp_lib;
-    bool native;
+    SignalAccessType rw_type;
     std::vector<std::string> transaction;
     std::string rname;
 } export_opts;

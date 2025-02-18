@@ -122,18 +122,6 @@ namespace picker { namespace codegen {
         std::string verilaotr_coverage, vcs_coverage;
     }
 
-    native_func get_native_signal_processer(picker::export_opts &opts, nlohmann::json &result){
-        std::string singnal_init   = "    // NativeSignalInit is not enabled";
-        result["__NATIVE_SIGNAL_INIT__"] = singnal_init;
-        if (opts.native) {
-            if (opts.sim != "verilator") {
-                PK_FATAL("Native signal only support by verilator simulator");
-            }
-            return picker::native_verilator::native_signal;
-        }
-        return nullptr;
-    }
-
     std::vector<picker::sv_signal_define> lib(picker::export_opts &opts,
                                               const std::vector<picker::sv_module_define> sv_module_result,
                                               const std::vector<picker::sv_signal_define> &internal_pin,
@@ -154,7 +142,7 @@ namespace picker { namespace codegen {
 
         data["__TOP_MODULE_NAME__"] = dst_module_name;
 
-        ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator, opts.native);
+        ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator, opts.rw_type);
         gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag, env, data);
 
         // Set clock period
@@ -163,11 +151,6 @@ namespace picker { namespace codegen {
 
         // Render lib filelist
         gen_filelist(files, ifilelists, ofilelist);
-
-        auto native_signal_processer = picker::codegen::get_native_signal_processer(opts, data);
-        if (native_signal_processer != nullptr) {
-            native_signal_processer(opts, ret, internal_pin, data);
-        }
 
         data["__VCS_CLOCK_PERIOD_HIGH__"]  = vcs_clock_period_h;
         data["__VCS_CLOCK_PERIOD_LOW__"]   = vcs_clock_period_l;
@@ -179,6 +162,8 @@ namespace picker { namespace codegen {
         data["__TARGET_LANGUAGE__"]        = opts.language;
         data["__FILELIST__"]               = ofilelist;
         data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
+        data["__GENERATOR_PICKER_PATH__"] = std::filesystem::read_symlink("/proc/self/exe").string();
+        data["__GENERATOR_TEMPLATE_PATH__"] = std::filesystem::path(opts.source_dir).string();
 
         // Render lib files
         recursive_render(src_dir, dst_dir, data, env);

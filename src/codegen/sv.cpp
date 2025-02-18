@@ -9,6 +9,8 @@ namespace picker { namespace codegen {
         static const std::string pin_connect_template           = "    .{{raw_pin}}({{logic_pin}}),\n";
         static const std::string logic_pin_declaration_template = "  logic {{logic_pin_length}} {{logic_pin}};\n";
         static const std::string wire_pin_declaration_template  = "  wire {{logic_pin_length}} {{logic_pin}};\n";
+
+        // Because logic pins cannot be instantiated by Verilator, we need inout expr for instantiation
         static const std::string inout_pin_declaration_template = "  {{io_type}} {{logic_pin_length}} {{__LIB_DPI_FUNC_NAME_HASH__}}_{{logic_pin}},\n";
         static const std::string inout_pin_iassignment_template  = "  assign {{logic_pin}} = {{__LIB_DPI_FUNC_NAME_HASH__}}_{{logic_pin}};\n";
         static const std::string inout_pin_oassignment_template  = "  assign {{__LIB_DPI_FUNC_NAME_HASH__}}_{{logic_pin}} = {{logic_pin}};\n";
@@ -337,7 +339,7 @@ namespace picker { namespace codegen {
                                                        const std::vector<picker::sv_module_define> &sv_module_result,
                                                        const std::vector<picker::sv_signal_define> &internal_signal,
                                                        nlohmann::json &signal_tree_json,
-                                                       const std::string &wave_file_name, const std::string &simulator, bool native)
+                                                       const std::string &wave_file_name, const std::string &simulator, SignalAccessType rw_type)
     {
         std::string inner_modules, logic, wire, dpi_export, dpi_impl, signal_tree, extend_sv, inout_pin, inout_assi;
 
@@ -347,13 +349,18 @@ namespace picker { namespace codegen {
         sv::render_signal_tree(external_pin, internal_signal, signal_tree, signal_tree_json);
         sv::render_extend_sv(global_render_data, extend_sv);
 
-        if(!native){
-            inout_pin = "";
-            inout_assi = "";
+        switch (rw_type) {
+            // If MEM_DIRECT is not used, there's no need to instantiate input/output variables, so no rendering is needed.
+            case SignalAccessType::DPI:
+                global_render_data["__INOUT_PIN_DECLARATION__"] = "";
+                global_render_data["__INOUT_PIN_ASSIGNMENT__"]  = "";
+                break;
+            case SignalAccessType::MEM_DIRECT:
+                global_render_data["__INOUT_PIN_DECLARATION__"] = inout_pin;
+                global_render_data["__INOUT_PIN_ASSIGNMENT__"]  = inout_assi;
+                break;
         }
 
-        global_render_data["__INOUT_PIN_DECLARATION__"]   = inout_pin;
-        global_render_data["__INOUT_PIN_ASSIGNMENT__"]    = inout_assi;
         global_render_data["__LOGIC_PIN_DECLARATION__"]  = logic;
         global_render_data["__WIRE_PIN_DECLARATION__"]   = wire;
         global_render_data["__INNER_MODULES__"]          = inner_modules;

@@ -6,7 +6,7 @@ namespace picker { namespace codegen {
     namespace lua_scope {
         static const std::string xdata_init_template =
             "    self.{{pin_uniq_name}} = xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}})\n";
-        static const std::string xdata_bindrw_template =
+        static const std::string xdata_binddpi_template =
             "    self.{{pin_uniq_name}}:BindDPIPtr(self.dut:GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut:GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xport_add_template =
             "    self.xport:Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}})\n";
@@ -37,7 +37,7 @@ namespace picker { namespace codegen {
                                                pin[i].logic_pin_hb - pin[i].logic_pin_lb + 1;
 
                 xdata_init   = xdata_init + env.render(xdata_init_template, data);
-                xdata_bindrw = xdata_bindrw + env.render(xdata_bindrw_template, data);
+                xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
                 xport_add    = xport_add + env.render(xport_add_template, data);
             }
         }
@@ -67,7 +67,7 @@ namespace picker { namespace codegen {
                 data["logic_pin_type"] = "Out";
 
                 xdata_init   = xdata_init + env.render(xdata_init_template, data);
-                xdata_bindrw = xdata_bindrw + env.render(xdata_bindrw_template, data);
+                xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
                 xport_add    = xport_add + env.render(xport_add_template, data);
             }
         };

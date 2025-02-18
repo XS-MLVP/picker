@@ -11,7 +11,7 @@ set(source_file
      lib.cpp
      lua.cpp
      uvm.cpp
-     native_verilator.cpp
+     mem_direct.cpp
 )
 
 add_library(codegen ${source_file})

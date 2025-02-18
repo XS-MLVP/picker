@@ -21,21 +21,32 @@ compile:
 	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=`nproc`
 	cmake --build build --config release --parallel `nproc`
 
+	@{{__GENERATOR_PICKER_PATH__}} export build/DPI{{__TOP_MODULE_NAME__}}/V{{__TOP_MODULE_NAME__}}___024root.h \
+		--source_dir {{__GENERATOR_TEMPLATE_PATH__}}/mem_direct --target_dir ./mem_direct \
+		--source_module_name {{__TOP_MODULE_NAME__}}
+	@cd mem_direct && g++  gen_addr.cpp -o export.bin \
+		-I ../build/DPI{{__TOP_MODULE_NAME__}} \
+		-I /opt/verilator5/share/verilator/include \
+		-I /opt/verilator5/share/verilator/include/vltstd/ \
+		-L../build -lDPI{{__TOP_MODULE_NAME__}} -lpthread  
+	@./mem_direct/export.bin > mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml
+
 release: compile
 	@cp -r build/${TARGET} .
 	@cp dut_base.hpp ${TARGET}/dut_base.hpp
+	@cp mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml ${TARGET}/{{__TOP_MODULE_NAME__}}_offset.yaml
 	@make -f mk/${TLANG}.mk
 
 ifeq ($(VERBOSE), OFF) # if VERBOSE is OFF
-
+	@rm -rf build cmake cpp mk python java scala golang lua CMakeLists.txt dut_base.* 2>/dev/null|| true
+	@rm -rf ${TARGET}.cpp filelist.f *.fst 2>/dev/null|| true
+	@rm -rf mem_direct
+	@mv ${TARGET}/*.v ${TARGET}/*.sv . 2>/dev/null|| true
+	@cd ${TARGET} && make purge
 ifeq ($(COVERAGE), OFF)
 	@rm Makefile
 	@rm *.v *.sv
 endif
-	@rm -rf build cmake cpp mk python java scala golang lua CMakeLists.txt dut_base.* 2>/dev/null|| true
-	@rm -rf ${TARGET}.cpp filelist.f *.fst 2>/dev/null|| true
-	@mv ${TARGET}/*.v ${TARGET}/*.sv . 2>/dev/null|| true
-	@cd ${TARGET} && make purge
 endif
 
 coverage:

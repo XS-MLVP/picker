@@ -5,6 +5,7 @@ set(source_file
      sv.cpp
      internalcfg.cpp
      uvm.cpp
+     verilator_root.cpp
 )
 
 add_library(parser ${source_file})

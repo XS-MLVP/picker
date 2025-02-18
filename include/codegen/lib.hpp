@@ -3,7 +3,6 @@
 #include <bits/stdc++.h>
 #include "picker.hpp"
 #include "parser/sv.hpp"
-#include "native_verilator.hpp"
 
 namespace picker { namespace codegen {
 

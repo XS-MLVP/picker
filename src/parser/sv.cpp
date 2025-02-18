@@ -12,22 +12,6 @@ namespace picker { namespace parser {
 
     std::vector<picker::sv_signal_define> sv_pin(nlohmann::json &module_token, std::string &src_module_name)
     {
-        // nlohmann::json res_token;
-        // for (auto it = module_token.begin(); it != module_token.end();) {
-        //     auto itemV    = it.value();
-        //     std::string a = itemV["tag"];
-        //     if (a.size() > 1 ) res_token.push_back(itemV);
-        //     if (a == "+" || a=="-" || a=="*" || a=="/" || a=="=" || a=="<" ||
-        //     a==">" || a=="&" || a=="|" || a=="!" || a=="~" || a=="^" ||
-        //     a=="%" || a=="?" || a==":" || a=="," || a==";" || a=="." ||
-        //     a=="(" || a==")" || a=="[" || a=="]" || a=="{" || a=="}" ||
-        //     a=="@" || a=="#" || a=="$") {
-        //         it = module_token.erase(it);
-        //     } else
-        //     it++;
-        // }
-        // module_token = res_token;
-
         PK_MESSAGE("want module: %s", src_module_name.c_str());
 
         // 解析module_token，将解析好的pin_name\pin_length\pin_type都push进pin数组并返回。

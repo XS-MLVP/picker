@@ -24,6 +24,7 @@
 #include "codegen/lua.hpp"
 #include "parser/sv.hpp"
 #include "parser/internalcfg.hpp"
+#include "parser/verilator_root.hpp"
 
 namespace picker {
 
