@@ -4,8 +4,9 @@ all: clean build
 
 init:
 	rm -rf dependence/xcomm
-	git clone https://github.com/XS-MLVP/xcomm.git dependence/xcomm
-	cd dependence/xcomm && git checkout master
+	git clone https://github.com/XS-MLVP/xcomm.git dependence/xcomm 
+	# checkout the same branch as the parent project
+	@PARENT_BRANCH=`git branch --show-current` && cd dependence/xcomm && git checkout $$PARENT_BRANCH || echo "there is no branch $$PARENT_BRANCH in xcomm"
 	
 build:
 	@if ! command -v verible-verilog-format ; then \

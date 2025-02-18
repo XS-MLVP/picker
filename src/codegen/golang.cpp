@@ -7,7 +7,7 @@ namespace picker { namespace codegen {
         static const std::string xdata_declare_template = "    {{pin_uniq_name}} xspcomm.XData\n";
         static const std::string xdata_init_template =
             "    self.{{pin_uniq_name}} = xspcomm.NewXData({{logic_pin_length}}, xspcomm.{{logic_pin_type}})\n";
-        static const std::string xdata_bindrw_template =
+        static const std::string xdata_binddpi_template =
             "    self.{{pin_uniq_name}}.BindDPIPtr(self.Dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.Dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xport_add_template =
             "    self.Xport.Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}})\n";
@@ -42,7 +42,7 @@ namespace picker { namespace codegen {
                 xdata_decl = xdata_decl + env.render(xdata_declare_template, data);
 
                 xdata_init   = xdata_init + env.render(xdata_init_template, data);
-                xdata_bindrw = xdata_bindrw + env.render(xdata_bindrw_template, data);
+                xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
                 xport_add    = xport_add + env.render(xport_add_template, data);
             }
         }
@@ -75,7 +75,7 @@ namespace picker { namespace codegen {
                 xdata_decl = xdata_decl + env.render(xdata_declare_template, data);
 
                 xdata_init   = xdata_init + env.render(xdata_init_template, data);
-                xdata_bindrw = xdata_bindrw + env.render(xdata_bindrw_template, data);
+                xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
                 xport_add    = xport_add + env.render(xport_add_template, data);
             }
         };

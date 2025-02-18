@@ -2,10 +2,6 @@
 #include <bits/stdc++.h>
 #include <svdpi.h>
 
-typedef struct {
-    uint64_t addr;
-    int width;
-} native_signal_t;
 
 class DutBase
 {
@@ -13,8 +9,6 @@ public:
     uint64_t cycle;
     int argc;
     char **argv;
-    std::map<std::string, native_signal_t> native_signals;
-    bool native_signal_enable = false;
 
     // Initialize
     DutBase();
@@ -35,12 +29,6 @@ public:
     virtual int CheckPoint(const char *filename) = 0;
     // Load Model Status with Simulator Capabilities
     virtual int Restore(const char *filename) = 0;
-    // Has native signal support
-    virtual bool NativeSignalEnabled();
-    virtual uint64_t NativeSignalAddr(std::string &name);
-    virtual native_signal_t NativeSignalGet(std::string &name);
-    virtual int NativeSignalWidth(std::string &name);
-    virtual std::vector<std::string> NativeSignalList(std::string &name, int depth);
 };
 
 #if defined(USE_VERILATOR)
@@ -166,6 +154,10 @@ public:
     std::vector<std::string> VPIInternalSignalList(char *name, int depth);
     std::vector<std::string> VPIInternalSignalList(std::string name, int depth);
 
+    // Get Library Path for Locate XSignalCFG ymal config
+    std::string GetXSignalCFGPath();
+    uint64_t GetXSignalCFGBasePtr();
+
     // Set waveform file path
     void SetWaveform(const char *filename);
     void SetWaveform(const std::string filename);
@@ -189,13 +181,6 @@ public:
     // Return current cycle, warning: strictly limited to same design
     int Restore(const char *filename);
     int Restore(const std::string filename);
-
-    // Native signal support
-    bool NativeSignalEnabled();
-    native_signal_t NativeSignalGet(std::string name);
-    int NativeSignalWidth(std::string name);
-    uint64_t NativeSignalAddr(std::string name);
-    std::vector<std::string> NativeSignalList(std::string name, int depth=99);
 };
 
 extern int enable_xinfo;

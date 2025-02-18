@@ -19,44 +19,6 @@ DutBase::DutBase()
     argv  = nullptr;
 }
 
-bool DutBase::NativeSignalEnabled() {
-    return this->native_signal_enable;
-}
-
-native_signal_t DutBase::NativeSignalGet(std::string &name){
-    native_signal_t ret = {
-        .addr = 0,
-        .width = -1
-    };
-    if(this->native_signals.count(name)){
-        ret = this->native_signals[name];
-    }
-    return ret;
-}
-
-uint64_t DutBase::NativeSignalAddr(std::string &name){
-    return this->NativeSignalGet(name).addr;
-}
-
-int DutBase::NativeSignalWidth(std::string &name){
-    return this->NativeSignalGet(name).width;
-}
-
-std::vector<std::string> DutBase::NativeSignalList(std::string &name, int depth){
-    std::vector<std::string> result;
-    for (const auto& pair : this->native_signals) {
-        std::string key = pair.first;
-        if (name != ""){
-            if(key.find(name) != 0)continue;
-            key = key.substr(name.length());
-        }
-        if(std::count(key.begin(), key.end(), '.') < depth){
-            result.push_back(pair.first);
-        }
-    }
-    return result;
-}
-
 #if defined(USE_VCS)
 
 DutVcsBase::DutVcsBase()
@@ -196,10 +158,6 @@ void DutVerilatorBase::init(int argc, char **argv)
 
     // set cycle pointer to 0
     this->cycle = 0;
-
-    // init native signlas
-{{__NATIVE_SIGNAL_INIT__}}
-
 };
 
 DutVerilatorBase::~DutVerilatorBase()
@@ -644,6 +602,19 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
     return res;
 }
 
+std::string DutUnifiedBase::GetXSignalCFGPath()
+{
+    char *path = locateLibPath();
+    std::string res(path);
+    free(path);
+    return res + "{{__TOP_MODULE_NAME__}}_offset.yaml";
+}
+
+uint64_t DutUnifiedBase::GetXSignalCFGBasePtr()
+{
+    return (uint64_t)(dut);
+}
+
 uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
 {
     char *func_name = (char *)malloc(strlen(name) + 128);
@@ -744,26 +715,6 @@ int DutUnifiedBase::Restore(const char *filename)
 int DutUnifiedBase::Restore(const std::string filename)
 {
     return this->dut->Restore(filename.c_str());
-}
-
-bool DutUnifiedBase::NativeSignalEnabled(){
-    return this->dut->NativeSignalEnabled();
-}
-
-uint64_t DutUnifiedBase::NativeSignalAddr(std::string name){
-    return this->dut->NativeSignalAddr(name);
-}
-
-native_signal_t DutUnifiedBase::NativeSignalGet(std::string name){
-    return this->dut->NativeSignalGet(name);
-}
-
-int DutUnifiedBase::NativeSignalWidth(std::string name){
-    return this->dut->NativeSignalWidth(name);
-}
-
-std::vector<std::string> DutUnifiedBase::NativeSignalList(std::string name, int depth){
-    return this->dut->NativeSignalList(name, depth);
 }
 
 DutUnifiedBase::~DutUnifiedBase()

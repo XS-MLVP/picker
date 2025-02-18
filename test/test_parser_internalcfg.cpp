@@ -1,3 +1,4 @@
+#pragma once
 #include "parser/internalcfg.hpp"
 
 int main()

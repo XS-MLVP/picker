@@ -19,15 +19,18 @@ namespace codegen {
         static const std::string xdata_declaration_template = "    XData {{pin_uniq_name}};\n";
         static const std::string xdata_reinit_template =
             "    this->{{pin_uniq_name}}.ReInit({{logic_pin_length}}, IOType::{{logic_pin_type}}, \"{{logic_pin}}\");\n";
-        static const std::string xdata_bindrw_template =
+        static const std::string comment_template = "    {{logic_pin_type}} {{logic_pin_length}} {{logic_pin}}\n";
+
+        static const std::string xdata_binddpi_template =
             "    this->{{pin_uniq_name}}.BindDPIPtr(this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 0), this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 1));\n";
-        static const std::string xdata_bindnt_template =
-            "    this->{{pin_uniq_name}}.BindNativeData(this->dut->NativeSignalAddr(\"{{logic_pin}}\"));\n";
         static const std::string xdata_bind_onlyr_template =
             "    this->{{pin_uniq_name}}.BindDPIPtr(this->dut->GetDPIHandle((char *)\"{{pin_func_name}}\", 0), 0);\n";
+
+        static const std::string xdata_bindptr_template =
+            "    this->{{pin_uniq_name}}.BindNativeData(this->dut->NativeSignalAddr(\"{{logic_pin}}\"));\n";
+
         static const std::string xport_add_template =
             "    this->xport.Add(this->{{pin_uniq_name}}.mName, this->{{pin_uniq_name}});\n";
-        static const std::string comment_template = "    {{logic_pin_type}} {{logic_pin_length}} {{logic_pin}}\n";
         static const std::string xport_cascaded_dec_template = "    XPort {{port_name}};\n";
         static const std::string xport_cascaded_sgn_template =
             "    this->{{port_name}} = this->xport.NewSubPort(\"{{prefix_key}}_\");\n";
@@ -52,7 +55,7 @@ namespace codegen {
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &xdata_declaration,
                                  std::string &xdata_reinit, std::string &xdata_bindrw, std::string &xport_add,
-                                 std::string &comments, bool is_native)
+                                 std::string &comments, SignalAccessType rw_type)
         {
             inja::Environment env;
             nlohmann::json data;
@@ -74,13 +77,16 @@ namespace codegen {
 
                 xdata_declaration = xdata_declaration + env.render(xdata_declaration_template, data);
                 xdata_reinit      = xdata_reinit + env.render(xdata_reinit_template, data);
-                if (is_native)
-                {
-                    xdata_bindrw      = xdata_bindrw + env.render(xdata_bindnt_template, data);
-                }else{
-                    xdata_bindrw      = xdata_bindrw + env.render(xdata_bindrw_template, data);
+                switch (rw_type) {
+                case SignalAccessType::DPI:
+                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                    break;
+                case SignalAccessType::MEM_DIRECT:
+                    // xdata_bindrw = xdata_bindrw + env.render(xdata_bindptr_template, data);
+                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                    break;
                 }
-                xport_add         = xport_add + env.render(xport_add_template, data);
+                xport_add = xport_add + env.render(xport_add_template, data);
             }
         }
 
@@ -106,8 +112,7 @@ namespace codegen {
 
                 // Set empty or [hb:lb] for verilog render
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? "" :
-                                                                       "[" + std::to_string(pin[i].logic_pin_hb) + ":"
-                                                                           + std::to_string(pin[i].logic_pin_lb) + "]";
+                "[" + std::to_string(pin[i].logic_pin_hb) + ":" + std::to_string(pin[i].logic_pin_lb) + "]";
 
                 comments = comments + env.render(comment_template, data);
 
@@ -157,7 +162,9 @@ namespace codegen {
             xdata_bindrw, xport_add, cascaded_signals_dec, cascaded_signals_sgn;
 
         // Generate External Pin
-        cxx::render_external_pin(external_pin, xdata_declaration, xdata_reinit, xdata_bindrw, xport_add, comments, opts.native);
+        cxx::render_external_pin(external_pin, xdata_declaration, xdata_reinit, xdata_bindrw, xport_add, comments,
+                                 opts.rw_type);
+
         // Generate Internal Signal
         cxx::render_internal_signal(internal_signal, xdata_declaration, xdata_reinit, xdata_bindrw, xport_add,
                                     comments);

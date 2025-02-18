@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <filesystem>
 #include "picker.hpp"
+#include "codegen/mem_direct.hpp"
 
 picker::main_opts main_opts;
 picker::export_opts export_opts;
@@ -46,6 +47,14 @@ int set_options_export_rtl(CLI::App &top_app)
     // Set DUT RTL Simulator, Optional, default is verilator
     app->add_option("--sim", export_opts.sim, "vcs or verilator as simulator, default is verilator")
         ->default_val("verilator");
+
+    // Set DUT RTL RW Type, Optional, default is DPI
+    app->add_option("--rw,--access-mode", export_opts.rw_type,
+                    "How to drive the hardware model, DPI or MEM_DIRECT(verilator only), default is DPI")
+        ->transform(CLI::CheckedTransformer(
+            std::map<std::string, picker::SignalAccessType>{{"dpi", picker::SignalAccessType::DPI},
+                                                            {"mem_direct", picker::SignalAccessType::MEM_DIRECT}},
+            CLI::ignore_case));
 
     // Set DUT RTL Language, Optional, default is python
     std::vector<std::string> select_languages = {"python", "cpp", "java", "scala", "golang", "lua"};
@@ -110,9 +119,6 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_option("-C,--cflag", export_opts.cflag,
                     "User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'");
 
-    // Use Native signal, optional, default is OFF
-    app->add_flag("--native", export_opts.native, "Use native signal, it only support verilator now, default is OFF");
-
     // app->add_option(
     //     "-r,--rename", export_opts.rename,
     //     "User defined gcc/clang compile command, passthrough. Eg:'-O3
@@ -156,8 +162,112 @@ int set_options_main(CLI::App &app)
                  "Print python module xspcomm location");
     app.add_flag("--show_xcom_lib_location_golang", main_opts.show_xcom_lib_location_golang,
                  "Print golang module xspcomm location");
-    app.add_flag("--show_xcom_lib_location_lua", main_opts.show_xcom_lib_location_lua, "Print lua module xspcomm location");
+    app.add_flag("--show_xcom_lib_location_lua", main_opts.show_xcom_lib_location_lua,
+                 "Print lua module xspcomm location");
     app.add_flag("--check", main_opts.check, "check install location and supproted languages");
+    return 0;
+}
+
+int show_xcom_lib_location()
+{
+    std::string err_message;
+
+#define SHOW_CPP_LOCATION(flag)                                                                                        \
+    if (main_opts.flag) {                                                                                              \
+        auto lib_location = picker::get_xcomm_lib("lib", err_message);                                                 \
+        if (lib_location.empty()) {                                                                                    \
+            PK_ERROR("%s", err_message.c_str());                                                                       \
+            exit(1);                                                                                                   \
+        }                                                                                                              \
+        auto include_location = picker::get_xcomm_lib("include", err_message);                                         \
+        if (include_location.empty()) {                                                                                \
+            PK_ERROR("%s", err_message.c_str());                                                                       \
+            exit(1);                                                                                                   \
+        }                                                                                                              \
+        PK_MESSAGE("Lib:     %s", lib_location.c_str());                                                               \
+        PK_MESSAGE("Include: %s", include_location.c_str());                                                           \
+        exit(0);                                                                                                       \
+    }
+
+#define SHOW_SINGLE_LOCATION(flag, path)                                                                               \
+    if (main_opts.flag) {                                                                                              \
+        auto location = picker::get_xcomm_lib(path, err_message);                                                      \
+        if (location.empty()) {                                                                                        \
+            PK_ERROR("%s", err_message.c_str());                                                                       \
+            exit(1);                                                                                                   \
+        }                                                                                                              \
+        PK_MESSAGE("%s", location.c_str());                                                                            \
+        exit(0);                                                                                                       \
+    }
+
+    SHOW_CPP_LOCATION(show_xcom_lib_location_cpp);
+    SHOW_SINGLE_LOCATION(show_xcom_lib_location_java, "java/xspcomm-java.jar");
+    SHOW_SINGLE_LOCATION(show_xcom_lib_location_scala, "java/xspcomm-scala.jar");
+    SHOW_SINGLE_LOCATION(show_xcom_lib_location_python, "python");
+    SHOW_SINGLE_LOCATION(show_xcom_lib_location_golang, "golang");
+    SHOW_SINGLE_LOCATION(show_xcom_lib_location_lua, "lua/luaxspcomm.so");
+
+    return 0;
+}
+
+int check_picker_support()
+{
+    std::map<std::string, std::string> lang_lib_map  = {{"cpp", "lib"},
+                                                        {"java", "java/xspcomm-java.jar"},
+                                                        {"scala", "scala/xspcomm-scala.jar"},
+                                                        {"python", "python"},
+                                                        {"golang", "golang"},
+                                                        {"lua", "lua/luaxspcomm.so"}};
+    std::map<std::string, std::string> display_names = {{"cpp", "Cpp"},       {"java", "Java"},     {"scala", "Scala"},
+                                                        {"python", "Python"}, {"golang", "Golang"}, {"lua", "Lua"}};
+    std::string err_message;
+
+    // check if the xspcomm lib is available
+    if (main_opts.check) {
+        PK_MESSAGE("[OK ] Version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
+        PK_MESSAGE("[OK ] Exec path: %s", picker::get_executable_path().c_str());
+        auto temp_path = picker::get_template_path();
+        if (temp_path.empty()) {
+            PK_MESSAGE("[Err] Can't find default template path");
+        } else {
+            PK_MESSAGE("[OK ] Template path: %s", temp_path.c_str());
+        }
+        for (auto &kv : lang_lib_map) {
+            auto lib_location = picker::get_xcomm_lib(kv.second, err_message);
+            if (lib_location.empty()) {
+                PK_ERROR("[Err] Support %6s (find: '%s' fail)", display_names[kv.first].c_str(), kv.second.c_str());
+            } else {
+                PK_MESSAGE("[OK ] Support %6s (find: '%s' success)", display_names[kv.first].c_str(),
+                           lib_location.c_str());
+            }
+        }
+        exit(0);
+    }
+
+    // check if the language is supported
+    if (!export_opts.language.empty()) {
+        auto it = lang_lib_map.find(export_opts.language);
+        if (it == lang_lib_map.end()) {
+            PK_ERROR("[Err] Unknown language '%s'", export_opts.language.c_str());
+            exit(1);
+        }
+        auto lib_location = picker::get_xcomm_lib(it->second, err_message);
+        if (lib_location.empty()) {
+            PK_ERROR("[Err] Support %6s (find: '%s' fail)", display_names[it->first].c_str(), it->second.c_str());
+            exit(1);
+        }
+    }
+
+    // check if the rw_type is supported
+    switch (export_opts.rw_type) {
+    case picker::SignalAccessType::DPI:
+        if (export_opts.internal != "") { PK_MESSAGE("It's recommended to use MEM_DIRECT for internal signal access"); }
+        break;
+    case picker::SignalAccessType::MEM_DIRECT:
+        if (export_opts.sim != "verilator") { PK_FATAL("MEM_DIRECT only support verilator simulator"); }
+        break;
+    }
+
     return 0;
 }
 
@@ -193,118 +303,13 @@ int main(int argc, char **argv)
 
     if (main_opts.show_default_template_path) {
         auto temp_path = picker::get_template_path();
-        if (temp_path.empty()) {
-            PK_ERROR("Can't find default template path");
-            exit(1);
-        }
+        if (temp_path.empty()) { PK_FATAL("Can't find default template path"); }
         PK_MESSAGE("%s", temp_path.c_str());
         exit(0);
     }
 
-    // check backend native signal support
-    if (export_opts.native) {
-        if (export_opts.sim != "verilator") {
-            PK_ERROR("Native signal only support by verilator simulator");
-            exit(1);
-        }
-    }
-
-    // get xcom lib location
-    std::string erro_message = "";
-    if (main_opts.show_xcom_lib_location_cpp) {
-        auto lib_location = picker::get_xcomm_lib("lib", erro_message);
-        if (lib_location.size() == 0) {
-            PK_ERROR("%s", erro_message.c_str());
-            exit(1);
-        }
-        auto include_location = picker::get_xcomm_lib("include", erro_message);
-        if (include_location.size() == 0) {
-            PK_ERROR("%s", erro_message.c_str());
-            exit(1);
-        }
-        PK_MESSAGE("Lib:     %s", lib_location.c_str());
-        PK_MESSAGE("Include: %s", include_location.c_str());
-        exit(0);
-    }
-    if (main_opts.show_xcom_lib_location_java) {
-        auto java_location = picker::get_xcomm_lib("java/xspcomm-java.jar", erro_message);
-        if (java_location.size() == 0) {
-            PK_ERROR("%s", erro_message.c_str());
-            exit(1);
-        }
-        PK_MESSAGE("%s", java_location.c_str());
-        exit(0);
-    }
-    if (main_opts.show_xcom_lib_location_scala) {
-        auto scala_location = picker::get_xcomm_lib("java/xspcomm-scala.jar", erro_message);
-        if (scala_location.size() == 0) {
-            PK_ERROR("%s", erro_message.c_str());
-            exit(1);
-        }
-        PK_MESSAGE("%s", scala_location.c_str());
-        exit(0);
-    }
-    if (main_opts.show_xcom_lib_location_python) {
-        auto python_location = picker::get_xcomm_lib("python", erro_message);
-        if (python_location.size() == 0) {
-            PK_ERROR("%s", erro_message.c_str());
-            exit(1);
-        }
-        PK_MESSAGE("%s", python_location.c_str());
-        exit(0);
-    }
-    if (main_opts.show_xcom_lib_location_golang) {
-        auto golang_location = picker::get_xcomm_lib("golang", erro_message);
-        if (golang_location.size() == 0) {
-            PK_ERROR("%s", erro_message.c_str());
-            exit(1);
-        }
-        PK_MESSAGE("%s", golang_location.c_str());
-        exit(0);
-    }
-    if (main_opts.show_xcom_lib_location_lua) {
-        auto lua_location = picker::get_xcomm_lib("lua/luaxspcomm.so", erro_message);
-        if (lua_location.size() == 0) {
-            PK_ERROR("%s", erro_message.c_str());
-            exit(1);
-        }
-        PK_MESSAGE("%s", lua_location.c_str());
-        exit(0);
-    }
-
-    int lang_index            = 0;
-    const char *check_libs[]  = {"include", "java/xspcomm-java.jar", "scala/xspcomm-scala.jar", "python", "golang", "lua/luaxspcomm.so"};
-    const char *check_langs[] = {"Cpp", "Java", "Scala", "Python", "Golang", "Lua"};
-    std::map<std::string, int> lang_map = {{"cpp", 0}, {"java", 1}, {"scala", 2}, {"python", 3}, {"golang", 4}, {"lua", 5}};
-    if (main_opts.check) {
-        PK_MESSAGE("[OK ] Version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
-        PK_MESSAGE("[OK ] Exec path: %s", picker::get_executable_path().c_str());
-        auto temp_path = picker::get_template_path();
-        if (temp_path.empty()) {
-            PK_MESSAGE("[Err] Can't find default template path");
-        } else {
-            PK_MESSAGE("[OK ] Template path: %s", temp_path.c_str());
-        }
-        int i = 0;
-        for (auto lang : check_langs) {
-            auto lib_location = picker::get_xcomm_lib(check_libs[i], erro_message);
-            if (lib_location.size() == 0) {
-                PK_ERROR("[Err] Support %6s (find: '%s' fail)", lang, check_libs[i]);
-            } else {
-                PK_MESSAGE("[OK ] Support %6s (find: '%s' success)", lang, lib_location.c_str());
-            }
-            i += 1;
-        }
-        exit(0);
-    }
-    if (export_opts.language.size() != 0) {
-        lang_index        = lang_map[export_opts.language];
-        auto lib_location = picker::get_xcomm_lib(check_libs[lang_index], erro_message);
-        if (lib_location.size() == 0) {
-            PK_ERROR("[Err] Support %6s (find: '%s' fail)", check_langs[lang_index], check_libs[lang_index]);
-            exit(1);
-        }
-    }
+    show_xcom_lib_location();
+    check_picker_support();
 
     // check if app parsed export subcommand
     if (app.get_subcommands().size() == 0) {
@@ -315,8 +320,23 @@ int main(int argc, char **argv)
 
     // subcommand export
     if (app.get_subcommand_ptr("export")->parsed()) {
+
+        // render mem_direct depends on the verilator codegen, so we need to render it between verilator and dut_base
+        if(export_opts.source_dir.ends_with("/mem_direct")){
+            PK_MESSAGE("Rendering mem_direct");         
+            // picker is invoked by codegen Makefile, so the export_opts.file is NOT sv but the Verilator CPP (for now).
+            std::string source_file = export_opts.file[0];
+            auto declarations = picker::parser::readVarDeclarations(source_file);
+            auto vars = picker::parser::processDeclarations(declarations); 
+
+            picker::codegen::render_md_addr_generator(vars, export_opts);
+            picker::parser::outputYAML(vars, export_opts.target_dir + "/vars.yaml"); 
+            exit(0);
+        }
+
         std::vector<picker::sv_module_define> sv_module_result;
         std::vector<picker::sv_signal_define> internal_sginal_result;
+
         nlohmann::json signal_tree_json;
         picker::parser::sv(export_opts, sv_module_result);
         picker::parser::internal(export_opts, internal_sginal_result);
@@ -331,6 +351,7 @@ int main(int argc, char **argv)
                 {"scala", picker::codegen::scala}, {"golang", picker::codegen::golang}, {"lua", picker::codegen::lua},
             };
         func_map[export_opts.language](export_opts, sv_pin_result, internal_sginal_result, signal_tree_json);
+
         // build the result with make
         if (export_opts.autobuild) {
             const std::string cmd = "cd " + export_opts.target_dir + " && make";
