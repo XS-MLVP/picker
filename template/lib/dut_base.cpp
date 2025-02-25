@@ -605,9 +605,10 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
 std::string DutUnifiedBase::GetXSignalCFGPath()
 {
     char *path = locateLibPath();
-    std::string res(path);
+    std::filesystem::path p(path);
+    
     free(path);
-    return res + "{{__TOP_MODULE_NAME__}}_offset.yaml";
+    return p.parent_path().string() + "/{{__TOP_MODULE_NAME__}}_offset.yaml";
 }
 
 uint64_t DutUnifiedBase::GetXSignalCFGBasePtr()

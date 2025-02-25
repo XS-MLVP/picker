@@ -9,7 +9,7 @@ except:
 
 if __name__ == "__main__":
     dut = DUT{{__TOP_MODULE_NAME__}}()
-    # dut.init_clock("clk")
+    # dut.InitClock("clk")
 
     dut.Step(1)
 

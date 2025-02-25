@@ -21,6 +21,9 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.xclock.Add(self.xport)
         self.event = self.xclock.getEvent()
         self.internal_signals = {}
+        print(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr())
+        self.xcfg = xsp.XSignalCFG(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr())
+
         # set output files
         if kwargs.get("waveform_filename"):
             self.dut.SetWaveform(kwargs.get("waveform_filename"))
