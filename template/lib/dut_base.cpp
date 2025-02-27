@@ -613,7 +613,10 @@ std::string DutUnifiedBase::GetXSignalCFGPath()
 
 uint64_t DutUnifiedBase::GetXSignalCFGBasePtr()
 {
-    return (uint64_t)(dut);
+#ifdef USE_VERILATOR
+    return (uint64_t)((V{{__TOP_MODULE_NAME__}} *)(this->dut->top))->rootp;
+#endif
+    return -1;
 }
 
 uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
