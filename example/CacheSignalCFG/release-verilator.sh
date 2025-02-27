@@ -14,6 +14,25 @@ fi
 
 # run cache codegen
 rm -rf picker_out/CacheCFG
-./build/bin/picker export example/CacheSignalCFG/Cache.v --tname CacheCFG --fs example/CacheSignalCFG/Test.v -w cache.vcd --sim verilator --tdir ./picker_out/ $@
+./build/bin/picker export  example/CacheSignalCFG/Cache.v --autobuild true  --rw mem_direct \
+    --tname CacheCFG --fs example/CacheSignalCFG/Test.v \
+    -w cache.vcd --sim verilator --tdir ./picker_out/ $@
+
+if [[ $@ == *"python"* ]]; then
+    cp example/CacheSignalCFG/example.py picker_out/CacheCFG/python/
+elif [[ $@ == *"java"* ]]; then
+    cp example/CacheSignalCFG/example.java picker_out/CacheCFG/java/
+elif [[ $@ == *"scala"* ]]; then
+    cp example/CacheSignalCFG/example.scala picker_out/CacheCFG/scala/
+elif [[ $@ == *"golang"* ]]; then
+    cp example/CacheSignalCFG/example.go picker_out/CacheCFG/golang/
+elif [[ $@ == *"lua"* ]]; then
+    cp example/CacheSignalCFG/example.lua picker_out/CacheCFG/lua/
+else
+    cp example/CacheSignalCFG/example.cpp picker_out/CacheCFG/cpp/
+fi
+
+cd picker_out/CacheCFG && make EXAMPLE=ON
+
 
 # --autobuild true: auto build and test

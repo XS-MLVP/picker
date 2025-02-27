@@ -13,6 +13,10 @@ export COVERAGE := {{__COVERAGE__}}
 export CHECKPOINTS := {{__CHECKPOINTS__}}
 export VPI := {{__VPI__}}
 
+ifeq ($(SIMULATOR), verilator)
+V_ROOT=$(shell $(shell echo $$SHELL) -c  "verilator -V | grep VERILATOR_ROOT | awk '{print \$$3}' | head -n1")
+endif
+
 all: release 
 
 compile:
@@ -21,15 +25,21 @@ compile:
 	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=`nproc`
 	cmake --build build --config release --parallel `nproc`
 
+ifeq ($(SIMULATOR), verilator)
+# file exsit check with Makefile
+ifeq ($(wildcard build/DPI{{__TOP_MODULE_NAME__}}/V{{__TOP_MODULE_NAME__}}___024root.h),)
+	@rm -rf mem_direct
 	@{{__GENERATOR_PICKER_PATH__}} export build/DPI{{__TOP_MODULE_NAME__}}/V{{__TOP_MODULE_NAME__}}___024root.h \
 		--source_dir {{__GENERATOR_TEMPLATE_PATH__}}/mem_direct --target_dir ./mem_direct \
 		--source_module_name {{__TOP_MODULE_NAME__}}
-	@cd mem_direct && g++  gen_addr.cpp -o export.bin \
+endif
+	@cd mem_direct && g++ gen_addr.cpp -o export.bin \
 		-I ../build/DPI{{__TOP_MODULE_NAME__}} \
-		-I /opt/verilator5/share/verilator/include \
-		-I /opt/verilator5/share/verilator/include/vltstd/ \
-		-L../build -lDPI{{__TOP_MODULE_NAME__}} -lpthread  
+		-I ${V_ROOT}/include \
+		-I ${V_ROOT}/include/vltstd/ \
+		-L../build -lDPI{{__TOP_MODULE_NAME__}} -lpthread
 	@./mem_direct/export.bin > mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml
+endif
 
 release: compile
 	@cp -r build/${TARGET} .
