@@ -62,7 +62,7 @@ namespace picker { namespace codegen {
             if (check_file_type(path, allow_file_types)) { // file
                 auto target_file = path;
                 if (!std::filesystem::exists(path) && !path.starts_with("/") && !fs_path.empty()) {
-                    PK_ERROR("Cannot find file: %s, try search in path: %s", path.c_str(), fs_path.c_str());
+                    PK_MESSAGE("Cannot find file: %s, try search in path: %s", path.c_str(), fs_path.c_str());
                     path = (std::filesystem::path(fs_path) / path).string();
                 }
                 if (!std::filesystem::exists(path)) PK_FATAL("File not found: %s\n", target_file.c_str());
