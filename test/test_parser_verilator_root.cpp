@@ -1,4 +1,3 @@
-#pragma once
 #include "parser/verilator_root.hpp"
 
 using namespace std;
