@@ -19,19 +19,18 @@ if __name__ == "__main__":
     # print("Array_2 size: ", len(array_2))
     # print("Array_2: ", array_2[0])
     # print("Array_2: ", array_2)
+    dut.reset.AsImmWrite()
+    rst.AsImmWrite()
 
-    print("reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
+
+    print("Inital: reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
     dut.reset.value = 1
-    rst.Set(1)
-    print(rst)
-    print("reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
+    print("set dpi, reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
     dut.Step(1)
-    rst.value = 1
-    print("reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
-    rst.value = 1
-    dut.reset.value = 0
-    print("reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
+    print("step, reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
+    rst.value = 0
+    print("set rst, reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
     dut.Step(1)
-    print("reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
+    print("step, reset from dpi: {}, reset from xcfg: {}".format(dut.reset.value, rst))
 
     dut.Finish()

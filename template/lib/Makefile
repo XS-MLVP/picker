@@ -12,18 +12,15 @@ export CFLAGS := {{__CFLAG__}}
 export COVERAGE := {{__COVERAGE__}}
 export CHECKPOINTS := {{__CHECKPOINTS__}}
 export VPI := {{__VPI__}}
-
-ifeq ($(SIMULATOR), verilator)
-V_ROOT=$(shell $(shell echo $$SHELL) -c  "verilator -V | grep VERILATOR_ROOT | awk '{print \$$3}' | head -n1")
-endif
+export NPROC := `nproc`
 
 all: release 
 
 compile:
 	mkdir -p build
 	cp pli.tab build/pli.tab
-	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=`nproc`
-	cmake --build build --config release --parallel `nproc`
+	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=$(NPROC)
+	cmake --build build --config release --parallel $(NPROC)
 
 ifeq ($(SIMULATOR), verilator)
 # file exsit check with Makefile
@@ -33,11 +30,7 @@ ifeq ($(wildcard build/DPI{{__TOP_MODULE_NAME__}}/V{{__TOP_MODULE_NAME__}}___024
 		--source_dir {{__GENERATOR_TEMPLATE_PATH__}}/mem_direct --target_dir ./mem_direct \
 		--source_module_name {{__TOP_MODULE_NAME__}}
 endif
-	@cd mem_direct && g++ gen_addr.cpp -o export.bin \
-		-I ../build/DPI{{__TOP_MODULE_NAME__}} \
-		-I ${V_ROOT}/include \
-		-I ${V_ROOT}/include/vltstd/ \
-		-L../build -lDPI{{__TOP_MODULE_NAME__}} -lpthread
+	@cd mem_direct && make -j$(NPROC) TOP_NAME={{__TOP_MODULE_NAME__}}
 	@./mem_direct/export.bin > mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml
 endif
 

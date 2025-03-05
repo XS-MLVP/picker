@@ -14,7 +14,7 @@ fi
 
 # run cache codegen
 rm -rf picker_out/CacheCFG
-./build/bin/picker export  example/CacheSignalCFG/Cache.v --autobuild true  --rw mem_direct \
+./build/bin/picker export  example/CacheSignalCFG/Cache.v --autobuild false  --rw mem_direct \
     --tname CacheCFG --fs example/CacheSignalCFG/Test.v \
     -w cache.vcd --sim verilator --tdir ./picker_out/ $@
 
