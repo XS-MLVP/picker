@@ -21,7 +21,6 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.xclock.Add(self.xport)
         self.event = self.xclock.getEvent()
         self.internal_signals = {}
-        print(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr())
         self.xcfg = xsp.XSignalCFG(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr())
 
         # set output files
@@ -75,16 +74,28 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def Restore(self, name: str) -> int:
         self.dut.Restore(name)
 
-    def GetInternalSignal(self, name: str):
+    def GetInternalSignal(self, name: str, use_vpi=False):
         if name not in self.internal_signals:
-            signal = xsp.XData.FromVPI(self.dut.GetVPIHandleObj(name),
-                                       self.dut.GetVPIFuncPtr("vpi_get"),
-                                       self.dut.GetVPIFuncPtr("vpi_get_value"),
-                                       self.dut.GetVPIFuncPtr("vpi_put_value"), name)
+            signal = None
+            if self.dut.GetXSignalCFGBasePtr() != 0 and not use_vpi:
+                signal = self.xcfg.GetSignal(name, "CFG:" + name)
+            else:
+                signal = xsp.XData.FromVPI(self.dut.GetVPIHandleObj(name),
+                                           self.dut.GetVPIFuncPtr("vpi_get"),
+                                           self.dut.GetVPIFuncPtr("vpi_get_value"),
+                                           self.dut.GetVPIFuncPtr("vpi_put_value"), "VPI:", name)
+                if use_vpi:
+                    assert signal is not None, f"Internal signal {name} not found (Check VPI is enabled)"
             if signal is None:
                 return None
             self.internal_signals[name] = xsp.XPin(signal, self.event)
         return self.internal_signals[name]
+
+    def GetInternalSignalList(self, prefix="", deep=99, use_vpi=False):
+        if self.dut.GetXSignalCFGBasePtr() != 0 and not use_vpi:
+            return self.xcfg.GetSignalNames(prefix)
+        else:
+            return self.dut.VPIInternalSignalList(prefix, deep)
 
     def VPIInternalSignalList(self, prefix="", deep=99):
         return self.dut.VPIInternalSignalList(prefix, deep)
