@@ -87,6 +87,8 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
                 else:
                     signal = self.xcfg.NewXData(name, xname)
             else:
+                assert index < 0, "Index is not supported for VPI signal"
+                assert not is_array, "Array is not supported for VPI signal"
                 signal = xsp.XData.FromVPI(self.dut.GetVPIHandleObj(name),
                                            self.dut.GetVPIFuncPtr("vpi_get"),
                                            self.dut.GetVPIFuncPtr("vpi_get_value"),
