@@ -52,7 +52,7 @@ function DUT{{__TOP_MODULE_NAME__}}:new(...)
     end
     local self = setmetatable({}, DUT{{__TOP_MODULE_NAME__}})
     self.dut = lib.DutUnifiedBase(unpack(args))
-    self.xclock = xsp.XClock(function(c) self.dut:simStep(c) end)
+    self.xclock = xsp.XClock(self.dut.pxcStep, self.dut.pSelf)
     self.xport = xsp.XPort()
     self.xclock:Add(self.xport)
     self.internal_signals = {}

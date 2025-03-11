@@ -34,10 +34,7 @@ func NewUT_{{__TOP_MODULE_NAME__}}(a ...interface{}) *UT_{{__TOP_MODULE_NAME__}}
     }else{
         self.Dut = NewDutUnifiedBase(a ...)
     }
-    self.Xclock = xspcomm.NewXClock(func(dump bool) int {
-        self.Dut.SimStep(dump)
-        return 0
-    })
+    self.Xclock = xspcomm.NewXClock(self.Dut.GetPxcStep(), self.Dut.GetPSelf())
     self.Xport = xspcomm.NewXPort()
     // Create
 {{__XDATA_INIT__}}

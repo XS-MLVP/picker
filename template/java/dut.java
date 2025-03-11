@@ -56,7 +56,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
 {{ __XPORT_CASCADED_DEC__}}
     private void initDut(){
         this.xport = new XPort();
-        this.xclock = new XClock((dump) -> this.dut.simStep(dump));
+        this.xclock = new XClock(this.dut.getPxcStep(), this.dut.getPSelf());
         this.xclock.Add(this.xport);
         // new pins
 {{__XDATA_INIT__}}
