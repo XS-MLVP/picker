@@ -614,9 +614,11 @@ std::string DutUnifiedBase::GetXSignalCFGPath()
 uint64_t DutUnifiedBase::GetXSignalCFGBasePtr()
 {
 #ifdef USE_VERILATOR
-    return (uint64_t)((V{{__TOP_MODULE_NAME__}} *)(this->dut->top))->rootp;
+    if(0 == strcmp("{{__RW_TYPE__}}", "MEM_DIRECT")){
+        return (uint64_t)((V{{__TOP_MODULE_NAME__}} *)(this->dut->top))->rootp;
+    }
 #endif
-    return -1;
+    return 0;
 }
 
 uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
