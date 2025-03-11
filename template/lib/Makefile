@@ -12,6 +12,7 @@ export CFLAGS := {{__CFLAG__}}
 export COVERAGE := {{__COVERAGE__}}
 export CHECKPOINTS := {{__CHECKPOINTS__}}
 export VPI := {{__VPI__}}
+export RW_TYPE := {{__RW_TYPE__}}
 export NPROC := `nproc`
 
 all: release 
@@ -19,9 +20,10 @@ all: release
 compile:
 	mkdir -p build
 	cp pli.tab build/pli.tab
-	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=$(NPROC)
+	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=$(NPROC) -DRW_TYPE=$(RW_TYPE)
 	cmake --build build --config release --parallel $(NPROC)
 
+ifeq ($(RW_TYPE), MEM_DIRECT)
 ifeq ($(SIMULATOR), verilator)
 # file exsit check with Makefile
 ifeq ($(wildcard build/DPI{{__TOP_MODULE_NAME__}}/V{{__TOP_MODULE_NAME__}}___024root.h),)
@@ -33,11 +35,12 @@ endif
 	@cd mem_direct && make -j$(NPROC) TOP_NAME={{__TOP_MODULE_NAME__}}
 	@./mem_direct/export.bin > mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml
 endif
+endif
 
 release: compile
 	@cp -r build/${TARGET} .
 	@cp dut_base.hpp ${TARGET}/dut_base.hpp
-	@cp mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml ${TARGET}/{{__TOP_MODULE_NAME__}}_offset.yaml
+	@cp mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml ${TARGET}/{{__TOP_MODULE_NAME__}}_offset.yaml 2>/dev/null|| true
 	@make -f mk/${TLANG}.mk
 
 ifeq ($(VERBOSE), OFF) # if VERBOSE is OFF
