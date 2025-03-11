@@ -10,10 +10,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
       vec.add(args(i))
     }
     var dut = new DutUnifiedBase(vec)
-    var xclock = new XClock((dump: Boolean) => {
-        this.dut.simStep(dump)
-        ()
-    })
+    var xclock = new XClock(this.dut.getPxcStep(), this.dut.getPSelf())
     val internalSignals: scala.collection.mutable.Map[String, XData] = scala.collection.mutable.Map()
     var xport = new XPort()
 
