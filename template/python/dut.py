@@ -74,21 +74,31 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def Restore(self, name: str) -> int:
         self.dut.Restore(name)
 
-    def GetInternalSignal(self, name: str, use_vpi=False):
+    def GetInternalSignal(self, name: str, index=-1, is_array=False, use_vpi=False):
         if name not in self.internal_signals:
             signal = None
             if self.dut.GetXSignalCFGBasePtr() != 0 and not use_vpi:
-                signal = self.xcfg.GetSignal(name, "CFG:" + name)
+                xname = "CFG:" + name
+                if is_array:
+                    assert index < 0, "Index is not supported for array signal"
+                    signal = self.xcfg.NewXDataArray(name, xname)
+                elif index >= 0:
+                    signal = self.xcfg.NewXData(name, index, xname)
+                else:
+                    signal = self.xcfg.NewXData(name, xname)
             else:
                 signal = xsp.XData.FromVPI(self.dut.GetVPIHandleObj(name),
                                            self.dut.GetVPIFuncPtr("vpi_get"),
                                            self.dut.GetVPIFuncPtr("vpi_get_value"),
-                                           self.dut.GetVPIFuncPtr("vpi_put_value"), "VPI:", name)
+                                           self.dut.GetVPIFuncPtr("vpi_put_value"), "VPI:" + name)
                 if use_vpi:
                     assert signal is not None, f"Internal signal {name} not found (Check VPI is enabled)"
             if signal is None:
                 return None
-            self.internal_signals[name] = xsp.XPin(signal, self.event)
+            if not isinstance(signal, xsp.XData):
+                self.internal_signals[name] = [xsp.XPin(s, self.event) for s in signal]
+            else:
+                self.internal_signals[name] = xsp.XPin(signal, self.event)
         return self.internal_signals[name]
 
     def GetInternalSignalList(self, prefix="", deep=99, use_vpi=False):
