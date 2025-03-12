@@ -46,26 +46,41 @@ namespace picker { namespace parser {
         std::vector<std::string> declarations;
         std::ifstream file(filename);
         std::string line;
-        int structDepth = 0;
+        // XXX.h -> XXX
+        std::string class_name = filename.substr(0, filename.find_last_of('.')) + "(";
+        int structDepth = 0, no_struct = -1;
 
-        // We are scanning for variable declarations inside struct blocks.
+        // 1. We are scanning for variable declarations inside struct blocks.
         // Increase structDepth on "struct {" and decrease it on "};".
         // There might be multiple struct blocks or nested struct blocks.
+        // 2. Otherwise, there is no struct block and we are scanning for Data declarations.
+        // Start with *Data Declaration and end with class_name::class_name().
         while (getline(file, line)) {
             line = trim(line);
             if (line.empty()) continue;
 
             if (line.find("struct {") != std::string::npos) {
                 structDepth++;
+                no_struct = 0;
                 continue;
-            }
+            } // 1
+
+            if (line.find("Data") != std::string::npos && no_struct == -1) {
+                no_struct = 1;
+                continue;
+            } // 2
 
             if (structDepth > 0 && line.find("};") != std::string::npos) {
                 structDepth--;
                 continue;
-            }
+            } // 1
 
-            if (structDepth > 0) {
+            if (line.find(class_name) != std::string::npos) {
+                no_struct = -1;
+                break;
+            } // 2
+
+            if (structDepth > 0 || no_struct > 0) {
                 size_t commentPos = line.find("//");
                 if (commentPos != std::string::npos) { line = line.substr(0, commentPos); }
                 line = trim(line);
@@ -97,8 +112,8 @@ namespace picker { namespace parser {
             int low           = stoi(range.substr(colon + 1));
             info.width        = high - low + 1;
         }
-        // Match Basic type
-        else if (std::regex_match(typeStr, match, std::regex(R"(^(\w+)/\*(\d+:\d+)\*/$)"))) {
+        // Match Basic type (only CData/SData/QData/IData/WData)
+        else if (std::regex_match(typeStr, match, std::regex(R"(^(CData|SData|QData|IData|WData)/\*(\d+:\d+)\*/$)"))) {
             info.type         = match[1];
             std::string range = match[2];
             size_t colon      = range.find(':');
@@ -130,11 +145,10 @@ namespace picker { namespace parser {
                 PK_DEBUG("typeStr: %s, varName: %s", typeStr.c_str(), varName.c_str());
                 VariableInfo info = parseType(typeStr);
                 info.name         = varName;
-                vars.push_back(info);
+                if (!info.type.empty()) vars.push_back(info);
             }
         }
         return vars;
     }
-
 
 }} // namespace picker::parser
