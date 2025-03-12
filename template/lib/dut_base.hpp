@@ -151,7 +151,7 @@ public:
     uint64_t GetVPIHandleObj(std::string name);
 
     // Iterate all internal signals
-    std::vector<std::string> VPIInternalSignalList(char *name, int depth);
+    std::vector<std::string> VPIInternalSignalList(char *name, int depth); 
     std::vector<std::string> VPIInternalSignalList(std::string name, int depth);
 
     // Get Library Path for Locate XSignalCFG ymal config
