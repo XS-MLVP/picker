@@ -9,7 +9,7 @@ namespace picker { namespace codegen {
         static const std::string xdata_binddpi_template =
             "        self.{{pin_uniq_name}}.BindDPIPtr(self.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xdata_bindptr_template =
-            "        self.{{pin_uniq_name}}.BindNativeData(self.dut.NativeSignalAddr(\"{{logic_pin}}\"))\n";
+            "        self.{{pin_uniq_name}} = xsp.XPin(self.GetInternalSignal(\"{{logic_pin}}\"), self.event)\n";
         static const std::string xport_add_template =
             "        self.xport.Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}}.xdata)\n";
         static const std::string xport_cascaded_template =
@@ -38,17 +38,19 @@ namespace picker { namespace codegen {
                                                0 :
                                                pin[i].logic_pin_hb - pin[i].logic_pin_lb + 1;
 
-                xdata_init   = xdata_init + env.render(xdata_init_template, data);
                 switch (rw_type) {
-                case SignalAccessType::DPI:
+                    case SignalAccessType::DPI:
+                    xdata_init   = xdata_init + env.render(xdata_init_template, data);
                     xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
                     break;
                 case SignalAccessType::MEM_DIRECT:
-                    // xdata_bindrw = xdata_bindrw + env.render(xdata_bindptr_template, data);
-                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                    xdata_init = xdata_init + env.render(xdata_bindptr_template, data);
                     break;
                 }
                 xport_add    = xport_add + env.render(xport_add_template, data);
+            }
+            if (rw_type == SignalAccessType::MEM_DIRECT) {
+                xdata_bindrw = "        # MEM_DIRECT mode, there is no need to bind\n";
             }
         }
 
