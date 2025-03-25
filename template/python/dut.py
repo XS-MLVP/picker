@@ -103,7 +103,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     async def AStep(self,i: int):
         return await self.xclock.AStep(i)
 
-    async def Acondition(self,fc_cheker):
+    async def ACondition(self,fc_cheker):
         return await self.xclock.ACondition(fc_cheker)
 
     def RunStep(self,i: int):
