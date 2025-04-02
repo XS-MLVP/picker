@@ -42,17 +42,21 @@ namespace picker { namespace codegen {
 
                 switch (rw_type) {
                     case SignalAccessType::DPI:
-                    xdata_init   = xdata_init + env.render(xdata_init_template, data);
-                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
-                    break;
-                case SignalAccessType::MEM_DIRECT:
-                    xdata_init = xdata_init + env.render(xdata_bindptr_template, data);
-                    break;
+                        xdata_init   = xdata_init + env.render(xdata_init_template, data);
+                        xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                        break;
+                    case SignalAccessType::MEM_DIRECT:
+                        xdata_init = xdata_init + env.render(xdata_bindptr_template, data);
+                        break;
                 }
                 xport_add    = xport_add + env.render(xport_add_template, data);
             }
-            if (rw_type == SignalAccessType::MEM_DIRECT) {
-                xdata_bindrw = "        # MEM_DIRECT mode, there is no need to bind\n";
+            switch (rw_type) {
+                case SignalAccessType::DPI:
+                    break;
+                case SignalAccessType::MEM_DIRECT:
+                    xdata_bindrw = "        # MEM_DIRECT mode, there is no need to bind\n";
+                    break;
             }
         }
 
