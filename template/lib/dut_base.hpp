@@ -22,6 +22,8 @@ public:
     // Set waveform file path
     virtual void SetWaveform(const char *filename) = 0;
     virtual void FlushWaveform()                   = 0;
+    virtual bool OpenWaveform()                    = 0;
+    virtual bool CloseWaveform()                   = 0;
     virtual void WaveformEnable(bool enable)       = 0;
     // Set coverage file path
     virtual void SetCoverage(const char *filename) = 0;
@@ -49,6 +51,8 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void FlushWaveform();
+    bool OpenWaveform();
+    bool CloseWaveform();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     int CheckPoint(const char *filename);
@@ -85,6 +89,8 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void FlushWaveform();
+    bool OpenWaveform();
+    bool CloseWaveform();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     int CheckPoint(const char *filename);
@@ -167,6 +173,10 @@ public:
 
     // Set whether waveform is logged to file or not (time still pass)
     void WaveformEnable(bool enable = true);
+
+    // Open and close waveform file
+    bool OpenWaveform();
+    bool CloseWaveform();
 
     // Set coverage file path
     void SetCoverage(const char *filename);      
