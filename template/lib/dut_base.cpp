@@ -93,6 +93,16 @@ void DutVcsBase::FlushWaveform()
 {
     XInfo("VCS waveform is not supported");
 };
+bool DutVcsBase::OpenWaveform()
+{
+    XInfo("VCS waveform is not supported");
+    return true;
+};
+bool DutVcsBase::CloseWaveform()
+{
+    XInfo("VCS waveform is not supported");
+    return true;
+};
 void DutVcsBase::WaveformEnable(bool enable)
 {
     XInfo("VCS waveform is not supported");
@@ -231,6 +241,28 @@ void DutVerilatorBase::FlushWaveform()
     exit(-1);
 #endif
 };
+
+bool DutVerilatorBase::OpenWaveform(){
+#if defined(VL_TRACE)
+    if(((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->__Vm_dumperp)return false;
+    ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->_traceDumpOpen();
+#else
+    std::cerr << "Verilator waveform is not enabled";
+#endif
+    return true;
+};
+
+bool DutVerilatorBase::CloseWaveform(){
+#if defined(VL_TRACE)
+    if(!((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->__Vm_dumperp)return false;
+    ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->__Vm_dumperp->flush();
+    ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->_traceDumpClose();
+#else
+    std::cerr << "Verilator waveform is not enabled";
+#endif
+    return true;
+};
+
 void DutVerilatorBase::WaveformEnable(bool enable=true)
 {
 #if defined(VL_TRACE)
@@ -698,6 +730,14 @@ void DutUnifiedBase::SetWaveform(const std::string filename)
 void DutUnifiedBase::FlushWaveform()
 {
     return this->dut->FlushWaveform();
+}
+bool DutUnifiedBase::OpenWaveform()
+{
+    return this->dut->OpenWaveform();
+}
+bool DutUnifiedBase::CloseWaveform()
+{
+    return this->dut->CloseWaveform();
 }
 void DutUnifiedBase::WaveformEnable(bool enable)
 {
