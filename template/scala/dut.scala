@@ -39,6 +39,18 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     /*************************************************/
     /*                  User APIs                    */
     /*************************************************/
+    def GetXClock(): XClock = {
+        this.xclock
+    }
+    def GetXPort(): XPort = {
+        this.xport
+    }
+    def OpenWaveform(): Boolean = {
+        this.dut.OpenWaveform()
+    }
+    def CloseWaveform(): Boolean = {
+        this.dut.CloseWaveform()
+    }
     def SetWaveform(wave_name: String) = {
         this.dut.SetWaveform(wave_name)
     }
