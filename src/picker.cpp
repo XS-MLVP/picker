@@ -202,7 +202,7 @@ int show_xcom_lib_location()
 
     SHOW_CPP_LOCATION(show_xcom_lib_location_cpp);
     SHOW_SINGLE_LOCATION(show_xcom_lib_location_java, "java/xspcomm-java.jar");
-    SHOW_SINGLE_LOCATION(show_xcom_lib_location_scala, "java/xspcomm-scala.jar");
+    SHOW_SINGLE_LOCATION(show_xcom_lib_location_scala, "scala/xspcomm-scala.jar");
     SHOW_SINGLE_LOCATION(show_xcom_lib_location_python, "python");
     SHOW_SINGLE_LOCATION(show_xcom_lib_location_golang, "golang");
     SHOW_SINGLE_LOCATION(show_xcom_lib_location_lua, "lua/luaxspcomm.so");
