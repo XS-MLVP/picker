@@ -3,7 +3,7 @@ package com.ut;
 
 import com.xspcomm._;
 
-class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MODULE_NAME__}} {
+class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MODULE_NAME__}} with BaseDUTTrait {
 
     val vec = new StringVector()
     for (i <- args.indices) {
