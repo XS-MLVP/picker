@@ -106,6 +106,22 @@ function DUT{{__TOP_MODULE_NAME__}}:StepFal(callback)
     self.xclock:StepFal(callback)
 end
 
+function DUT{{__TOP_MODULE_NAME__}}:OpenWaveform()
+    return self.dut:OpenWaveform()
+end
+
+function DUT{{__TOP_MODULE_NAME__}}:CloseWaveform()
+    return self.dut:CloseWaveform()
+end
+
+function DUT{{__TOP_MODULE_NAME__}}:GetXClock()
+    return self.xclock
+end
+
+function DUT{{__TOP_MODULE_NAME__}}:GetXPort()
+    return self.xport
+end
+
 function DUT{{__TOP_MODULE_NAME__}}:SetWaveform(filename)
     self.dut:SetWaveform(filename)
 end

@@ -60,6 +60,22 @@ public:
     {
         this->xclock.StepFal(fc, args);
     }
+    XClock* GetXClock()
+    {
+        return &this->xclock;
+    }
+    XPort* GetXPort()
+    {
+        return &this->xport;
+    }
+    bool OpenWaveform()
+    {
+        return this->dut->OpenWaveform();
+    }
+    bool CloseWaveform()
+    {
+        return this->dut->CloseWaveform();
+    }
     void SetWaveform(std::string filename)
     {
         this->dut->SetWaveform((const char *)filename.c_str());

@@ -82,6 +82,18 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     /*************************************************/
     /*                  User APIs                    */
     /*************************************************/
+    public boolean OpenWaveform(){
+        return this.dut.OpenWaveform();
+    }
+    public boolean CloseWaveform(){
+        return this.dut.CloseWaveform();
+    }
+    public XClock GetXClock(){
+        return this.xclock;
+    }
+    public XPort GetXPort(){
+        return this.xport;
+    }
     public void SetWaveform(String wave_name){
         this.dut.SetWaveform(wave_name);
     }
