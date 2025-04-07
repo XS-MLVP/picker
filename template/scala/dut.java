@@ -9,7 +9,7 @@ import java.nio.file.Files;
 
 import com.xspcomm.*;
 
-public class JavaUT_{{__TOP_MODULE_NAME__}} {
+public class JavaUT_{{__TOP_MODULE_NAME__}} { //this class is used for scala extendtion
     private static boolean LIB_LOADED = false;
     public static void loadLibraryFromJar(String path) throws IOException {
         InputStream inputStream = JavaUT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path);
@@ -31,7 +31,7 @@ public class JavaUT_{{__TOP_MODULE_NAME__}} {
         try {
             loadLibraryFromJar("/libUT{{__TOP_MODULE_NAME__}}.so");
             loadLibraryFromJar("/libUT_{{__TOP_MODULE_NAME__}}.so");
-            xspcomm.init();
+            xspcommLoader.init();
             LIB_LOADED = true;
         } catch (Exception e) {
             System.err.println("Error load so fail:");
