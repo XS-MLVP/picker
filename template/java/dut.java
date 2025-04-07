@@ -72,7 +72,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         this.initDut();
     }
     public UT_{{__TOP_MODULE_NAME__}}(String[] args){
-        StringVector vec = new StringVector();
+        StringJavaVector vec = new StringJavaVector();
         for (int i = 0; i < args.length; i++) {
             vec.add(args[i]);
         }
@@ -125,7 +125,11 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     }
 
     public StringVector VPIInternalSignalList(String prefix, int deep) {
-        return this.dut.VPIInternalSignalList(prefix, deep);
+        StringVector vec = new StringVector();
+        this.dut.VPIInternalSignalList(prefix, deep).forEach((i) ->{
+            vec.add(i);
+        });
+        return vec;
     }
 
     public XData GetInternalSignal(String name) {
