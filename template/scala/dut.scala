@@ -5,7 +5,7 @@ import com.xspcomm._
 
 class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MODULE_NAME__}} with BaseDUTTrait {
 
-    val vec = new StringVector()
+    val vec = new StringScalaVector()
     for (i <- args.indices) {
       vec.add(args(i))
     }
@@ -85,7 +85,13 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.dut.Restore(check_point)
     }
     def VPIInternalSignalList(prefix: String, deep: Int): StringVector = {
-        this.dut.VPIInternalSignalList(prefix, deep)
+        val ret: StringVector = new StringVector()
+        this.dut.VPIInternalSignalList(prefix, deep).forEach { i =>
+            if (i != null) {
+                ret.add(i)
+            }
+        }
+        ret
     }
     def GetInternalSignal(name: String): XData = {
         if (this.internalSignals.contains(name)) {
