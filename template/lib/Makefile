@@ -34,6 +34,7 @@ ifeq ($(wildcard build/DPI{{__TOP_MODULE_NAME__}}/V{{__TOP_MODULE_NAME__}}___024
 endif
 	@cd mem_direct && make -j$(NPROC) TOP_NAME={{__TOP_MODULE_NAME__}}
 	@./mem_direct/export.bin > mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml
+	@rm -rf mem_direct_tmp
 endif
 endif
 
