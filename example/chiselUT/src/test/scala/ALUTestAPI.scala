@@ -16,6 +16,9 @@ class ALUTestAPI(dut: BaseDUTTrait) {
     def listPins(): StringVector = {
         dut.GetXPort().GetKeys()
     }
+    def listInnerSignals(): Array[String] = {
+        dut.GetInternalSignalList()
+    }
     def reset(): Unit = {
         dut("reset") := 1
         dut.Step(1)
