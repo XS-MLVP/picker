@@ -1,11 +1,13 @@
 package examples
 
+import org.scalatest.funsuite.FixtureAnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.{BeforeAndAfterAll, Outcome}
 
-import chisel3.stage.ChiselGeneratorAnnotation
-import circt.stage._
-import com.xspcomm._;
+import com.xspcomm.{BaseDUTTrait, StringVector};
 
-
+// Wrapper your DUT with stable APIs: standardize the input/output
+// Stable APIs will make your TestCases more reusable
 class ALUTestAPI(dut: BaseDUTTrait) {
     dut.InitClock("clock")
     def getDut(): BaseDUTTrait = {
@@ -50,24 +52,39 @@ class ALUTestAPI(dut: BaseDUTTrait) {
     }
 }
 
-
-object ALUUtils {
-
-  var dut: ALUTestAPI = null
-
-  def issueVerilog(workDir: String, dutClassName: String): Unit = {
-    (new ChiselStage).execute(Array("--target-dir", workDir, "--target", "verilog"),
-          Seq(
-              ChiselGeneratorAnnotation(() => new MultiCycleALU(32)
-          )
-    ))
+// This is a test base class for multi-cycle ALU
+// It provides:
+// 1. A fixture for each test case
+// 2. A setup and teardown method for the test suite
+class MultiCycleALUTestBase extends FixtureAnyFunSuite with Matchers with BeforeAndAfterAll {
+  override def beforeAll(): Unit = {
+    // Custom your preparation code here
+    super.beforeAll()
   }
+  override def afterAll(): Unit = {
+    // Custom your cleanup code here
+    try {
+      println("All tests finished, performing cleanup...")
+      ALUUtils.getCachedDUT().finish()
+    } finally {}
+  }
+  // Custom your fixture for each test here
+  case class FixtureParam(alu: ALUTestAPI)
+  override def withFixture(test: OneArgTest): Outcome = {
+    val alu = ALUUtils.getCachedDUT()
+    try {
+      test(FixtureParam(alu))
+    }finally {alu.reset()}
+  }
+}
 
-  def getDUT(): ALUTestAPI = {
+// This is a utility object to cache the ALUTestAPI instance
+object ALUUtils {
+  var dut: ALUTestAPI = null
+  def getCachedDUT(): ALUTestAPI = {
     if(dut == null) {
-        dut = new ALUTestAPI(chiselUT.generateDUT[MultiCycleALU](issueVerilog, pickerExArgs="-w out/alu_wave.fst"))
+        dut = new ALUTestAPI(TestUtil.CreateDUT[MultiCycleALU](() => new MultiCycleALU(32)))
     }
     dut
   }
-
 }
