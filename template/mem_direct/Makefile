@@ -7,7 +7,7 @@ V_ROOT=$(shell $(shell echo $$SHELL) -c  "verilator -V | grep VERILATOR_ROOT | a
 CXXFLAGS += -I ${V_ROOT}/include -I ${V_ROOT}/include/vltstd/ \
 		-I ../build/DPI${TOP_NAME} \
 		-L../build -Wl,--whole-archive -lDPI${TOP_NAME} -Wl,--no-whole-archive \
-		-lpthread
+		-lpthread -lz
 
 # OBJS contains the list of object files generated from all .cpp files in the directory
 OBJS = $(patsubst %.cpp, %.o, $(wildcard *.cpp))
