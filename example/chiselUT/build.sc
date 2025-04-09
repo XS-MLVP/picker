@@ -15,7 +15,7 @@ object ut extends ScalaModule with ScalaTest{
       val jarFile = os.Path(jarPath)
       Agg(
         PathRef(jarFile),
-      ) 
+      )
     }
 
     override def ivyDeps = Agg(
