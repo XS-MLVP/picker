@@ -21,7 +21,8 @@ object TestUtil {
     // picker args explain:
     //  --rw mem_direct       : export internal signals with mem_direct read/write
     //  --w out/alu_wave.fst  : write waveform to out/alu_wave.fst
-    chiselUT.generateDUT[A](issueVerilog, pickerExArgs="-w out/alu_wave.fst --rw mem_direct")
+    val waveFile = typeOf[A].typeSymbol.fullName.replace(".", "_")
+    chiselUT.generateDUT[A](issueVerilog, pickerExArgs=s"-w out/${waveFile}.fst --rw mem_direct")
   }
 
 }
