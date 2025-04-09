@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.function.Consumer;
 
 import com.xspcomm.*;
 
@@ -26,6 +27,22 @@ public class JavaUT_{{__TOP_MODULE_NAME__}} { //this class is used for scala ext
             }
         }
         System.load(tempFile.getAbsolutePath());
+    }
+    public static void loadFileInJar(String path, Consumer<String> cb) throws IOException {
+        InputStream inputStream = JavaUT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path);
+        if (inputStream == null) {
+            throw new IOException("Could not find file: " + path);
+        }
+        File tempFile = File.createTempFile("tmp", "tmp");
+        tempFile.deleteOnExit();
+        try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        }
+        cb.accept(tempFile.getAbsolutePath());
     }
     static {
         try {

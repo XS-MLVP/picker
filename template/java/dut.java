@@ -30,6 +30,22 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         }
         System.load(tempFile.getAbsolutePath());
     }
+    public static void loadFileInJar(String path, Consumer<String> cb) throws IOException {
+        InputStream inputStream = UT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path);
+        if (inputStream == null) {
+            throw new IOException("Could not find file: " + path);
+        }
+        File tempFile = File.createTempFile("tmp", "tmp");
+        tempFile.deleteOnExit();
+        try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        }
+        cb.accept(tempFile.getAbsolutePath());
+    }
     static {
         try {
             loadLibraryFromJar("/libUT{{__TOP_MODULE_NAME__}}.so");
@@ -48,6 +64,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public DutUnifiedBase dut;
     public XPort xport;
     public XClock xclock;
+    public XSignalCFG xcfg;
     private Map<String, XData> internalSignals = new java.util.HashMap<String, XData>();
 
     // all pins declare
@@ -58,6 +75,15 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         this.xport = new XPort();
         this.xclock = new XClock(this.dut.getPxcStep(), this.dut.getPSelf());
         this.xclock.Add(this.xport);
+        // init xcfg
+        try {
+            UT_{{__TOP_MODULE_NAME__}}.loadFileInJar("/{{__TOP_MODULE_NAME__}}_offset.yaml", (path -> {
+                this.xcfg = new XSignalCFG(path, this.dut.GetXSignalCFGBasePtr());
+            }));
+        } catch (Exception e) {
+            System.err.println("Error load {{__TOP_MODULE_NAME__}}_offset.yaml fail:");
+            e.printStackTrace();
+        }
         // new pins
 {{__XDATA_INIT__}}
         // bind dpi
