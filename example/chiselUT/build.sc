@@ -10,6 +10,10 @@ object ut extends ScalaModule with ScalaTest{
 
     def scalaVersion = "2.13.15"
 
+    def compileClasspath = T {
+      super.compileClasspath() ++ unmanagedClasspath()
+    }
+
     def unmanagedClasspath = T {
       val jarPath: String = "picker --show_xcom_lib_location_scala".!!.trim
       val jarFile = os.Path(jarPath)
