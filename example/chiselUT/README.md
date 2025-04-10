@@ -1,7 +1,7 @@
 ## Chisel UT 测试 (Chisel UT Testing)
 
 #### 案例介绍 (Introduction)
-picker提供Scala接口，可以把Chisel版本的 Module 转为对应的scala Trait，然后基于scalactest等Scala生态中的测试框架进行UT验证。本案例的目录结构如下 (Picker provides a Scala interface that converts Chisel Modules into corresponding Scala Traits, enabling UT verification using testing frameworks from the Scala ecosystem such as ScalaTest. The structure of this example is as follows:)：
+picker提供Scala接口，可以把Chisel版本的 Module 转为对应的scala Trait，然后基于scalactest等Scala生态中的测试框架进行UT验证。本案例的目录结构如下 (Picker provides a Scala interface that converts Chisel Modules into corresponding Scala Traits, enabling UT verification using testing frameworks from the Scala ecosystem such as ScalaTest. The structure of this example is as follows)：
 
 ```bash
 chiselUT
@@ -25,7 +25,7 @@ chiselUT
 
 在上述示例中，将测试分成了以下三部分 (In this example, testing is divided into three parts)：
 
-1. 测试API封装，例如 (est API wrappers, such as)：
+1. 测试API封装，例如 (Test API wrappers, such as)：
     1. AdderTestAPI.scala
     1. ALUTestAPI.scala
 1. 测试用例，例如 (Test cases, such as)：
@@ -34,7 +34,7 @@ chiselUT
 1. 测试公共基础，例如 (Common test utilities, such as)：
     1. TestUtil.scala
 
-测试API封装的目的是让DUT与测试用例尽可能的解耦，通过保持测试API尽可能稳定的情况下，方便测试用例的复用 (The purpose of test API wrappers is to decouple the DUT from test cases as much as possible, facilitating test case reuse by keeping the test API as stable as possible.)。
+测试API封装的目的是让DUT与测试用例尽可能的解耦，通过保持测试API尽可能稳定的情况下，方便测试用例的复用 (The purpose of test API wrappers is to decouple the DUT from test cases as much as possible, facilitating test case reuse by keeping the test API as stable as possible)。
 
 #### API介绍 (API Introduction)
 
@@ -89,6 +89,48 @@ trait BaseDUTTrait{
     // 等价于 GetXPort().Get(key)，方便信号访问 (Equivalent to GetXPort().Get(key), convenient signal access)
     def apply(key: String): XData
 }
+```
+
+**nameOf**：
+
+获取scala变量名，接受不定参，返回对应`Map[String, T]`（Retrieve Scala variable names, accept variadic arguments, and return a corresponding `Map[String, T]`）：
+```scala
+object nameOf {
+  def apply(exprs: Any*): Map[String, Any]
+
+// 使用举例（Example usage）:
+var ret = nameOf(a, b)
+/*
+ret = {
+    "a" -> a,
+    "b" -> b,
+}
+*/
+
+```
+
+**保留内部信号（Preserve Internal Signals）**：
+
+保留指定Reg或者Wire，防止被chisel或者verilator优化掉，以便在TestCase中获取进行读取。具体可参考`src/test/scala/TestUtil.scala`中`MarkAsDebug`的实现（Preserve specified `Reg` or `Wire` to prevent them from being optimized out by Chisel or Verilator, allowing them to be accessed and read in test cases. Refer to the implementation of `MarkAsDebug` in TestUtil.scala for details）：
+
+```scala
+// src/main/scala/ALU.scala:68
+
+...
+  // 在 DUT 定义的最后标记需要保留，防止被优化掉的Reg或者Wire（At the end of the DUT definition, mark the registers or wires that need to be preserved to prevent optimization）
+  MarkAsDebug(nameOf(unusedReg, unusedWire1, unusedWire2))
+}
+```
+
+上述`MarkAsDebug`的作用是保留，正常编译情况下会被优化掉的内部信号，例如`ALU.scala`文件中的`unusedReg, unusedWire1, unusedWire2`。保留的信号会在名称后加上`_debug`后缀，例如（The purpose of `MarkAsDebug` is to preserve internal signals that would normally be optimized out during compilation, such as `unusedReg`, `unusedWire1`, and `unusedWire2` in the `ALU.scala` file. The preserved signals will have a `_debug` suffix added to their names, for example）：
+```
+dut("MultiCycleALU_top.MultiCycleALU.unusedReg_debug").AsInt32() # 通过unusedReg_debug访问原始 unusedReg（Access the original unusedReg via unusedReg_debug）
+```
+
+MarkAsDebug可通过环境变量`XDebug`控制是否生效，例如（`MarkAsDebug` can be controlled via the `XDebug` environment variable, for example）：
+```bash
+make XDebug=0 # 关闭Debug，不对MarkAsDebug的信号做任何处理（Disable Debug, do not process signals in MarkAsDebug）
+make XDebug=1 # 开启Debug，利用 "名称+_debug"的Reg保留MarkAsDebug中信号的值（Enable Debug, preserve the values of signals in MarkAsDebug using "name + _debug" registers）
 ```
 
 通过上述接口，可以完成对DUT的验证。XClock，XPort，XData的操作接口可参考其[说明文档](https://github.com/XS-MLVP/xcomm/blob/master/docs/APIs.cn.md) (Using the above interface, DUT verification can be completed. For information on XClock, XPort, and XData operation interfaces, please refer to their [documentation](https://github.com/XS-MLVP/xcomm/blob/master/docs/APIs.cn.md))。

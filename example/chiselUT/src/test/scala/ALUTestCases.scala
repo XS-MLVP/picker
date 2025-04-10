@@ -12,9 +12,21 @@ class MultiCycleALUTest extends MultiCycleALUTestBase{
 
   test("test list inner signals") { fixture =>
     val alu = fixture.alu
-    val pins = alu.listInnerSignals()
-    println("All inner signals: " + pins.mkString(", "))
+    val pins = alu.listInnerSignals().mkString(", ")
+    println("All inner signals: " + pins)
     assert(pins.contains("MultiCycleALU_top.reset"))
+    var unUnsedSig = List("unusedReg", "unusedWire1", "unusedWire2")
+    if(IsDebug()){
+      for(sig <- unUnsedSig){
+        assert(pins.contains(sig))
+      }
+      print("do contains: " + unUnsedSig)
+    }else{
+      for(sig <- unUnsedSig){
+        assert(!pins.contains(sig))
+      }
+      print("donot contains: " + unUnsedSig)
+    }
   }
 
   test("test Addition") { fixture =>

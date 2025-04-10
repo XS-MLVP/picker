@@ -3,6 +3,8 @@ package examples
 import chisel3._
 import chisel3.util._
 import chisel3.experimental.BundleLiterals._
+import com.xspcomm.nameOf
+
 
 class MultiCycleALU(width: Int) extends Module {
   val io = IO(new Bundle {
@@ -24,6 +26,11 @@ class MultiCycleALU(width: Int) extends Module {
   val mulTemp     = RegInit(0.U((2 * width).W))
   val divRemainder= RegInit(0.U(width.W))
   val divQuotient = RegInit(0.U(width.W))
+  val unusedReg   = RegInit(0.U(width.W))
+  val unusedWire1 = Wire(UInt(width.W))
+  var unusedWire2 = unusedReg + unusedWire1
+
+  unusedWire1 := unusedReg
 
   io.debug_count := count
   io.result := resultReg
@@ -75,4 +82,6 @@ class MultiCycleALU(width: Int) extends Module {
         state := idle
       }
     }
+
+  MarkAsDebug(nameOf(unusedReg, unusedWire1, unusedWire2))
 }
