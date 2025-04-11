@@ -3,7 +3,8 @@ package examples
 import chisel3._
 import chisel3.util._
 import chisel3.experimental.BundleLiterals._
-import com.xspcomm.nameOf
+import com.xspcomm.{nameOf, attrOf}
+import javax.xml.crypto.Data
 
 
 class MultiCycleALU(width: Int) extends Module {
@@ -84,4 +85,6 @@ class MultiCycleALU(width: Int) extends Module {
     }
 
   MarkAsDebug(nameOf(unusedReg, unusedWire1, unusedWire2))
+  // Or use `attrOf` to preserve all signals, excluding literals and Bundles.
+  //MarkAsDebug(attrOf[chisel3.Data](this, filter = (k, v) => !v.isLit && !v.isInstanceOf[chisel3.Bundle]))
 }
