@@ -66,6 +66,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public XClock xclock;
     public XSignalCFG xcfg;
     private Map<String, XData> internalSignals = new java.util.HashMap<String, XData>();
+    private Map<String, List<XData>> internalSignalsList = new java.util.HashMap<String, List<XData>>();
 
     // all pins declare
 {{__XDATA_DECL__}}
@@ -150,26 +151,99 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         return this.dut.Restore(check_point);
     }
 
-    public StringVector VPIInternalSignalList(String prefix, int deep) {
-        StringVector vec = new StringVector();
+    public List<String> VPIInternalSignalList() {
+        return this.VPIInternalSignalList("");
+    }
+    public List<String> VPIInternalSignalList(String prefix) {
+        return this.VPIInternalSignalList(prefix, 99);
+    }
+    public List<String> VPIInternalSignalList(String prefix, int deep) {
+        List<String> vec = new ArrayList<>();
         this.dut.VPIInternalSignalList(prefix, deep).forEach((i) ->{
-            vec.add(i);
+            vec.add((String)i);
         });
         return vec;
     }
-
     public XData GetInternalSignal(String name) {
+        return this.GetInternalSignal(name, -1);
+    }
+    public XData GetInternalSignal(String name, int index) {
+        return this.GetInternalSignal(name, index, false);
+    }
+    public XData GetInternalSignal(String name, int index, boolean use_vpi) {
         if (this.internalSignals.containsKey(name)) {
             return this.internalSignals.get(name);
         }
-        XData data = XData.FromVPI(dut.GetVPIHandleObj(name),
-                dut.GetVPIFuncPtr("vpi_get"),
-                dut.GetVPIFuncPtr("vpi_get_value"),
-                dut.GetVPIFuncPtr("vpi_put_value"), name);
-        this.internalSignals.put(name, data);
-        return data;
+        XData signal = null;
+        if(!use_vpi){
+            String xname = "CFG:" + name;
+            if (this.dut.GetXSignalCFGBasePtr().intValue() == 0) {
+                return signal;
+            }
+            if (index >= 0) {
+                signal = this.xcfg.NewXData(name, index, xname);
+            }else{
+                signal = this.xcfg.NewXData(name, xname);
+            }
+            if (signal != null) {
+                this.internalSignals.put(name, signal);
+            }
+            return signal;
+        }
+        signal = XData.FromVPI(this.dut.GetVPIHandleObj(name),
+                               this.dut.GetVPIFuncPtr("vpi_get"),
+                               this.dut.GetVPIFuncPtr("vpi_get_value"),
+                               this.dut.GetVPIFuncPtr("vpi_put_value"), "VPI:" + name);
+        if (signal != null) {
+            this.internalSignals.put(name, signal);
+        }
+        return signal;
     }
-
+    public List<XData> GetInternalSignal(String name, Boolean is_array){
+        if (this.internalSignalsList.containsKey(name)) {
+            return this.internalSignalsList.get(name);
+        }
+        List<XData> result = new ArrayList<>();
+        if (this.dut.GetXSignalCFGBasePtr().intValue() == 0) {
+            return result;
+        }
+        if(!is_array){
+            return result;
+        }
+        String xname = "CFG:" + name;
+        XDataVector signalList = this.xcfg.NewXDataArray(name, xname);
+        if (signalList != null) {
+            signalList.forEach((i) -> {
+                if (i != null) {
+                    result.add((XData)i);
+                }
+            });
+        }
+        return result;
+    }
+    public List<String> GetInternalSignalList(){
+        return this.GetInternalSignalList("");
+    }
+    public List<String> GetInternalSignalList(String prefix){
+        return this.GetInternalSignalList(prefix, 99);
+    }
+    public List<String> GetInternalSignalList(String prefix, Integer deep){
+        return this.GetInternalSignalList(prefix, deep, false);
+    }
+    public List<String> GetInternalSignalList(String prefix, Integer deep, Boolean use_vpi){
+        List<String> ret = new ArrayList<>();
+        if (this.dut.GetXSignalCFGBasePtr().intValue() != 0 && !use_vpi) {
+            this.xcfg.GetSignalNames(prefix).forEach ((i) -> {
+                if (i != null) {
+                    if (prefix == "" || i.startsWith(prefix)) {
+                        ret.add((String)i);
+                    }
+                }
+            });
+            return ret;
+        }
+        return this.VPIInternalSignalList(prefix, deep);
+    }
     public void Finish(){
         this.dut.Finish();
     }
