@@ -16,6 +16,7 @@ public:
 
     // signal hashmap
     std::map<std::string, XData*> signal_map;
+    std::map<std::string, std::vector<XData*>> signal_map_list;
 
     // DUT
     DutUnifiedBase *dut = nullptr;
@@ -28,6 +29,8 @@ public:
 
     // Clock for DUT timing
     XClock xclock;
+
+    XSignalCFG *xcfg = nullptr;
 
     // {{__TOP_MODULE_NAME__}}
     UT{{__TOP_MODULE_NAME__}}();
@@ -96,15 +99,47 @@ public:
     {
         this->dut->Restore((const char *)filename.c_str());
     }
-    XData *GetInternalSignal(std::string name)
+    XData *GetInternalSignal(std::string name, int index = -1, bool use_vpi = false)
     {
         // if not found, create a new one
         if (this->signal_map.find(name) == this->signal_map.end()) {
-            this->signal_map[name] = XData::FromVPI(this->dut->GetVPIHandleObj(name), this->dut->GetVPIFuncPtr("vpi_get"),
+            XData *signal = nullptr;
+            if(!use_vpi){
+                std::string xname = "CFG:" + name;
+                if (this->dut->GetXSignalCFGBasePtr()==0)return nullptr;
+                if(index >= 0){
+                    signal = this->xcfg->NewXData(name, index, xname);
+                }else{
+                    signal = this->xcfg->NewXData(name, xname);
+                }
+            }else{
+                signal = XData::FromVPI(this->dut->GetVPIHandleObj(name), this->dut->GetVPIFuncPtr("vpi_get"),
                                      this->dut->GetVPIFuncPtr("vpi_get_value"),
-                                     this->dut->GetVPIFuncPtr("vpi_put_value"), name);
+                                     this->dut->GetVPIFuncPtr("vpi_put_value"), "VPI:"+name);
+            }
+            if(signal == nullptr){
+                return nullptr;
+            }
+            this->signal_map[name] = signal;
         }
         return this->signal_map[name];
+    }
+    std::vector<XData*> GetInternalSignal(std::string name, bool is_array){
+        Assert(is_array==true, "GetInternalSignal: is_array must be true");
+        if(this->signal_map_list.find(name) == this->signal_map_list.end()){
+            std::vector<XData*> signal = this->xcfg->NewXDataArray(name, "CFG:" + name);
+            if(signal.size() == 0){
+                return signal;
+            }
+            this->signal_map_list[name] = signal;
+        }
+        return this->signal_map_list[name];
+    }
+    std::vector<std::string> GetInternalSignalList(std::string prefix = "", int deep = 99, bool use_vpi = false){
+        if(!use_vpi){
+            return this->xcfg->GetSignalNames(prefix);
+        }
+        return this->dut->VPIInternalSignalList(prefix, deep);
     }
     std::vector<std::string> VPIInternalSignalList(std::string name = "", int depth = 99)
     {

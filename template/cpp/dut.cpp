@@ -53,6 +53,7 @@ void UT{{__TOP_MODULE_NAME__}}::init()
     };
     this->xclock.ReInit(stepfunc, {}, {});
     this->xclock.Add(this->xport);
+    this->xcfg = new XSignalCFG(this->dut->GetXSignalCFGPath(), this->dut->GetXSignalCFGBasePtr());
 
     // create subport
 {{__XPORT_CASCADED_SGN__}}
