@@ -8,17 +8,16 @@ public class example {
     public static void main(String[] args) {
         UT_vpi dut = new UT_vpi(args);
         System.out.println("internal signals: " + dut.VPIInternalSignalList("", 99));
-        XData v1 = dut.GetInternalSignal("vpi._v1_base");
-        XData v2 = dut.GetInternalSignal("vpi._v2_base");
-        XData v3 = dut.GetInternalSignal("vpi._v3_base");
-        XData v4 = dut.GetInternalSignal("vpi._v4_base");
+        XData v1 = dut.GetInternalSignal("vpi._v1_base", -1, true);
+        XData v2 = dut.GetInternalSignal("vpi._v2_base", -1, true);
+        XData v3 = dut.GetInternalSignal("vpi._v3_base", -1, true);
+        XData v4 = dut.GetInternalSignal("vpi._v4_base", -1, true);
         dut.InitClock("clk");
         System.out.println("data size: v1" + v1.W() + " v2:" + v2.W() + " v3:" + v3.W() + " v4:" + v4.W());
         System.out.println("------------------step-------------------");
 
         for (int i = 0; i < 20; i++) {
             dut.Step(1);
-            dut.FlushWaveform();
             if (i == 10) {
                 // write to internal signals
                 v1.Set(1); // 1 bit, type logic, .W() is 0

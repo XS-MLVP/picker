@@ -58,17 +58,16 @@ local function main(args)
     for i = 0, signals:size() - 1 do
         print(signals[i])
     end
-    local v1 = dut:GetInternalSignal("vpi._v1_base")
-    local v2 = dut:GetInternalSignal("vpi._v2_base")
-    local v3 = dut:GetInternalSignal("vpi._v3_base")
-    local v4 = dut:GetInternalSignal("vpi._v4_base")
+    local v1 = dut:GetInternalSignal("vpi._v1_base", -1, false, true)
+    local v2 = dut:GetInternalSignal("vpi._v2_base", -1, false, true)
+    local v3 = dut:GetInternalSignal("vpi._v3_base", -1, false, true)
+    local v4 = dut:GetInternalSignal("vpi._v4_base", -1, false, true)
     dut:InitClock("clk")
     print("data size: v1" .. v1:W() .. " v2:" .. v2:W() .. " v3:" .. v3:W() .. " v4:" .. v4:W())
     print("------------------step-------------------")
 
     for i = 0, 19 do
         dut:Step(1)
-        dut:FlushWaveform()
         if i == 10 then
             -- write to internal signals
             v1:Set(1) -- 1 bit, type logic, .W() is 0
