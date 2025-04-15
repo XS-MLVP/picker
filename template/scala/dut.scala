@@ -18,9 +18,19 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
 
     def newXCFG(): XSignalCFG = {
         var ret: XSignalCFG = null
-        JavaUT_{{__TOP_MODULE_NAME__}}.loadFileInJar("/{{__TOP_MODULE_NAME__}}_offset.yaml", (p) => {
-            ret = new XSignalCFG(p, dut.GetXSignalCFGBasePtr())
-        })
+        try {
+            JavaUT_{{__TOP_MODULE_NAME__}}.loadFileInJar("/{{__TOP_MODULE_NAME__}}_offset.yaml", (p) => {
+                ret = new XSignalCFG(p, dut.GetXSignalCFGBasePtr())
+            })
+        } catch {
+            case e: Exception => {
+                if(dut.GetXSignalCFGBasePtr() == 0){
+                    println("Error: " + e.getMessage)
+                    return null
+                }
+                ret = new XSignalCFG("/{{__TOP_MODULE_NAME__}}_offset.yaml", dut.GetXSignalCFGBasePtr())
+            }
+        }
         ret
     }
 

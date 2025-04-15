@@ -31,7 +31,7 @@ compile: copy_xspcomm
 	@mv *.so.* golang/src/${TARGET}/ || true
 	@mv *.go golang/src/${TARGET}/
 	@mv go.mod golang/src/${TARGET}/
-	@mv *.yaml golang/src/${TARGET}/
+	@mv *.yaml golang/src/${TARGET}/ || true
 
 clean:
 	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.a build

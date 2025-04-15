@@ -70,9 +70,7 @@ function(XSScalaTarget)
 		COMMAND ${CMAKE_COMMAND} -E copy
 				${CMAKE_CURRENT_SOURCE_DIR}/*.so
 				${JAR_SOURCE_DIR}/
-		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/*.yaml
-				${JAR_SOURCE_DIR}/
+		COMMAND sh -c '${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/*.yaml ${JAR_SOURCE_DIR}/ || true'
 		COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp {{__XSPCOMM_JAR__}}
 		COMMAND scalac -cp {{__XSPCOMM_JAR__}} -d ${JAR_SOURCE_DIR} -classpath ${JAR_SOURCE_DIR}:{{__XSPCOMM_JAR__}} ${JAR_SOURCE_DIR}/*.scala
 		DEPENDS UT_${PROJECT_NAME}

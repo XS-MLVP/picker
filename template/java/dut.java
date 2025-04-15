@@ -82,8 +82,12 @@ public class UT_{{__TOP_MODULE_NAME__}} {
                 this.xcfg = new XSignalCFG(path, this.dut.GetXSignalCFGBasePtr());
             }));
         } catch (Exception e) {
-            System.err.println("Error load {{__TOP_MODULE_NAME__}}_offset.yaml fail:");
-            e.printStackTrace();
+            if(this.dut.GetXSignalCFGBasePtr().intValue() != 0) {
+                System.err.println("Error load {{__TOP_MODULE_NAME__}}_offset.yaml fail:");
+                e.printStackTrace();
+            }else{
+                this.xcfg = new XSignalCFG("/{{__TOP_MODULE_NAME__}}_offset.yaml", this.dut.GetXSignalCFGBasePtr());
+            }
         }
         // new pins
 {{__XDATA_INIT__}}
