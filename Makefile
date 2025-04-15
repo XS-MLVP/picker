@@ -33,6 +33,22 @@ test_all:
 	./example/AdderMultiInstance/release-verilator.sh --lang python
 	./example/Cache/release-verilator.sh --lang python
 
+test_vpi_all:
+	bash example/InternalSignals/release-verilator.sh --lang cpp
+	bash example/InternalSignals/release-verilator.sh --lang golang
+	bash example/InternalSignals/release-verilator.sh --lang java
+	bash example/InternalSignals/release-verilator.sh --lang lua
+	bash example/InternalSignals/release-verilator.sh --lang python
+	bash example/InternalSignals/release-verilator.sh --lang scala
+
+test_mem_direct_all:
+	bash example/CacheSignalCFG/release-verilator.sh --lang cpp
+	bash example/CacheSignalCFG/release-verilator.sh --lang golang
+	bash example/CacheSignalCFG/release-verilator.sh --lang java
+	bash example/CacheSignalCFG/release-verilator.sh --lang lua
+	bash example/CacheSignalCFG/release-verilator.sh --lang python
+	bash example/CacheSignalCFG/release-verilator.sh --lang scala
+
 clean:
 	rm -rf temp build dist picker_out*
 
