@@ -9,7 +9,7 @@ namespace picker { namespace codegen {
         static const std::string xdata_binddpi_template =
             "        self.{{pin_uniq_name}}.BindDPIPtr(self.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xdata_bindptr_template =
-            "        self.{{pin_uniq_name}}.BindNativeData(self.dut.NativeSignalAddr(\"{{logic_pin}}\"))\n";
+            "        self.{{pin_uniq_name}} = xsp.XPin(self.GetInternalSignal(\"{{top_name}}.{{logic_pin}}\"), self.event)\n";
         static const std::string xport_add_template =
             "        self.xport.Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}}.xdata)\n";
         static const std::string xport_cascaded_template =
@@ -23,12 +23,14 @@ namespace picker { namespace codegen {
         /// @param xport_add
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &xdata_init,
-                                 std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant, SignalAccessType rw_type)
+                                 std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant,
+                                 SignalAccessType rw_type, std::string &top_name)
         {
             inja::Environment env;
             nlohmann::json data;
             auto pin_map = picker::get_default_confilct_map();
             for (int i = 0; i < pin.size(); i++) {
+                data["top_name"]       = top_name + "_top";
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
                 data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
@@ -38,17 +40,23 @@ namespace picker { namespace codegen {
                                                0 :
                                                pin[i].logic_pin_hb - pin[i].logic_pin_lb + 1;
 
-                xdata_init   = xdata_init + env.render(xdata_init_template, data);
                 switch (rw_type) {
-                case SignalAccessType::DPI:
-                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
-                    break;
-                case SignalAccessType::MEM_DIRECT:
-                    // xdata_bindrw = xdata_bindrw + env.render(xdata_bindptr_template, data);
-                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
-                    break;
+                    case SignalAccessType::DPI:
+                        xdata_init   = xdata_init + env.render(xdata_init_template, data);
+                        xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                        break;
+                    case SignalAccessType::MEM_DIRECT:
+                        xdata_init = xdata_init + env.render(xdata_bindptr_template, data);
+                        break;
                 }
                 xport_add    = xport_add + env.render(xport_add_template, data);
+            }
+            switch (rw_type) {
+                case SignalAccessType::DPI:
+                    break;
+                case SignalAccessType::MEM_DIRECT:
+                    xdata_bindrw = "        # MEM_DIRECT mode, there is no need to bind\n";
+                    break;
             }
         }
 
@@ -114,7 +122,7 @@ namespace picker { namespace codegen {
         std::string xdata_init, xdata_bindrw, xport_add, swig_constant, cascaded_signals;
 
         // Generate External Pin
-        py::render_external_pin(external_pin, xdata_init, xdata_bindrw, xport_add, swig_constant, opts.rw_type);
+        py::render_external_pin(external_pin, xdata_init, xdata_bindrw, xport_add, swig_constant, opts.rw_type, dst_module_name);
         // Generate Internal Signal
         py::render_internal_signal(internal_signal, xdata_init, xdata_bindrw, xport_add, swig_constant);
         // Generate Cascaded Porst
