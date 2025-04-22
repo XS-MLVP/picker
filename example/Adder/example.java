@@ -3,7 +3,7 @@ package com.ut;
 import java.math.BigInteger;
 
 // import the generated UT class
-import com.ut.UT_Adder;
+import com.ut.Adder.UT_Adder;
 
 public class example {
     static public void main(String[] args){

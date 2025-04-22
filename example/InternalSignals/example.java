@@ -1,7 +1,7 @@
 
 package com.ut;
 
-import com.ut.UT_vpi;
+import com.ut.vpi.UT_vpi;
 import com.xspcomm.*;
 
 public class example {

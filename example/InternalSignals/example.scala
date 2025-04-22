@@ -1,5 +1,5 @@
 package com.ut
-import com.ut.UT_vpi
+import com.ut.vpi.UT_vpi
 
 object example {
   def main(args: Array[String]): Unit = {
