@@ -1,4 +1,6 @@
-package com.ut.{{__TOP_MODULE_NAME__}};
+package com.ut;
+
+import com.ut.{{__TOP_MODULE_NAME__}}.UT_{{__TOP_MODULE_NAME__}};
 
 object example {
 	def main(args: Array[String]): Unit = {
