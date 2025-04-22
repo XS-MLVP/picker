@@ -1,4 +1,6 @@
-package com.ut.CacheCFG;
+package com.ut;
+
+import com.ut.CacheCFG.UT_CacheCFG;
 
 object example {
 	def main(args: Array[String]): Unit = {

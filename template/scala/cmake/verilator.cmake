@@ -50,7 +50,7 @@ function(XSScalaTarget)
 		-Wl,-rpath={{__XSPCOMM_LIB__}}
 		${CustomLinkOptions})
 
-	set_property(TARGET UT_${PROJECT_NAME} PROPERTY SWIG_COMPILE_OPTIONS -package com.xspcomm)
+	set_property(TARGET UT_${PROJECT_NAME} PROPERTY SWIG_COMPILE_OPTIONS -package com.ut.{{__TOP_MODULE_NAME__}})
 
 	# copy file
 	add_custom_command(
