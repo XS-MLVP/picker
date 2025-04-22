@@ -1,7 +1,7 @@
 package com.ut
 
 import java.lang.Math
-import com.ut.UT_Adder
+import com.ut.Adder.UT_Adder
 
 object example {
     def main(args: Array[String]): Unit = {

@@ -1,6 +1,6 @@
 package com.ut
 
-import com.ut.UT_RandomGenerator
+import com.ut.RandomGenerator.UT_RandomGenerator
 import Math.random
 
 

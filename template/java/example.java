@@ -1,4 +1,4 @@
-package com.ut;
+package com.ut.{{__TOP_MODULE_NAME__}};
 
 public class example {
 	public static void main(String[] args) {

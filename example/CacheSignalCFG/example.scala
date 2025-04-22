@@ -1,4 +1,4 @@
-package com.ut;
+package com.ut.CacheCFG;
 
 object example {
 	def main(args: Array[String]): Unit = {
