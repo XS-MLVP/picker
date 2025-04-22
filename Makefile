@@ -49,6 +49,20 @@ test_mem_direct_all:
 	bash example/CacheSignalCFG/release-verilator.sh --lang python
 	bash example/CacheSignalCFG/release-verilator.sh --lang scala
 
+test_all_java:
+	bash example/Adder/release-verilator.sh --lang java
+	bash example/RandomGenerator/release-verilator.sh --lang java
+	bash example/DualPortStackCb/release-verilator.sh --lang java
+	bash example/InternalSignals/release-verilator.sh --lang java
+	bash example/CacheSignalCFG/release-verilator.sh --lang java
+
+test_all_scala:
+	bash example/Adder/release-verilator.sh --lang scala
+	bash example/RandomGenerator/release-verilator.sh --lang scala
+	bash example/DualPortStackCb/release-verilator.sh --lang scala
+	bash example/InternalSignals/release-verilator.sh --lang scala
+	bash example/CacheSignalCFG/release-verilator.sh --lang scala
+
 clean:
 	rm -rf temp build dist picker_out*
 

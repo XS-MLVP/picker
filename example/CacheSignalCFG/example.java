@@ -1,5 +1,6 @@
-package com.ut.CacheCFG;
+package com.ut;
 
+import com.ut.CacheCFG.UT_CacheCFG;
 import com.xspcomm.*;
 
 public class example {
