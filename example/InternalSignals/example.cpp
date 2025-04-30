@@ -7,10 +7,10 @@ int main()
     printf("internal signals: ");
     for (auto &sig : dut->VPIInternalSignalList()) { printf("%s ", sig.c_str()); }
     printf("\n");
-    XData *v1 = dut->GetInternalSignal("vpi._v1_base");
-    XData *v2 = dut->GetInternalSignal("vpi._v2_base");
-    XData *v3 = dut->GetInternalSignal("vpi._v3_base");
-    XData *v4 = dut->GetInternalSignal("vpi._v4_base");
+    XData *v1 = dut->GetInternalSignal("vpi._v1_base", -1, true);
+    XData *v2 = dut->GetInternalSignal("vpi._v2_base", -1, true);
+    XData *v3 = dut->GetInternalSignal("vpi._v3_base", -1, true);
+    XData *v4 = dut->GetInternalSignal("vpi._v4_base", -1, true);
 
     dut->InitClock("clk");
     printf("data size: v1:%2d v2:%2d  v3:%2d  v4:%2d\n", v1->W(), v2->W(), v3->W(), v4->W());
@@ -18,7 +18,6 @@ int main()
 
     for (int i = 0; i < 20; i++) {
         dut->Step(1);
-        dut->FlushWaveform();
         if (i == 10) {
             // write to internal signals
             *v1 = 1;  // 1 bit, type logic, .W() is 0

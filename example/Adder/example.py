@@ -29,6 +29,8 @@ def main():
     dut = DUTAdder()  # Assuming USE_VERILATOR
     
     print("Initialized UTAdder")
+    dut.RefreshComb()
+    dut.dut.CloseWaveform()
 
     for c in range(11451):
         i = input_t(random_int(), random_int(), random_int() & 1)
@@ -53,6 +55,8 @@ def main():
         print(f"REF: sum=0x{o_ref.sum:x}, cout=0x{o_ref.cout:x}")
         
         assert o_dut.sum == o_ref.sum, "sum mismatch"
+        if c == 11401:
+            dut.dut.OpenWaveform()
 
     print("Test Passed, destroy UTAdder")
     dut.Finish() # When using VCS, DUT.Finish() will exit the program, so it should be the last line of the program

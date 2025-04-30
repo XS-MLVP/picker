@@ -1,6 +1,6 @@
 package com.ut;
 
-import com.ut.UT_RandomGenerator;
+import com.ut.RandomGenerator.UT_RandomGenerator;
 
 public class example {
         static public void main(String[] args){

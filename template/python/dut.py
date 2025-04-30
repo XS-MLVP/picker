@@ -59,6 +59,18 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def StepFal(self, callback, args=(), kwargs={}):
         self.xclock.StepFal(callback, args, kwargs)
 
+    def OpenWaveform(self):
+        return self.dut.OpenWaveform()
+
+    def CloseWaveform(self):
+        return self.dut.CloseWaveform()
+
+    def GetXPort(self):
+        return self.xport
+
+    def GetXClock(self):
+        return self.xclock
+
     def SetWaveform(self, filename: str):
         self.dut.SetWaveform(filename)
     

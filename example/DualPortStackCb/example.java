@@ -1,6 +1,6 @@
 package com.ut;
 
-import com.ut.UT_dual_port_stack;
+import com.ut.dual_port_stack.UT_dual_port_stack;
 import com.xspcomm.XData;
 
 import java.util.ArrayList;

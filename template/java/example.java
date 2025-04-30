@@ -1,5 +1,7 @@
 package com.ut;
 
+import com.ut.{{__TOP_MODULE_NAME__}}.UT_{{__TOP_MODULE_NAME__}};
+
 public class example {
 	public static void main(String[] args) {
 	  UT_{{__TOP_MODULE_NAME__}} dut = new UT_{{__TOP_MODULE_NAME__}}();

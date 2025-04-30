@@ -1,21 +1,20 @@
 package com.ut
-import com.ut.UT_vpi
+import com.ut.vpi.UT_vpi
 
 object example {
   def main(args: Array[String]): Unit = {
     val dut = new UT_vpi(args)
-    println("internal signals: " + dut.VPIInternalSignalList("", 99))
-    val v1 = dut.GetInternalSignal("vpi._v1_base")
-    val v2 = dut.GetInternalSignal("vpi._v2_base")
-    val v3 = dut.GetInternalSignal("vpi._v3_base")
-    val v4 = dut.GetInternalSignal("vpi._v4_base")
+    println("internal signals: " + dut.VPIInternalSignalList("", 99).mkString(", "))
+    val v1 = dut.GetInternalSignal("vpi._v1_base", -1, true)
+    val v2 = dut.GetInternalSignal("vpi._v2_base", -1, true)
+    val v3 = dut.GetInternalSignal("vpi._v3_base", -1, true)
+    val v4 = dut.GetInternalSignal("vpi._v4_base", -1, true)
     dut.InitClock("clk")
     println(s"data size: v1${v1.W()} v2:${v2.W()} v3:${v3.W()} v4:${v4.W()}")
     println("------------------step-------------------")
 
     for (i <- 0 until 20) {
       dut.Step(1)
-      dut.FlushWaveform()
       if (i == 10) {
         // write to internal signals
         v1.Set(1) // 1 bit, type logic, .W() is 0

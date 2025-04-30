@@ -5,7 +5,7 @@
 %include std_map.i
 %include std_vector.i
 
-%template(StringVector) std::vector<std::string>;
+%template(StringScalaVector) std::vector<std::string>;
 
 %{
 #include "dut_base.hpp"

@@ -1,4 +1,4 @@
-package com.ut;
+package com.ut.{{__TOP_MODULE_NAME__}};
 
 
 import com.xspcomm.*;
@@ -30,6 +30,22 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         }
         System.load(tempFile.getAbsolutePath());
     }
+    public static void loadFileInJar(String path, Consumer<String> cb) throws IOException {
+        InputStream inputStream = UT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path);
+        if (inputStream == null) {
+            throw new IOException("Could not find file: " + path);
+        }
+        File tempFile = File.createTempFile("tmp", "tmp");
+        tempFile.deleteOnExit();
+        try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        }
+        cb.accept(tempFile.getAbsolutePath());
+    }
     static {
         try {
             loadLibraryFromJar("/libUT{{__TOP_MODULE_NAME__}}.so");
@@ -48,7 +64,9 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public DutUnifiedBase dut;
     public XPort xport;
     public XClock xclock;
+    public XSignalCFG xcfg;
     private Map<String, XData> internalSignals = new java.util.HashMap<String, XData>();
+    private Map<String, List<XData>> internalSignalsList = new java.util.HashMap<String, List<XData>>();
 
     // all pins declare
 {{__XDATA_DECL__}}
@@ -58,6 +76,19 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         this.xport = new XPort();
         this.xclock = new XClock(this.dut.getPxcStep(), this.dut.getPSelf());
         this.xclock.Add(this.xport);
+        // init xcfg
+        try {
+            UT_{{__TOP_MODULE_NAME__}}.loadFileInJar("/{{__TOP_MODULE_NAME__}}_offset.yaml", (path -> {
+                this.xcfg = new XSignalCFG(path, this.dut.GetXSignalCFGBasePtr());
+            }));
+        } catch (Exception e) {
+            if(this.dut.GetXSignalCFGBasePtr().intValue() != 0) {
+                System.err.println("Error load {{__TOP_MODULE_NAME__}}_offset.yaml fail:");
+                e.printStackTrace();
+            }else{
+                this.xcfg = new XSignalCFG("/{{__TOP_MODULE_NAME__}}_offset.yaml", this.dut.GetXSignalCFGBasePtr());
+            }
+        }
         // new pins
 {{__XDATA_INIT__}}
         // bind dpi
@@ -72,7 +103,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         this.initDut();
     }
     public UT_{{__TOP_MODULE_NAME__}}(String[] args){
-        StringVector vec = new StringVector();
+        StringJavaVector vec = new StringJavaVector();
         for (int i = 0; i < args.length; i++) {
             vec.add(args[i]);
         }
@@ -82,6 +113,18 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     /*************************************************/
     /*                  User APIs                    */
     /*************************************************/
+    public boolean OpenWaveform(){
+        return this.dut.OpenWaveform();
+    }
+    public boolean CloseWaveform(){
+        return this.dut.CloseWaveform();
+    }
+    public XClock GetXClock(){
+        return this.xclock;
+    }
+    public XPort GetXPort(){
+        return this.xport;
+    }
     public void SetWaveform(String wave_name){
         this.dut.SetWaveform(wave_name);
     }
@@ -112,22 +155,99 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         return this.dut.Restore(check_point);
     }
 
-    public StringVector VPIInternalSignalList(String prefix, int deep) {
-        return this.dut.VPIInternalSignalList(prefix, deep);
+    public List<String> VPIInternalSignalList() {
+        return this.VPIInternalSignalList("");
     }
-
+    public List<String> VPIInternalSignalList(String prefix) {
+        return this.VPIInternalSignalList(prefix, 99);
+    }
+    public List<String> VPIInternalSignalList(String prefix, int deep) {
+        List<String> vec = new ArrayList<>();
+        this.dut.VPIInternalSignalList(prefix, deep).forEach((i) ->{
+            vec.add((String)i);
+        });
+        return vec;
+    }
     public XData GetInternalSignal(String name) {
+        return this.GetInternalSignal(name, -1);
+    }
+    public XData GetInternalSignal(String name, int index) {
+        return this.GetInternalSignal(name, index, false);
+    }
+    public XData GetInternalSignal(String name, int index, boolean use_vpi) {
         if (this.internalSignals.containsKey(name)) {
             return this.internalSignals.get(name);
         }
-        XData data = XData.FromVPI(dut.GetVPIHandleObj(name),
-                dut.GetVPIFuncPtr("vpi_get"),
-                dut.GetVPIFuncPtr("vpi_get_value"),
-                dut.GetVPIFuncPtr("vpi_put_value"), name);
-        this.internalSignals.put(name, data);
-        return data;
+        XData signal = null;
+        if(!use_vpi){
+            String xname = "CFG:" + name;
+            if (this.dut.GetXSignalCFGBasePtr().intValue() == 0) {
+                return signal;
+            }
+            if (index >= 0) {
+                signal = this.xcfg.NewXData(name, index, xname);
+            }else{
+                signal = this.xcfg.NewXData(name, xname);
+            }
+            if (signal != null) {
+                this.internalSignals.put(name, signal);
+            }
+            return signal;
+        }
+        signal = XData.FromVPI(this.dut.GetVPIHandleObj(name),
+                               this.dut.GetVPIFuncPtr("vpi_get"),
+                               this.dut.GetVPIFuncPtr("vpi_get_value"),
+                               this.dut.GetVPIFuncPtr("vpi_put_value"), "VPI:" + name);
+        if (signal != null) {
+            this.internalSignals.put(name, signal);
+        }
+        return signal;
     }
-
+    public List<XData> GetInternalSignal(String name, Boolean is_array){
+        if (this.internalSignalsList.containsKey(name)) {
+            return this.internalSignalsList.get(name);
+        }
+        List<XData> result = new ArrayList<>();
+        if (this.dut.GetXSignalCFGBasePtr().intValue() == 0) {
+            return result;
+        }
+        if(!is_array){
+            return result;
+        }
+        String xname = "CFG:" + name;
+        XDataVector signalList = this.xcfg.NewXDataArray(name, xname);
+        if (signalList != null) {
+            signalList.forEach((i) -> {
+                if (i != null) {
+                    result.add((XData)i);
+                }
+            });
+        }
+        return result;
+    }
+    public List<String> GetInternalSignalList(){
+        return this.GetInternalSignalList("");
+    }
+    public List<String> GetInternalSignalList(String prefix){
+        return this.GetInternalSignalList(prefix, 99);
+    }
+    public List<String> GetInternalSignalList(String prefix, Integer deep){
+        return this.GetInternalSignalList(prefix, deep, false);
+    }
+    public List<String> GetInternalSignalList(String prefix, Integer deep, Boolean use_vpi){
+        List<String> ret = new ArrayList<>();
+        if (this.dut.GetXSignalCFGBasePtr().intValue() != 0 && !use_vpi) {
+            this.xcfg.GetSignalNames(prefix).forEach ((i) -> {
+                if (i != null) {
+                    if (prefix == "" || i.startsWith(prefix)) {
+                        ret.add((String)i);
+                    }
+                }
+            });
+            return ret;
+        }
+        return this.VPIInternalSignalList(prefix, deep);
+    }
     public void Finish(){
         this.dut.Finish();
     }

@@ -6,7 +6,7 @@ all: test clean
 
 test: compile
 	@echo "--------------Comple Success Test Step DUT--------------------"
-	@scala -cp {{__XSPCOMM_JAR__}}:${TARGET}-scala.jar -ea com.ut.example
+	@scala -cp {{__XSPCOMM_JAR__}}:${TARGET}-scala.jar com.ut.example
 	@echo "--------------------------------------------------------------"
 
 # copy xspcomm lib

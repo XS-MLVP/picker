@@ -55,6 +55,7 @@ function DUT{{__TOP_MODULE_NAME__}}:new(...)
     self.xclock = xsp.XClock(self.dut.pxcStep, self.dut.pSelf)
     self.xport = xsp.XPort()
     self.xclock:Add(self.xport)
+    self.xcfg = xsp.XSignalCFG(self.dut:GetXSignalCFGPath(), self.dut:GetXSignalCFGBasePtr())
     self.internal_signals = {}
 
     -- set output files
@@ -106,6 +107,22 @@ function DUT{{__TOP_MODULE_NAME__}}:StepFal(callback)
     self.xclock:StepFal(callback)
 end
 
+function DUT{{__TOP_MODULE_NAME__}}:OpenWaveform()
+    return self.dut:OpenWaveform()
+end
+
+function DUT{{__TOP_MODULE_NAME__}}:CloseWaveform()
+    return self.dut:CloseWaveform()
+end
+
+function DUT{{__TOP_MODULE_NAME__}}:GetXClock()
+    return self.xclock
+end
+
+function DUT{{__TOP_MODULE_NAME__}}:GetXPort()
+    return self.xport
+end
+
 function DUT{{__TOP_MODULE_NAME__}}:SetWaveform(filename)
     self.dut:SetWaveform(filename)
 end
@@ -126,12 +143,38 @@ function DUT{{__TOP_MODULE_NAME__}}:Restore(name)
     self.dut:Restore(name)
 end
 
-function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignal(name)
+function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignal(name, index, is_array, use_vpi)
+    -- name: str, index=-1, is_array=False, use_vpi=False
+    index = index or -1
+    is_array = is_array or false
+    use_vpi = use_vpi or false
+    xname = "CFG:" .. name
     if not self.internal_signals[name] then
-        local signal = xsp.XData.FromVPI(self.dut:GetVPIHandleObj(name),
-                                        self.dut:GetVPIFuncPtr("vpi_get"),
-                                        self.dut:GetVPIFuncPtr("vpi_get_value"),
-                                        self.dut:GetVPIFuncPtr("vpi_put_value"), name)
+        local signal = nil
+        if not use_vpi then
+            if self.dut:GetXSignalCFGBasePtr() == 0 then
+                return nil
+            end
+            if is_array then
+                signal = self.xcfg:NewXDataArray(name, xname)
+                if signal then
+                    self.internal_signals[name] = signal
+                end
+                return signal
+            end
+            if index >= 0 then
+                signal = self.xcfg:NewXData(name, index, xname)
+            else
+                signal = self.xcfg:NewXData(name, xname)
+            end
+        else
+            assert(not is_array, "VPI signal cannot be array")
+            assert(index == -1, "VPI signal cannot be indexed")
+            signal = xsp.XData.FromVPI(self.dut:GetVPIHandleObj(name),
+                                       self.dut:GetVPIFuncPtr("vpi_get"),
+                                       self.dut:GetVPIFuncPtr("vpi_get_value"),
+                                       self.dut:GetVPIFuncPtr("vpi_put_value"), "VPI:" .. name)
+        end
         if signal then
             self.internal_signals[name] = signal
         end
@@ -139,8 +182,23 @@ function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignal(name)
     return self.internal_signals[name]
 end
 
+function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignalList(prefix, deep, use_vpi)
+    -- prefix: str, deep=99, use_vpi=False
+    prefix = prefix or ""
+    deep = deep or 99
+    use_vpi = use_vpi or false
+    if not use_vpi then
+        if not self.dut:GetXSignalCFGBasePtr() then
+            return nil
+        end
+        return self.xcfg:GetSignalNames(prefix)
+    else
+        return self:VPIInternalSignalList(prefix, deep)
+    end
+end
+
 function DUT{{__TOP_MODULE_NAME__}}:VPIInternalSignalList(prefix, deep)
-    return self.dut:VPIInternalSignalList(prefix, deep)
+    return self.dut:VPIInternalSignalList(prefix or "", deep or 99)
 end
 
 function DUT{{__TOP_MODULE_NAME__}}:RefreshComb()

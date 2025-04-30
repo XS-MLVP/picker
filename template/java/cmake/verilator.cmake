@@ -50,7 +50,7 @@ function(XSJavaTarget)
 		-Wl,-rpath={{__XSPCOMM_LIB__}}
 		${CustomLinkOptions})
 
-	set_property(TARGET UT_${PROJECT_NAME} PROPERTY SWIG_COMPILE_OPTIONS -package com.xspcomm)
+	set_property(TARGET UT_${PROJECT_NAME} PROPERTY SWIG_COMPILE_OPTIONS -package com.ut.{{__TOP_MODULE_NAME__}})
 
 	# copy file
 	add_custom_command(
@@ -67,6 +67,7 @@ function(XSJavaTarget)
 		COMMAND ${CMAKE_COMMAND} -E copy
 				${CMAKE_CURRENT_SOURCE_DIR}/*.so
 				${JAR_SOURCE_DIR}/
+		COMMAND sh -c '${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/*.yaml ${JAR_SOURCE_DIR}/ || true'
 		COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp {{__XSPCOMM_JAR__}}
 		DEPENDS UT_${PROJECT_NAME}
 	)
