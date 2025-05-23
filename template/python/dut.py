@@ -165,7 +165,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         Returns:
             XData wrapper (XPin): The internal signal object or None if not found.
         """
-        if name not in self.internal_signals:
+        key_name = name
+        if index >= 0:
+            key_name = f"{name}[{index}]"
+        if key_name not in self.internal_signals:
             signal = None
             if self.dut.GetXSignalCFGBasePtr() != 0 and not use_vpi:
                 xname = "CFG:" + name
@@ -188,10 +191,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
             if signal is None:
                 return None
             if not isinstance(signal, xsp.XData):
-                self.internal_signals[name] = [xsp.XPin(s, self.event) for s in signal]
+                self.internal_signals[key_name] = [xsp.XPin(s, self.event) for s in signal]
             else:
-                self.internal_signals[name] = xsp.XPin(signal, self.event)
-        return self.internal_signals[name]
+                self.internal_signals[key_name] = xsp.XPin(signal, self.event)
+        return self.internal_signals[key_name]
 
     def GetInternalSignalList(self, prefix="", deep=99, use_vpi=False):
         """Get a list of internal signals
