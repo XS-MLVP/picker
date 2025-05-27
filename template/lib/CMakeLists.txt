@@ -45,6 +45,17 @@ set_target_properties(
 						 CXX_STANDARD_REQUIRED ON
 						 CXX_EXTENSIONS ON
 						 OUTPUT_NAME "UT${ModuleName}")
+add_custom_command(
+	TARGET ${ModuleName}
+	PRE_BUILD
+	COMMAND bash -c "date '+start +%s'"
+)
+
+add_custom_command(
+	TARGET ${ModuleName}
+	POST_BUILD
+	COMMAND bash -c "date '+end +%s'"
+)
 
 # Create release directory and Copy output files
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/UT_${ModuleName})

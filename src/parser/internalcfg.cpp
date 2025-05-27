@@ -20,7 +20,9 @@ namespace picker { namespace parser {
             std::vector<std::string> tokens;
             std::string token;
             std::istringstream tokenStream(value);
-            while (std::getline(tokenStream, token, ' ')) { tokens.push_back(token); }
+            while (tokenStream >> token) {
+                tokens.push_back(token);
+            }
             if (tokens.size() == 2) {
                 pin.logic_pin      = prefix + "." + tokens[1];
                 pin.logic_pin_type = tokens[0];
@@ -31,7 +33,6 @@ namespace picker { namespace parser {
                 int pos            = tokens[1].find(":");
                 pin.logic_pin_hb   = std::stoi(tokens[1].substr(1, pos - 1));
                 pin.logic_pin_lb   = std::stoi(tokens[1].substr(pos + 1, tokens[1].length() - pos - 2));
-
             } else {
                 PK_MESSAGE("error: unknown node type");
             }
@@ -39,6 +40,7 @@ namespace picker { namespace parser {
         } else {
             PK_MESSAGE("error: unknown node type");
         }
+        return;
     }
 
     std::vector<picker::sv_signal_define> internal(std::string internal_pin_filename)

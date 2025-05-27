@@ -20,21 +20,28 @@ all: release
 compile:
 	mkdir -p build
 	cp pli.tab build/pli.tab
-	cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=$(NPROC) -DRW_TYPE=$(RW_TYPE)
-	cmake --build build --config release --parallel $(NPROC)
+	@echo -n "[TIME LOG] verilator generate START: "  && date +%s.%3N
+	/usr/bin/time cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=$(NPROC) -DRW_TYPE=$(RW_TYPE)
+	@echo -n "[TIME LOG] verilator generate END: " && date +%s.%3N
+	/usr/bin/time cmake --build build --config release --parallel $(NPROC)
+	@echo -n "[TIME LOG] verilator build END: " && date +%s.%3N
 
 ifeq ($(RW_TYPE), MEM_DIRECT)
 ifeq ($(SIMULATOR), verilator)
 # file exsit check with Makefile
 ifeq ($(wildcard build/DPI{{__TOP_MODULE_NAME__}}/V{{__TOP_MODULE_NAME__}}___024root.h),)
+	@echo -n "[TIME LOG] mem_direct export START: " && date +%s.%3N
 	@rm -rf mem_direct
 	@{{__GENERATOR_PICKER_PATH__}} export build/DPI{{__TOP_MODULE_NAME__}}/V{{__TOP_MODULE_NAME__}}___024root.h \
 		--source_dir {{__GENERATOR_TEMPLATE_PATH__}}/mem_direct --target_dir ./mem_direct \
 		--source_module_name {{__TOP_MODULE_NAME__}}
+	@echo -n "[TIME LOG] mem_direct export END: " && date +%s.%3N
 endif
+	@echo -n "[TIME LOG] mem_direct gen START: " && date +%s.%3N
 	@cd mem_direct && make -j$(NPROC) TOP_NAME={{__TOP_MODULE_NAME__}}
 	@./mem_direct/export.bin > mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml
 	@rm -rf mem_direct_tmp
+	@echo -n "[TIME LOG] mem_direct gen END: " && date +%s.%3N
 endif
 endif
 
@@ -43,6 +50,7 @@ release: compile
 	@cp dut_base.hpp ${TARGET}/dut_base.hpp
 	@cp mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml ${TARGET}/{{__TOP_MODULE_NAME__}}_offset.yaml 2>/dev/null|| true
 	@make -f mk/${TLANG}.mk
+	
 
 ifeq ($(VERBOSE), OFF) # if VERBOSE is OFF
 	@rm -rf build cmake cpp mk python java scala golang lua CMakeLists.txt dut_base.* 2>/dev/null|| true

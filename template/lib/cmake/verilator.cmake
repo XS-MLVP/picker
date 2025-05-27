@@ -53,6 +53,7 @@ if(SIMULATOR STREQUAL "verilator")
 
 	set(VERILATE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/DPI${ModuleName})
 	include_directories(${VERILATE_DIRECTORY})
+
 	add_library(DPI${ModuleName} STATIC)
 	verilate(
 		DPI${ModuleName}
