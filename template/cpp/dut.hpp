@@ -16,7 +16,7 @@ public:
 
     // signal hashmap
     std::map<std::string, XData*> signal_map;
-    std::map<std::string, std::vector<XData*>> signal_map_list;
+    std::map<std::string, std::vector<std::shared_ptr<XData>>> signal_list_map;
 
     // DUT
     DutUnifiedBase *dut = nullptr;
@@ -124,16 +124,16 @@ public:
         }
         return this->signal_map[name];
     }
-    std::vector<XData*> GetInternalSignal(std::string name, bool is_array){
+    std::vector<std::shared_ptr<XData>> GetInternalSignal(std::string name, bool is_array){
         Assert(is_array==true, "GetInternalSignal: is_array must be true");
-        if(this->signal_map_list.find(name) == this->signal_map_list.end()){
-            std::vector<XData*> signal = this->xcfg->NewXDataArray(name, "CFG:" + name);
+        if(this->signal_list_map.find(name) == this->signal_list_map.end()){
+            std::vector<std::shared_ptr<XData>> signal = this->xcfg->NewXDataArray(name, "CFG:" + name);
             if(signal.size() == 0){
                 return signal;
             }
-            this->signal_map_list[name] = signal;
+            this->signal_list_map[name] = signal;
         }
-        return this->signal_map_list[name];
+        return this->signal_list_map[name];
     }
     std::vector<std::string> GetInternalSignalList(std::string prefix = "", int deep = 99, bool use_vpi = false){
         if(!use_vpi){
