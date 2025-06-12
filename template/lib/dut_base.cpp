@@ -402,7 +402,7 @@ DutUnifiedBase::DutUnifiedBase(char *filename, int argc, char **argv)
 DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args)
 {
     int argc          = 0;
-    const char **argv = (const char **)malloc(sizeof(char *) * args.size())
+    const char **argv = (const char **)malloc(sizeof(char *) * args.size());
     for (auto arg : args) { argv[argc++] = arg; }
     this->init(argc, argv);
     free(argv);
