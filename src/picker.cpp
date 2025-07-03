@@ -8,6 +8,14 @@ picker::main_opts main_opts;
 picker::export_opts export_opts;
 picker::pack_opts pack_opts;
 char *picker::lib_random_hash;
+std::map<std::string, std::string> lang_lib_map  = {{"cpp", "lib"},
+                                                    {"java", "java/xspcomm-java.jar"},
+                                                    {"scala", "scala/xspcomm-scala.jar"},
+                                                    {"python", "python"},
+                                                    {"golang", "golang"},
+                                                    {"lua", "lua/luaxspcomm.so"}};
+std::map<std::string, std::string> display_names = {{"cpp", "Cpp"},       {"java", "Java"},     {"scala", "Scala"},
+                                                    {"python", "Python"}, {"golang", "Golang"}, {"lua", "Lua"}};
 
 namespace picker {
 bool is_debug = false;
@@ -212,14 +220,6 @@ int show_xcom_lib_location()
 
 int check_picker_support()
 {
-    std::map<std::string, std::string> lang_lib_map  = {{"cpp", "lib"},
-                                                        {"java", "java/xspcomm-java.jar"},
-                                                        {"scala", "scala/xspcomm-scala.jar"},
-                                                        {"python", "python"},
-                                                        {"golang", "golang"},
-                                                        {"lua", "lua/luaxspcomm.so"}};
-    std::map<std::string, std::string> display_names = {{"cpp", "Cpp"},       {"java", "Java"},     {"scala", "Scala"},
-                                                        {"python", "Python"}, {"golang", "Golang"}, {"lua", "Lua"}};
     std::string err_message;
 
     // check if the xspcomm lib is available

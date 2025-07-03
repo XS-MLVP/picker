@@ -1,6 +1,6 @@
 export BUILD_XSPCOMM_SWIG?=python
 
-all: clean build
+all: clean init build
 
 init:
 	rm -rf dependence/xcomm

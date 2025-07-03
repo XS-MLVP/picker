@@ -40,16 +40,13 @@ namespace picker::appimage {
 
 bool is_running_as_appimage()
 {
-    // AppImage will extract the binary to temporary directory and symlink it to /proc/self/exe. AppImage mode is on if
-    // /proc/self/exe points to a file in /tmp
-    std::string exe_path;
-    try {
-        exe_path = std::filesystem::read_symlink("/proc/self/exe").string();
-    } catch (const std::filesystem::filesystem_error &e) {
-        PK_FATAL("Failed to read symlink /proc/self/exe: %s", e.what());
-        return false;
+    // AppImage set APPIMAGE environment variable
+    const char *appimage_env = getenv("APPIMAGE");
+    if (appimage_env != nullptr) {
+        PK_DEBUG("Running as AppImage, APPIMAGE environment variable is set.\n");
+        return true;
     }
-    return exe_path.find("/tmp") != std::string::npos;
+    return false;
 }
 
 // Extract the template directory from the application image
@@ -80,12 +77,21 @@ void extract_library()
 
     // copy library directory from the picker binary directory to the user's home directory
     std::string user_home = getenv("HOME") ? getenv("HOME") : ".";
-    std::string lib_path  = user_home + "/.local/share/picker/lib/" + GIT_HASH + "/lib";
-    if (!std::filesystem::exists(lib_path)) { std::filesystem::create_directories(lib_path); }
-    // copy the library directory from the picker binary directory to the user's home directory
-    std::filesystem::copy(picker_dir + "lib", lib_path,
-                          std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
-    PK_DEBUG("Library directory extracted to: %s\n", lib_path.c_str());
+
+    // iterate std::map lang_lib_map to process each language library
+    for (const auto &lang_lib : lang_lib_map) {
+        std::string lang     = lang_lib.first;
+        std::string lib      = lang_lib.second;
+        std::string lib_path = user_home + "/.local/share/picker/lib/" + GIT_HASH + "/" + lib;
+        if (!std::filesystem::exists(lib_path) && std::filesystem::exists(picker_dir + lib)) {
+            std::filesystem::create_directories(lib_path);
+            // copy the library directory from the picker binary directory to the user's home directory
+            std::filesystem::copy(picker_dir + lib, lib_path,
+                                  std::filesystem::copy_options::recursive
+                                      | std::filesystem::copy_options::overwrite_existing);
+            PK_DEBUG("Library directory for %s extracted to: %s\n", lang.c_str(), lib_path.c_str());
+        }
+    }
 }
 
 void initialize()
@@ -136,7 +142,5 @@ std::string get_picker_lib(const std::string &lib_lang)
     std::string lib_path  = user_home + "/.local/share/picker/lib/" + GIT_HASH + "/" + lib_lang;
     return lib_path;
 }
-
-
 
 } // namespace picker::appimage
