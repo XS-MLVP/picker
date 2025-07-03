@@ -42,9 +42,7 @@ add_subdirectory(test)
 # install
 set(CMAKE_INSTALL_LOCAL_ONLY TRUE)
 
-install(
-    TARGETS picker DESTINATION bin
-)
+
 install(
     DIRECTORY template DESTINATION share/picker
 )

@@ -21,6 +21,12 @@ build:
 install: build
 	cd build && make install
 
+appimage:
+	rm -rf AppDir app_image_build
+	cmake -DCMAKE_INSTALL_PREFIX=/usr . -Bapp_image_build -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS) 
+	cd app_image_build && make -j`nproc` && make install DESTDIR=`pwd`/../AppDir
+	linuxdeploy --appdir AppDir/ --output appimage  --desktop-file src/appimage/picker.desktop --icon-file src/appimage/logo256.png
+
 test: build
 	./build/bin/picker -h
 	./build/bin/picker pack -h
@@ -64,7 +70,7 @@ test_all_scala:
 	bash example/CacheSignalCFG/release-verilator.sh --lang scala
 
 clean:
-	rm -rf temp build dist picker_out*
+	rm -rf temp build dist picker_out* app_image_build AppDir dependence/xcomm
 
 wheel: clean
 	cd dependence/xcomm && make wheel

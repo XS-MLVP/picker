@@ -43,6 +43,7 @@ log
 *.exe
 *.out
 *.app
+*.AppImage
 
 build/
 dist/
@@ -52,3 +53,6 @@ logs/
 temp/
 picker_out*
 dependence/xcomm
+AppDir/
+app_image_build/
+

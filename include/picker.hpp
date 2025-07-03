@@ -14,6 +14,7 @@
 #include "inja.hpp"
 #include "CLI11.hpp"
 #include "version.hpp"
+#include "appimage/configuration.hpp"
 #include "codegen/cpp.hpp"
 #include "codegen/python.hpp"
 #include "codegen/java.hpp"
@@ -442,6 +443,10 @@ inline std::string get_target_path_from(std::string base, std::initializer_list<
 
 inline std::string get_xcomm_location()
 {
+    if (appimage::is_running_as_appimage()) {
+        // If running as AppImage, use the appimage configuration to get the xcomm location
+        return appimage::get_picker_lib("");
+    }
     auto path = get_executable_path();
     return get_target_path_from(path, {"../../dependence/xcomm",  // 1. search in bulid dir (for dev)
                                        "./picker",                // 2. search in current dir
@@ -466,6 +471,10 @@ inline std::string get_xcomm_lib(std::string lib_name, std::string &message)
 
 inline std::string get_template_path()
 {
+    if (appimage::is_running_as_appimage()) {
+        // If running as AppImage, use the appimage configuration to get the template path
+        return appimage::get_template_path();
+    }
     auto path = get_executable_path();
     auto tmp  = get_target_path_from(path, {"../../../template",                // 1. search in source dir (for dev)
                                            "./template",                       // 2. search in current dir
