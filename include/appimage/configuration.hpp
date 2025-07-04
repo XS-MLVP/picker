@@ -9,6 +9,8 @@ bool is_running_as_appimage();
 
 void initialize();
 
+std::string get_temporary_path();
+
 std::string get_template_path();
 
 std::string get_picker_lib(const std::string &lib_lang);

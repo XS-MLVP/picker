@@ -42,9 +42,9 @@ function(XSPyTarget)
 
 	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
 	target_link_options(UT_${PROJECT_NAME} PRIVATE 
-		-Wl,-rpath=~/.local/lib
-		-Wl,-rpath=/usr/local/lib
 		-Wl,-rpath={{__XSPCOMM_LIB__}}
+		-Wl,-rpath=~/.local/lib
+		-Wl,-rpath=/usr/local/lib  
 		${CustomLinkOptions})
 
 

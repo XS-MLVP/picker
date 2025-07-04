@@ -163,7 +163,7 @@ namespace picker { namespace codegen {
         data["__TARGET_LANGUAGE__"]       = opts.language;
         data["__FILELIST__"]              = ofilelist;
         data["__LIB_DPI_FUNC_NAME_HASH__"]  = std::string(lib_random_hash);
-        data["__GENERATOR_PICKER_PATH__"]   = getenv("APPIMAGE") == nullptr ?
+        data["__GENERATOR_PICKER_PATH__"]   = appimage::is_running_as_appimage() ?
                                                   std::filesystem::read_symlink("/proc/self/exe").string() :
                                                   std::string(getenv("APPIMAGE"));
         data["__GENERATOR_TEMPLATE_PATH__"] = std::filesystem::path(opts.source_dir).string();

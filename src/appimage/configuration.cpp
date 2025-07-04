@@ -49,13 +49,20 @@ bool is_running_as_appimage()
     return false;
 }
 
+std::string get_temporary_path()
+{
+    // Return the path to the fuse temporary directory
+    // picker -> bin -> usr -> .mount
+    std::string temp_path = std::filesystem::read_symlink("/proc/self/exe").parent_path().parent_path().parent_path().string();
+    PK_DEBUG("AppImage extracts files to temporary path: %s\n", temp_path.c_str());
+    return temp_path;
+}
+
 // Extract the template directory from the application image
 void extract_template()
 {
-    // get self binary path from /proc/self/exe symlink
-    std::string picker_path = std::filesystem::read_symlink("/proc/self/exe").string();
     // get the directory of the picker binary
-    std::string picker_dir = std::filesystem::path(picker_path).parent_path().parent_path().string() + "/share/picker/";
+    std::string picker_dir = get_temporary_path() + "/usr/share/picker/";
 
     // copy template directory from the picker binary directory to the user's home directory
     std::string user_home     = getenv("HOME") ? getenv("HOME") : ".";
