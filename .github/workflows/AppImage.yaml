@@ -37,6 +37,7 @@ jobs:
       - name: Build AppImage
         run: |
           # Build the AppImage
+          make init
           make appimage
 
       - name: Upload AppImage for next jobs
