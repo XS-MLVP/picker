@@ -14,4 +14,4 @@ set(source_file
      mem_direct.cpp
 )
 
-add_library(codegen STATIC ${source_file})
+add_library(codegen_ STATIC ${source_file})

@@ -11,7 +11,7 @@ set(source_file
 message(STATUS "PROJECT_NAME: ${PROJECT_NAME}")
 add_executable(${PROJECT_NAME} ${source_file})
 
-target_link_libraries(${PROJECT_NAME} codegen parser appimage)
+target_link_libraries(${PROJECT_NAME} codegen_ parser appimage)
 
 install(
     TARGETS ${PROJECT_NAME} DESTINATION bin
