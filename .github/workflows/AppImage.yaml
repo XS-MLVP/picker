@@ -77,7 +77,7 @@ jobs:
           files: |
             appimages/*.AppImage
           tag_name: ${{ github.sha }}
-          release_name: Picker AppImage ${{ github.sha }}
+          name: Picker AppImage ${{ github.sha }}
           body: |
             This is the AppImage release for Picker.
             It includes the latest changes and features.
