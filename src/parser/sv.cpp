@@ -159,7 +159,7 @@ namespace picker { namespace parser {
             PK_DEBUG("rm -f %s", fpath.c_str());
             exec(("rm -f " + fpath).c_str());
         }
-        for (auto m : m_names) { vassert(ret.count(m), "Module: " + m + " not find in input file"); }
+        for (auto m : m_names) { vassert(ret.count(m), "Module: " + m + " not find in input file"); }ssh 远程 gpg签名CI 
         return ret;
     }
 
