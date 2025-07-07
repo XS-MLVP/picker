@@ -71,16 +71,24 @@ jobs:
           merge-multiple: true
           path: appimages
 
+      - name: Generate release tag
+        id: tag_vars
+        run: |
+          DATE=$(date +'%Y%m%d')
+          SHORT_SHA=${GITHUB_SHA::6}
+          echo "TAG_NAME=$DATE-$SHORT_SHA" >> $GITHUB_OUTPUT
+
       - name: Create AppImage release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             appimages/*.AppImage
-          tag_name: ${{ github.sha }}
-          name: Picker AppImage ${{ github.sha }}
+          tag_name: ${{ steps.tag_vars.outputs.TAG_NAME }}
+          name:    Picker AppImage ${{ steps.tag_vars.outputs.TAG_NAME }}
           body: |
             This is the AppImage release for Picker.
             It includes the latest changes and features.
+          target_commitish: ${{ github.sha }}
           draft: false
           prerelease: true
         env:
