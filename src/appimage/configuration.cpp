@@ -5,7 +5,7 @@
 namespace picker::appimage {
 
 /*
-    * AppImage support explaination:
+    * AppImage support explanation:
     * This file contains functions to initialize the application image configuration, extract the template and library
     * directories from the application image.
     * The application image configuration is used to store the template and library directories, allowing for easy
