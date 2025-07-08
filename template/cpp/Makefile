@@ -23,8 +23,10 @@ copy_xspcomm:
 endif
 
 compile: copy_xspcomm
+	@echo "start build wrapper at $(shell date)"
 	@cmake . -Bbuild
 	@cmake --build build --config Release --parallel `nproc`
+	@echo "end build wrapper at $(shell date)"
 
 clean:
 	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.dat build

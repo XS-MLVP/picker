@@ -8,6 +8,14 @@ picker::main_opts main_opts;
 picker::export_opts export_opts;
 picker::pack_opts pack_opts;
 char *picker::lib_random_hash;
+std::map<std::string, std::string> lang_lib_map  = {{"cpp", "lib"},
+                                                    {"java", "java/xspcomm-java.jar"},
+                                                    {"scala", "scala/xspcomm-scala.jar"},
+                                                    {"python", "python"},
+                                                    {"golang", "golang"},
+                                                    {"lua", "lua/luaxspcomm.so"}};
+std::map<std::string, std::string> display_names = {{"cpp", "Cpp"},       {"java", "Java"},     {"scala", "Scala"},
+                                                    {"python", "Python"}, {"golang", "Golang"}, {"lua", "Lua"}};
 
 namespace picker {
 bool is_debug = false;
@@ -212,14 +220,6 @@ int show_xcom_lib_location()
 
 int check_picker_support()
 {
-    std::map<std::string, std::string> lang_lib_map  = {{"cpp", "lib"},
-                                                        {"java", "java/xspcomm-java.jar"},
-                                                        {"scala", "scala/xspcomm-scala.jar"},
-                                                        {"python", "python"},
-                                                        {"golang", "golang"},
-                                                        {"lua", "lua/luaxspcomm.so"}};
-    std::map<std::string, std::string> display_names = {{"cpp", "Cpp"},       {"java", "Java"},     {"scala", "Scala"},
-                                                        {"python", "Python"}, {"golang", "Golang"}, {"lua", "Lua"}};
     std::string err_message;
 
     // check if the xspcomm lib is available
@@ -274,6 +274,12 @@ int check_picker_support()
 int main(int argc, char **argv)
 {
     check_debug();
+    if(picker::appimage::is_running_as_appimage()) {
+        PK_MESSAGE("Running as AppImage");
+        picker::appimage::initialize();
+    } else {
+        PK_MESSAGE("Running as normal executable");
+    }
     CLI::App app{"XDut Generate. \n"
                  "Convert DUT(*.v/*.sv) to C++ DUT libs.\n"};
     set_options_main(app);
@@ -334,8 +340,8 @@ int main(int argc, char **argv)
             exit(0);
         }
 
-        std::vector<picker::sv_module_define> sv_module_result;
-        std::vector<picker::sv_signal_define> internal_sginal_result;
+        std::vector<picker::sv_module_define> sv_module_result; // sv signal pins
+        std::vector<picker::sv_signal_define> internal_sginal_result; // configuration signal pings
 
         nlohmann::json signal_tree_json;
         picker::parser::sv(export_opts, sv_module_result);

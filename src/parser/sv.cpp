@@ -135,7 +135,9 @@ namespace picker { namespace parser {
         for (auto f : files) {
             std::string fpath = "/tmp/" + std::filesystem::path(f).filename().string() + std::string(lib_random_hash)
                                 + picker::get_node_uuid() + ".json";
-            std::string syntax_cmd = "verible-verilog-syntax --export_json --printtokens " + f + "> " + fpath;
+            std::string syntax_cmd =
+                std::string(appimage::is_running_as_appimage() ? appimage::get_temporary_path() + "/usr/bin/" : "")
+                + "verible-verilog-syntax --export_json --printtokens " + f + "> " + fpath;
             exec(syntax_cmd.c_str());
             auto mjson = nlohmann::json::parse(read_file(fpath));
             std::vector<std::string> module_list;

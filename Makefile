@@ -1,6 +1,10 @@
 export BUILD_XSPCOMM_SWIG?=python
+verible_arch := $(shell uname -m)
+ifneq ($(verible_arch),x86_64)
+	verible_arch := $(shell echo $(verible_arch) | sed 's/aarch64/arm64/')
+endif
 
-all: clean build
+all: clean init build
 
 init:
 	rm -rf dependence/xcomm
@@ -10,9 +14,13 @@ init:
 	
 build:
 	@if ! command -v verible-verilog-format ; then \
-		echo "verible-verilog-format could not be found"; \
-		echo "install verible-verilog-format"; \
-    	echo "https://github.com/chipsalliance/verible/releases/tag/v0.0-3428-gcfcbb82b"; \
+		echo "verible-verilog-format could not be found, please install verible first"; \
+		echo "you can install verible by following command:"; \
+		echo "\t$$ wget \"https://github.com/chipsalliance/verible/releases/download/v0.0-4007-g98bdb38a/verible-v0.0-4007-g98bdb38a-linux-static-${verible_arch}.tar.gz\""; \
+		echo "\t$$ tar -xzf verible-v0.0-4007-g98bdb38a-linux-static-${verible_arch}.tar.gz"; \
+		echo "\t$$ mv verible-v0.0-4007-g98bdb38a/bin/verible-verilog-format /usr/local/bin/"; \
+		echo "or you can install in user local directory, remember to add ~/.local/bin to your PATH"; \
+		echo "\t$$ mv verible-v0.0-4007-g98bdb38a/bin/verible-verilog-format ~/.local/bin/"; \
 		exit 1; \
 	fi
 	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS)
@@ -20,6 +28,19 @@ build:
 
 install: build
 	cd build && make install
+
+appimage:
+	rm -rf AppDir app_image_build
+# Build Picker Binary and XSPCOMM library
+	cmake -DCMAKE_INSTALL_PREFIX=/usr . -Bapp_image_build -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS) 
+	cd app_image_build && make -j`nproc` && make install DESTDIR=`pwd`/../AppDir
+# Intergrate verible
+	wget "https://github.com/chipsalliance/verible/releases/download/v0.0-4007-g98bdb38a/verible-v0.0-4007-g98bdb38a-linux-static-${verible_arch}.tar.gz" \
+		-O app_image_build/verible.tar.gz
+	tar -xzf app_image_build/verible.tar.gz -C app_image_build/
+	mv app_image_build/verible-v0.0-4007-g98bdb38a/bin/verible-verilog-syntax AppDir/usr/bin/verible-verilog-syntax
+# Packing Final AppImage
+	linuxdeploy --appdir AppDir/ --output appimage  --desktop-file src/appimage/picker.desktop --icon-file src/appimage/logo256.png
 
 test: build
 	./build/bin/picker -h
@@ -64,7 +85,7 @@ test_all_scala:
 	bash example/CacheSignalCFG/release-verilator.sh --lang scala
 
 clean:
-	rm -rf temp build dist picker_out*
+	rm -rf temp build dist picker_out* app_image_build AppDir dependence/xcomm
 
 wheel: clean
 	cd dependence/xcomm && make wheel

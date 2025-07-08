@@ -83,7 +83,7 @@ function(XSJavaTarget)
 
 	swig_add_library(UT_${PROJECT_NAME} LANGUAGE java SOURCES dut.i)
 	set_target_properties(UT_${PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${JAR_SOURCE_DIR})
-
+ 
 	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} DPI${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
 	search_libs(ALL_FOUND LIBS zerosoft_rt_stubs m c pthread numa dl)
 	target_link_options(
@@ -91,9 +91,9 @@ function(XSJavaTarget)
 		PRIVATE
 		-L./
 		-L${VCS_HOME}/linux64/lib
+		-Wl,-rpath={{__XSPCOMM_LIB__}}
 		-Wl,-rpath=~/.local/lib
 		-Wl,-rpath=/usr/local/lib
-		-Wl,-rpath={{__XSPCOMM_LIB__}}
 		-Wl,-rpath=${VCS_HOME}/linux64/lib
 		-no-pie
 		-Wl,--no-as-needed

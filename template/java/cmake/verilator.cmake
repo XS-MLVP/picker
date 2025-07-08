@@ -45,9 +45,9 @@ function(XSJavaTarget)
 
 	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
 	target_link_options(UT_${PROJECT_NAME} PRIVATE 
-		-Wl,-rpath=~/.local/lib
-		-Wl,-rpath=/usr/local/lib
 		-Wl,-rpath={{__XSPCOMM_LIB__}}
+		-Wl,-rpath=~/.local/lib
+		-Wl,-rpath=/usr/local/lib  
 		${CustomLinkOptions})
 
 	set_property(TARGET UT_${PROJECT_NAME} PROPERTY SWIG_COMPILE_OPTIONS -package com.ut.{{__TOP_MODULE_NAME__}})
