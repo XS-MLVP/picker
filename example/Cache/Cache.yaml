@@ -1,5 +1,5 @@
 Cache:
-  - "reg [63:0]   s3_io_in_bits_r_datas_1_data"
+  - "reg [63:0] s3_io_in_bits_r_datas_1_data"
   - s2:
     - "reg [63:0] forwardDataReg_data_data"
 
