@@ -10,7 +10,7 @@ except:
 if __name__ == "__main__":
     dut = DUTCacheCFG()
     dut.InitClock("clock")
-    print("Pins startwith(CacheCFG_top.clock): ", dut.xcfg.GetSignalNames("CacheCFG_top.clock"))
+    print("Pins startwith(CacheCFG_top.clock): ", dut.xcfg.GetSignalNames("CacheCFG_top.clock"))  
     clk = dut.GetInternalSignal("CacheCFG_top.clock")
     rst = dut.GetInternalSignal("CacheCFG_top.reset")
     array_2 = dut.GetInternalSignal("CacheCFG_top.Cache.dataArray.ram.array_2", is_array=True)
