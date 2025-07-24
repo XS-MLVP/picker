@@ -133,9 +133,12 @@ Options:
   --fs,--filelist TEXT ...    DUT .v/.sv source files, contain the top module, split by comma.
                               Or use '*.txt' file  with one RTL file path per line to specify the file list
   --sim TEXT [verilator]      vcs or verilator as simulator, default is verilator
+  --rw,--access-mode ENUM:value in {dpi->0,mem_direct->1} OR {0,1}
+                              How to drive the hardware model, DPI or MEM_DIRECT(verilator only), default is DPI
   --lang,--language TEXT:{python,cpp,java,scala,golang,lua} [python]
                               Build target project with assigned language, default python
-  --sdir,--source_dir TEXT    Template Files Dir, default is ${picker_install_path}/../picker/template
+  --sdir,--source_dir TEXT [/home/yaozhicheng/workspace/picker/template]
+                              Template Files Dir, default is ${picker_install_path}/../picker/template
   --sname,--source_module_name TEXT ...
                               Pick the module in DUT .v file, default is the last module in the -f marked file
   --tname,--target_module_name TEXT
@@ -144,6 +147,8 @@ Options:
   --tdir,--target_dir TEXT    Target directory to store all the results. If it ends with '/' or is empty,
                               the directory name will be the same as the target module name
   --internal TEXT             Exported internal signal config file, default is empty, means no internal pin
+  --checkpoints               Enable checkpoints, save/restore , default is OFF
+  --vpi                       Enable VPI, for flexible internal signal access default is OFF
   -F,--frequency TEXT [100MHz]
                               Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit
   -w,--wave_file_name TEXT    Wave file name, emtpy mean don't dump wave
@@ -151,9 +156,8 @@ Options:
   --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
                               Copy xspcomm lib to generated DUT dir, default is true
   -V,--vflag TEXT             User defined simulator compile args, passthrough.
-                              Eg: Using vcs simulator for exporting line coverage, -V '"-cm line -cm_dir /abs_path_to_store_coverage_data"'
-  -C,--cflag TEXT             User defined gcc/clang compile command,   passthrough.
-                              Eg: -C '"-O3 -std=c++17 -I./include"' 
+                              Eg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'
+  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'
   --verbose                   Verbose mode
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
@@ -178,7 +182,7 @@ Options:
 
 ```
 
-#### 参数解释
+#### 常用参数解释
 
 ##### export:
 
@@ -186,6 +190,7 @@ Options:
 - `-h,--help`: 可选。打印此帮助信息并退出
 - `--fs,--filelist TEXT ...`: 可选。DUT .v/.sv 源文件，包含顶层模块，逗号分隔。或使用 '\*.txt' 文件，每行指定一个 RTL 文件路径来指定文件列表
 - `--sim TEXT [verilator]`: 可选。使用 vcs 或 verilator 作为模拟器，默认是 verilator
+- `--rw,--access-mode ENUM`: 值为 0 或 1，0 代表通过DPI访问模式，1代表直接内存模式，默认 0
 - `--lang,--language TEXT:{python,cpp,java,scala,golang,lua} [python]`: 可选。构建示例项目，默认是 python
 - `--sdir,--source_dir TEXT`: 可选。模板文件目录，默认是 ${picker_install_path}/../picker/template
 - `--sname,--source_module_name TEXT ...`: 可选。在 DUT .v 文件中选择模块，默认是 -f 标记的文件中的最后一个模块
