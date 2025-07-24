@@ -12,7 +12,7 @@ public class example {
             int N = 1000000;
             long a = (long) (Math.random() * N);
             long b = (long) (Math.random() * N);
-            long c = (long) (Math.random() * N) > 50 ? 1 : 0;
+            int c = (int) (Math.random() * N) > 50 ? 1 : 0;
             // set inputs
             adder.a.Set(a);
             adder.b.Set(b);
