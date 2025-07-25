@@ -53,7 +53,7 @@ int set_options_export_rtl(CLI::App &top_app)
         ->delimiter(',');
 
     // Set DUT RTL Simulator, Optional, default is verilator
-    app->add_option("--sim", export_opts.sim, "vcs or verilator as simulator, default is verilator")
+    app->add_option("--sim", export_opts.sim, "vcs, gsim or verilator as simulator, default is verilator")
         ->default_val("verilator");
 
     // Set DUT RTL RW Type, Optional, default is DPI
@@ -344,7 +344,12 @@ int main(int argc, char **argv)
         std::vector<picker::sv_signal_define> internal_sginal_result; // configuration signal pings
 
         nlohmann::json signal_tree_json;
-        picker::parser::sv(export_opts, sv_module_result);
+        if(export_opts.sim == "gsim") {
+            // read the signal tree json from the verilator root
+            picker::parser::firrtl(export_opts, sv_module_result);
+        }else{
+            picker::parser::sv(export_opts, sv_module_result);
+        }
         picker::parser::internal(export_opts, internal_sginal_result);
 
         auto sv_pin_result =

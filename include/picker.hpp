@@ -21,9 +21,11 @@
 #include "codegen/scala.hpp"
 #include "codegen/golang.hpp"
 #include "codegen/sv.hpp"
+#include "codegen/firrtl.hpp"
 #include "codegen/lib.hpp"
 #include "codegen/lua.hpp"
 #include "parser/sv.hpp"
+#include "parser/firrtl.hpp"
 #include "parser/internalcfg.hpp"
 #include "parser/verilator_root.hpp"
 

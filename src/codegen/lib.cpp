@@ -142,7 +142,14 @@ namespace picker { namespace codegen {
 
         data["__TOP_MODULE_NAME__"] = dst_module_name;
 
-        ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator, opts.rw_type);
+        // firrtl base simulators
+        std::unordered_set<std::string> firrtl_simulators = {"gsim"};
+        if (firrtl_simulators.count(opts.sim)) {
+            ret = gen_firrtl_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator, opts.rw_type);
+        // verilog based simulators
+        } else {
+            ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator, opts.rw_type);
+        }
         gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag, env, data);
 
         // Set clock period
@@ -185,7 +192,8 @@ namespace picker { namespace codegen {
             }
         }
         for (auto &f : files) {
-            std::filesystem::copy_file(f, dst_dir + "/" + dst_module_name + ".v",
+            auto ext = f.substr(f.find_last_of('.'));
+            std::filesystem::copy_file(f, dst_dir + "/" + dst_module_name + ext, //reserve the original extension
                                        std::filesystem::copy_options::overwrite_existing);
         }
         PK_MESSAGE("Generate DPI files successfully!");
