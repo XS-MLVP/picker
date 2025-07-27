@@ -20,11 +20,11 @@ all: release
 compile:
 	mkdir -p build
 	cp pli.tab build/pli.tab
-	@echo -n "[TIME LOG] verilator generate START: "  && date +%s.%3N
+	@echo -n "[TIME LOG] {{__SIMULATOR__}} generate START: "  && date +%s.%3N
 	/usr/bin/time cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=$(NPROC) -DRW_TYPE=$(RW_TYPE)
-	@echo -n "[TIME LOG] verilator generate END: " && date +%s.%3N
+	@echo -n "[TIME LOG] {{__SIMULATOR__}} generate END: " && date +%s.%3N
 	/usr/bin/time cmake --build build --config release --parallel $(NPROC)
-	@echo -n "[TIME LOG] verilator build END: " && date +%s.%3N
+	@echo -n "[TIME LOG] {{__SIMULATOR__}} build END: " && date +%s.%3N
 
 ifeq ($(RW_TYPE), MEM_DIRECT)
 ifeq ($(SIMULATOR), verilator)

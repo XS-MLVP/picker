@@ -1,6 +1,9 @@
 #pragma once
 #include <bits/stdc++.h>
+
+#if defined(USE_VERILATOR) || defined(USE_VCS)
 #include <svdpi.h>
+#endif
 
 
 class DutBase

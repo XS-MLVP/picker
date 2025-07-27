@@ -27,6 +27,7 @@ endif()
 
 include(verilator)
 include(vcs)
+include(gsim)
 
 # Add CUSTOM_INCLUDE_FILES as target
 if(NOT "${EXTRA_INC}" STREQUAL "")
@@ -64,8 +65,9 @@ add_custom_command(
 	POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${ModuleName}>
 					${CMAKE_BINARY_DIR}/UT_${ModuleName}
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:DPI${ModuleName}>
-					${CMAKE_BINARY_DIR}/UT_${ModuleName}
+	COMMAND ${CMAKE_COMMAND} -E $<IF:$<TARGET_EXISTS:DPI${ModuleName}>,copy,true>
+					$<$<TARGET_EXISTS:DPI${ModuleName}>:$<TARGET_FILE:DPI${ModuleName}>>
+					$<$<TARGET_EXISTS:DPI${ModuleName}>:${CMAKE_BINARY_DIR}/UT_${ModuleName}>
 	# COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:CUSTOM_INCLUDE_FILES>
 	# 				${CMAKE_BINARY_DIR}/UT_${ModuleName}
 	COMMENT "Copying ${ModuleName} to ${CMAKE_BINARY_DIR}/UT_${ModuleName}")
