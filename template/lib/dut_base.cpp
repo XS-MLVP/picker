@@ -115,8 +115,123 @@ int DutVcsBase::Restore(const char *filename)
 {
     XFatal("VCS restore is not supported");
 };
+uint64_t DutVcsBase::NativeSignalAddr(const char *name){
+    XFatal("VCS NativeSignalAddr is not supported");
+    return 0;
+};
 
 #endif
+
+
+#if defined(USE_GSIM)
+DutGSimBase::~DutGSimBase()
+{
+    this->Finish();
+}
+
+DutGSimBase::DutGSimBase()
+{
+    this->init(0, nullptr);
+}
+
+DutGSimBase::DutGSimBase(int argc, char **argv)
+{
+    this->init(argc, argv);
+}
+
+void DutGSimBase::init(int argc, char **argv)
+{
+    this->top = new S{{__TOP_MODULE_NAME__}}();
+    // Init pin mem address
+    {% if __SIMULATOR__ == "gsim" %}
+    {% for pin in __MODULE_EXTERNAL_PINS__ %}
+    this->pin_address_map["{{pin.name}}"] = (uint64_t)(&(this->vpin_{{pin.name}}));
+    {% endfor %}
+    {% endif %}
+}
+
+int DutGSimBase::Step(uint64_t cycle, bool dump)
+{
+    if(!dump) {
+        return 0;
+    }
+    this->update_write();
+    this->top->step();
+    this->update_read();
+    return 0;
+}
+int DutGSimBase::Finish()
+{
+    return 0;
+}
+void DutGSimBase::SetWaveform(const char *filename)
+{
+}
+void DutGSimBase::FlushWaveform()
+{
+}
+bool DutGSimBase::OpenWaveform()
+{
+    return false;
+}
+bool DutGSimBase::CloseWaveform()
+{
+    return false;
+}
+void DutGSimBase::WaveformEnable(bool enable)
+{
+}
+void DutGSimBase::SetCoverage(const char *filename)
+{
+}
+int DutGSimBase::CheckPoint(const char *filename)
+{
+    return 0;
+}
+int DutGSimBase::Restore(const char *filename)
+{
+    return 0;
+}
+uint64_t DutGSimBase::NativeSignalAddr(const char *name){
+    if (this->pin_address_map.find(name) != this->pin_address_map.end()) {
+        return this->pin_address_map[name];
+    }
+    XWarning("NativeSignalAddr: Pin %s not found", name);
+    return 0;
+};
+void DutGSimBase::update_read()
+{
+    // update read pins
+    {% if __SIMULATOR__ == "gsim" %}
+    {% for pin in __MODULE_EXTERNAL_PINS__ %}{% if pin.type == "Out" %}
+    this->vpin_{{pin.name}} = this->top->get_{{pin.name}}();
+    {% endif %}{% endfor %}
+    {% endif %}
+}
+void DutGSimBase::update_write()
+{
+    // update write pins
+    {% if __SIMULATOR__ == "gsim" %}
+    {% for pin in __MODULE_EXTERNAL_PINS__ %}{% if pin.type == "In" %}
+    this->top->set_{{pin.name}}(this->vpin_{{pin.name}});
+    {% endif %}{% endfor %}
+    {% endif %}
+}
+
+DutGSimBase *dlcreates(int argc, char **argv)
+{
+    DutGSimBase *res = new DutGSimBase(argc, argv);
+    return res;
+}
+typedef DutGSimBase *dlcreates_t(int argc, char **argv);
+
+void dlstep(DutGSimBase *dut, uint64_t ncycle, bool dump)
+{
+    dut->Step(ncycle, dump);
+}
+typedef void step_t(DutGSimBase *, uint64_t, bool);
+#endif
+
 
 #if defined(USE_VERILATOR)
 #include "verilated.h"
@@ -168,6 +283,13 @@ void DutVerilatorBase::init(int argc, char **argv)
 
     // set cycle pointer to 0
     this->cycle = 0;
+
+    // Init pin mem address
+    {% if __SIMULATOR__ == "verilator" %}
+    {% for pin in __MODULE_EXTERNAL_PINS__ %}
+    this->pin_address_map["{{pin.name}}"] = (uint64_t)(&(((V{{__TOP_MODULE_NAME__}} *)this->top)->rootp->{{__TOP_MODULE_NAME__}}_top__DOT__{{pin.name}}));
+    {% endfor %}
+    {% endif %}
 };
 
 DutVerilatorBase::~DutVerilatorBase()
@@ -313,6 +435,14 @@ int DutVerilatorBase::Restore(const char *filename)
     XFatal("Verilator restore is not enabled");
 };
 #endif
+
+uint64_t DutVerilatorBase::NativeSignalAddr(const char *name){
+    if(this->pin_address_map.find(name) != this->pin_address_map.end()){
+        return this->pin_address_map[name];
+    }
+    XWarning("NativeSignalAddr: Pin %s not found", name);
+    return 0;
+};
 
 DutVerilatorBase *dlcreates(int argc, char **argv)
 {
@@ -466,6 +596,8 @@ void DutUnifiedBase::init(int argc, const char **argv)
         this->dut = new DutVerilatorBase(this->argc, this->argv);
 #elif defined(USE_VCS)
         this->dut = new DutVcsBase(this->argc, this->argv);
+#elif defined(USE_GSIM)
+        this->dut = new DutGSimBase(this->argc, this->argv);
 #endif
         main_ns_flag = true;
         lib_handle   = nullptr;
@@ -516,9 +648,12 @@ uint64_t DutUnifiedBase::GetVPIHandleObj(const char *name)
 
 uint64_t DutUnifiedBase::GetVPIHandleObj(std::string name)
 {
+    uint64_t vpi_handle = 0;
+#ifndef NO_SV_VPI
     uint64_t _get_vpi_handle_name = this->GetVPIFuncPtr("vpi_handle_by_name");
     std::string scope             = name.size() > 0 ? this->dut->sv_scope + "." + name : this->dut->sv_scope;
-    uint64_t vpi_handle           = ((uint64_t(*)(char *, uint32_t))_get_vpi_handle_name)((char *)scope.c_str(), 0);
+    vpi_handle           = ((uint64_t(*)(char *, uint32_t))_get_vpi_handle_name)((char *)scope.c_str(), 0);
+#endif
     return vpi_handle;
 }
 
@@ -530,6 +665,7 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(char *name, int d
 std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name, int depth)
 {
     std::vector<std::string> res;
+#ifndef NO_SV_VPI
     std::string scope = name.size() > 0 ? this->dut->sv_scope + "." + name : this->dut->sv_scope;
 
     // Define the VPI functions
@@ -630,7 +766,7 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
 
     // Traverse the VPI handle
     traverse(vpi_handle, depth);
-
+#endif
     return res;
 }
 
@@ -762,6 +898,12 @@ int DutUnifiedBase::Restore(const std::string filename)
 {
     return this->dut->Restore(filename.c_str());
 }
+
+uint64_t DutUnifiedBase::NativeSignalAddr(const char *name)
+{
+    return this->dut->NativeSignalAddr(name);
+}
+
 
 DutUnifiedBase::~DutUnifiedBase()
 {

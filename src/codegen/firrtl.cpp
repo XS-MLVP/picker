@@ -8,7 +8,7 @@ std::vector<picker::sv_signal_define> gen_firrtl_param(nlohmann::json &global_re
                                                        const std::vector<picker::sv_signal_define> &internal_signal,
                                                        nlohmann::json &signal_tree_json,
                                                        const std::string &wave_file_name, const std::string &simulator, SignalAccessType rw_type){
-        std::vector<picker::sv_signal_define> ret;
+
         global_render_data["__WAVE_FILE_NAME__"]         = "__GISM_NOT_SUPPORT___WAVE_FILE_NAME__";
         global_render_data["__DUMP_VAR_OPTIONS__"]       = "__GISM_NOT_SUPPORT___DUMP_VAR_OPTIONS__";
         global_render_data["__TRACE__"]                  = "__GISM_NOT_SUPPORT___TRACE__";
@@ -21,7 +21,8 @@ std::vector<picker::sv_signal_define> gen_firrtl_param(nlohmann::json &global_re
         global_render_data["__EXTEND_SV__"]              = "__GISM_NOT_SUPPORT___EXTEND_SV__";
         global_render_data["__LIB_DPI_FUNC_NAME_HASH__"] = "__GISM_NOT_SUPPORT___LIB_DPI_FUNC_NAME_HASH__";
         global_render_data["__SIGNAL_TREE__"]            = "__GISM_NOT_SUPPORT___SIGNAL_TREE__";
-        return ret;
+        assert(sv_module_result.size() == 1);
+        return sv_module_result[0].pins;
     }
 
 // end of namespace picker::codegen

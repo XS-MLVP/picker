@@ -29,10 +29,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         if kwargs.get("coverage_filename"):
             self.dut.SetCoverage(kwargs.get("coverage_filename"))
 
-        # all Pins
+        # All pins
 {{__XDATA_INIT__}}
 
-        # BindDPI
+        # BindDPI or Native pin address
 {{__XDATA_BIND__}}
 
         # Add2Port

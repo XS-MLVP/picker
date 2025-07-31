@@ -12,7 +12,7 @@ rm -rf picker_out_GSIM/
 if [ ! -f example/GSim/NutShell/SimTop-nutshell.fir ]; then
     tar -xf example/GSim/NutShell/SimTop-nutshell.tar.bz2 -C example/GSim/NutShell/
 fi
-./build/bin/picker export example/GSim/NutShell/SimTop-nutshell.fir --autobuild false --sim gsim --tdir picker_out_GSIM/NutShell --sdir template $@
+./build/bin/picker export example/GSim/NutShell/SimTop-nutshell.fir --rw mem_direct --autobuild false --sim gsim --tdir picker_out_GSIM/NutShell --sdir template $@
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/GSim/NutShell/example.py picker_out_GSIM/NutShell/python/

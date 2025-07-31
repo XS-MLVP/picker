@@ -264,7 +264,10 @@ int check_picker_support()
         if (export_opts.internal != "") { PK_MESSAGE("It's recommended to use MEM_DIRECT for internal signal access"); }
         break;
     case picker::SignalAccessType::MEM_DIRECT:
-        if (export_opts.sim != "verilator") { PK_FATAL("MEM_DIRECT only support verilator simulator"); }
+        std::unordered_set<std::string> supported_simulators = {"verilator", "gsim"};
+        if (supported_simulators.count(export_opts.sim) == 0) {
+            PK_ERROR("[Err] MEM_DIRECT not support simulator '%s'", export_opts.sim.c_str());
+        }
         break;
     }
 
@@ -345,6 +348,9 @@ int main(int argc, char **argv)
 
         nlohmann::json signal_tree_json;
         if(export_opts.sim == "gsim") {
+            if(export_opts.rw_type != picker::SignalAccessType::MEM_DIRECT) {
+                PK_FATAL("GSIM only support MEM_DIRECT access mode, please use --rw mem_direct");
+            }
             // read the signal tree json from the verilator root
             picker::parser::firrtl(export_opts, sv_module_result);
         }else{

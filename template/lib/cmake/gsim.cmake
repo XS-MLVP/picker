@@ -1,4 +1,6 @@
 if(SIMULATOR STREQUAL "gsim")
+	add_definitions(-DUSE_GSIM)
+	add_definitions(-DNO_SV_VPI)
 	message(STATUS "gsim simulator generate source files")
 	set(SIMULATOR_FLAGS "$ENV{GSIM_FLAGS}")
 	# find cmd gsim and generate source files
@@ -47,9 +49,16 @@ if(SIMULATOR STREQUAL "gsim")
     endif()
 
 	add_library(${ModuleName}
-	STATIC
+	SHARED
 	dut_base.cpp
 	${GSIM_GENERATED_SOURCES}
+	)
+
+	target_link_libraries(${ModuleName}
+    PRIVATE
+    -static-libgcc
+    -static-libstdc++
+    ${GMP_LIBRARIES}
 	)
 
 endif()

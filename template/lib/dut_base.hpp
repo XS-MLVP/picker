@@ -5,6 +5,10 @@
 #include <svdpi.h>
 #endif
 
+#if defined(USE_GSIM)
+#include "{{__TOP_MODULE_NAME__}}.h"
+#include "dut_type.hpp"
+#endif
 
 class DutBase
 {
@@ -34,7 +38,50 @@ public:
     virtual int CheckPoint(const char *filename) = 0;
     // Load Model Status with Simulator Capabilities
     virtual int Restore(const char *filename) = 0;
+    // Fast get Pin Mem address and size
+    virtual uint64_t NativeSignalAddr(const char *name) = 0;
 };
+
+#if defined(USE_GSIM)
+class DutGSimBase : public DutBase
+{
+    S{{__TOP_MODULE_NAME__}} *top = nullptr; // GSim Top Module
+private:
+    std::string coverage_file_path;
+    // shadow pin values
+    {% if __SIMULATOR__ == "gsim" %}
+    {% for pin in __MODULE_EXTERNAL_PINS__ %}{% if pin.type == "Out" %}
+    type_{{pin.name}} vpin_{{pin.name}} = 0;
+    {% else %}
+    type_{{pin.name}} vpin_{{pin.name}} = 0;
+    {% endif %}{% endfor %}
+    {% endif %}
+public:
+    std::map<std::string, uint64_t> pin_address_map;
+    std::map<std::string, int> pin_size_map;
+    void init(int, char **);
+    DutGSimBase();
+    DutGSimBase(int argc, char **argv);
+    ~DutGSimBase();
+    int Step(uint64_t cycle, bool dump);
+    int Finish();
+    void SetWaveform(const char *filename);
+    void FlushWaveform();
+    bool OpenWaveform();
+    bool CloseWaveform();
+    void WaveformEnable(bool enable);
+    void SetCoverage(const char *filename);
+    int CheckPoint(const char *filename);
+    int Restore(const char *filename);
+    uint64_t NativeSignalAddr(const char *name);
+    void update_read();
+    void update_write();
+};
+extern "C" {
+DutGSimBase *dlcreates(int argc, char **argv);
+void dlstep(DutGSimBase *dut, uint64_t ncycle, bool dump);
+}
+#endif
 
 #if defined(USE_VERILATOR)
 class DutVerilatorBase : public DutBase
@@ -43,6 +90,7 @@ private:
     std::string coverage_file_path;
 
 public:
+    std::map<std::string, uint64_t> pin_address_map;
     // Verilator Context and Top Module
     std::string sv_scope = "TOP.{{__TOP_MODULE_NAME__}}_top";
     void *top;
@@ -60,6 +108,7 @@ public:
     void SetCoverage(const char *filename);
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
+    uint64_t NativeSignalAddr(const char *name);
 };
 extern "C" {
 DutVerilatorBase *dlcreates(int argc, char **argv);
@@ -98,6 +147,7 @@ public:
     void SetCoverage(const char *filename);
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
+    uint64_t NativeSignalAddr(const char *name);
 };
 
 #endif
@@ -117,6 +167,8 @@ protected:
     DutVerilatorBase *dut;
 #elif defined(USE_VCS)
     DutVcsBase *dut;
+#elif defined(USE_GSIM)
+    DutGSimBase *dut;
 #endif
 
 public:
@@ -194,6 +246,9 @@ public:
     // Return current cycle, warning: strictly limited to same design
     int Restore(const char *filename);
     int Restore(const std::string filename);
+
+    // Fast get Pin Mem address and size for mem direct access mode
+    uint64_t NativeSignalAddr(const char *name);
 };
 
 extern int enable_xinfo;

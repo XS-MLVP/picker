@@ -122,6 +122,23 @@ namespace picker { namespace codegen {
         std::string verilaotr_coverage, vcs_coverage;
     }
 
+    void gen_expins(nlohmann::json &expins, picker::export_opts &opts,
+                    const std::vector<picker::sv_signal_define> &external_pins)
+    {
+        if (opts.rw_type != picker::SignalAccessType::MEM_DIRECT) {
+            return;
+        }
+        for (const auto &pin : external_pins) {
+            nlohmann::json expin;
+            expin["name"] = pin.logic_pin;
+            expin["type"] = (pin.logic_pin_type[0] == 'i') ? "In" : "Out";
+            expin["hb"] = pin.logic_pin_hb;
+            expin["lb"] = pin.logic_pin_lb;
+            expin["size"] = pin.logic_pin_hb - pin.logic_pin_lb + 1;
+            expins.push_back(expin);
+        }
+    }
+
     std::vector<picker::sv_signal_define> lib(picker::export_opts &opts,
                                               const std::vector<picker::sv_module_define> sv_module_result,
                                               const std::vector<picker::sv_signal_define> &internal_pin,
@@ -159,6 +176,11 @@ namespace picker { namespace codegen {
         // Render lib filelist
         gen_filelist(files, ifilelists, ofilelist);
 
+        // Render expins info
+        auto expins = nlohmann::json::array();
+        gen_expins(expins, opts, ret);
+
+        data["__MODULE_EXTERNAL_PINS__"]  = expins;
         data["__VCS_CLOCK_PERIOD_HIGH__"] = vcs_clock_period_h;
         data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
         data["__VERBOSE__"]               = opts.verbose ? "ON" : "OFF";

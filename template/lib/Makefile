@@ -47,7 +47,9 @@ endif
 
 release: compile
 	@cp -r build/${TARGET} .
-	@cp dut_base.hpp ${TARGET}/dut_base.hpp
+	@cp build/_SRC/*.h ${TARGET}/ 2>/dev/null|| true
+	@cp build/_SRC/*.hpp ${TARGET}/ 2>/dev/null|| true
+	@cp *.hpp ${TARGET}/
 	@cp mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml ${TARGET}/{{__TOP_MODULE_NAME__}}_offset.yaml 2>/dev/null|| true
 	@make -f mk/${TLANG}.mk
 	
