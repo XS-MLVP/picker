@@ -7,6 +7,7 @@ set(source_file
      uvm.cpp
      verilator_root.cpp
      firrtl.cpp
+     gsim_root.cpp
 )
 
 add_library(parser ${source_file})

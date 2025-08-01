@@ -85,4 +85,13 @@ typedef struct uvm_transaction_define {
     std::vector<uvm_parameter> parameters;
 
 } uvm_transaction_define;
+
+typedef struct cpp_variableInfo {
+    std::string name;
+    std::string type;
+    int width      = 0;
+    int array_size = 0;
+    int64_t offset = 0;
+} cpp_variableInfo;
+
 } // namespace picker

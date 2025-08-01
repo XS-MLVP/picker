@@ -11,8 +11,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    auto declarations = picker::parser::readVarDeclarations(argv[1]);
-    auto variables    = picker::parser::processDeclarations(declarations);
+    auto declarations = picker::parser::verilator::readVarDeclarations(argv[1]);
+    auto variables    = picker::parser::verilator::processDeclarations(declarations);
     picker::parser::outputYAML(variables);
 
     return 0;

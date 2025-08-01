@@ -335,9 +335,19 @@ int main(int argc, char **argv)
             PK_MESSAGE("Rendering mem_direct");         
             // picker is invoked by codegen Makefile, so the export_opts.file is NOT sv but the Verilator CPP (for now).
             std::string source_file = export_opts.file[0];
-            auto declarations = picker::parser::readVarDeclarations(source_file);
-            auto vars = picker::parser::processDeclarations(declarations); 
-
+            std::vector<std::string> declarations;
+            std::vector<picker::cpp_variableInfo> vars;
+            if (export_opts.sim == "verilator") {
+                PK_MESSAGE("Parsing Verilator source file: %s", source_file.c_str());
+                declarations = picker::parser::verilator::readVarDeclarations(source_file);
+                vars = picker::parser::verilator::processDeclarations(declarations);
+            } else if (export_opts.sim == "gsim") {
+                PK_MESSAGE("Parsing GSIM source file: %s", source_file.c_str());
+                declarations = picker::parser::gsim::readVarDeclarations(source_file);
+                vars = picker::parser::gsim::processDeclarations(declarations);
+            } else {
+                PK_FATAL("Parse internal signals not supported simulator: %s", export_opts.sim.c_str());
+            }
             picker::codegen::render_md_addr_generator(vars, export_opts);
             picker::parser::outputYAML(vars, export_opts.target_dir + "/vars.yaml"); 
             exit(0);
