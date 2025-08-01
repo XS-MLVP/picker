@@ -16,6 +16,7 @@ fi
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/GSim/NutShell/example.py picker_out_GSIM/NutShell/python/
+    cp example/GSim/NutShell/microbench-NutShell.bin picker_out_GSIM/NutShell/
 elif [[ $@ == *"java"* ]]; then
     cp example/GSim/NutShell/example.java picker_out_GSIM/NutShell/java/
 elif [[ $@ == *"scala"* ]]; then

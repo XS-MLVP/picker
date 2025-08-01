@@ -152,53 +152,69 @@ void DutGSimBase::init(int argc, char **argv)
 
 int DutGSimBase::Step(uint64_t cycle, bool dump)
 {
-    if(!dump) {
-        return 0;
-    }
     this->update_write();
-    this->top->step();
+    if(dump) {
+        for (uint64_t i = 0; i < cycle; i++) {
+            this->top->step();
+        }
+    }
     this->update_read();
     return 0;
 }
+
 int DutGSimBase::Finish()
 {
+    if(this->top != nullptr) {
+        delete this->top;
+        this->top = nullptr;
+    }
     return 0;
 }
+
 void DutGSimBase::SetWaveform(const char *filename)
 {
 }
+
 void DutGSimBase::FlushWaveform()
 {
 }
+
 bool DutGSimBase::OpenWaveform()
 {
     return false;
 }
+
 bool DutGSimBase::CloseWaveform()
 {
     return false;
 }
+
 void DutGSimBase::WaveformEnable(bool enable)
 {
 }
+
 void DutGSimBase::SetCoverage(const char *filename)
 {
 }
+
 int DutGSimBase::CheckPoint(const char *filename)
 {
     return 0;
 }
+
 int DutGSimBase::Restore(const char *filename)
 {
     return 0;
 }
+
 uint64_t DutGSimBase::NativeSignalAddr(const char *name){
     if (this->pin_address_map.find(name) != this->pin_address_map.end()) {
         return this->pin_address_map[name];
     }
     XWarning("NativeSignalAddr: Pin %s not found", name);
     return 0;
-};
+}
+
 void DutGSimBase::update_read()
 {
     // update read pins
@@ -208,6 +224,7 @@ void DutGSimBase::update_read()
     {% endif %}{% endfor %}
     {% endif %}
 }
+
 void DutGSimBase::update_write()
 {
     // update write pins
@@ -784,6 +801,11 @@ uint64_t DutUnifiedBase::GetXSignalCFGBasePtr()
 #ifdef USE_VERILATOR
     if(0 == strcmp("{{__RW_TYPE__}}", "MEM_DIRECT")){
         return (uint64_t)((V{{__TOP_MODULE_NAME__}} *)(this->dut->top))->rootp;
+    }
+#endif
+#ifdef USE_GSIM
+    if(0 == strcmp("{{__RW_TYPE__}}", "MEM_DIRECT")){
+        return (uint64_t)(this->dut->top);
     }
 #endif
     return 0;

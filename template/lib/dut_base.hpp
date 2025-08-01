@@ -45,6 +45,7 @@ public:
 #if defined(USE_GSIM)
 class DutGSimBase : public DutBase
 {
+public:
     S{{__TOP_MODULE_NAME__}} *top = nullptr; // GSim Top Module
 private:
     std::string coverage_file_path;
