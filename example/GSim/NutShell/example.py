@@ -15,13 +15,10 @@ def load_bin(dut: DUTSimTop, bin_file: str):
     except FileNotFoundError:
         print(f"Error: File {bin_file} not found.")
         return False
-    base = dut.dut.GetXSignalCFGBasePtr()
-    offs = dut.xcfg.At("mem$rdata_mem$mem").offset
-    address = offs + base
+    address = dut.xcfg.Address("mem$rdata_mem$mem")
     bin_array = ComUseDataArray(address, len(data))
-    print(f"Loading {bin_file} ({len(data)} bytes) to address {hex(address)} ({hex(offs)} + {hex(base)})")
     bin_array.FromBytes(data)
-    print(f"Loaded binary data from {bin_file} into address {hex(address)}.")
+    print(f"Loading {bin_file} ({len(data)} bytes) to address {hex(address)}")
     return True
 
 def init(dut: DUTSimTop):
@@ -43,7 +40,6 @@ def uart(dut: DUTSimTop):
 def main():
     import sys
     dut = DUTSimTop()
-    # dut.xclock.SetFastMode(11)  FIXME: need set 11 or 12
     print("DUTSimTop initialized")
     if len(sys.argv) < 2:
         bin_file = "microbench-NutShell.bin"
@@ -57,7 +53,6 @@ def main():
         print(f"Failed to load binary file: {bin_file}.")
         print("Usage: python example.py <binary_file> [<step_count>]")
     dut.StepRis(lambda c: uart(dut))
-    dut.StepFal(lambda c: uart(dut))
     init(dut)
     reset(dut)
     step_count = 1000000

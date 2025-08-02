@@ -193,6 +193,7 @@ namespace codegen {
 
         data["__COMMENTS__"]         = comments;
         data["__COPY_XSPCOMM_LIB__"] = opts.cp_lib;
+        data["__SIMULATOR__"]        = opts.sim;
 
         // Render
         inja::Environment env;

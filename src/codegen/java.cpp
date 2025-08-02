@@ -149,6 +149,7 @@ namespace picker { namespace codegen {
         data["__SWIG_CONSTANT__"]    = swig_constant;
         data["__USE_SIMULATOR__"]    = "USE_" + simulator;
         data["__COPY_XSPCOMM_LIB__"] = opts.cp_lib;
+        data["__SIMULATOR__"]        = opts.sim;
 
         // Render
         inja::Environment env;

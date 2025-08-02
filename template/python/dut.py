@@ -22,6 +22,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.event = self.xclock.getEvent()
         self.internal_signals = {}
         self.xcfg = xsp.XSignalCFG(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr())
+        {% if __SIMULATOR__ == "gsim" %}
+        # Set fast mode for GSim
+        self.xclock.SetFastMode(xsp.FastMode_ONLY_STEP_RIS)
+        {% endif %}
 
         # set output files
         if kwargs.get("waveform_filename"):
