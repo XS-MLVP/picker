@@ -55,7 +55,6 @@ def main():
     dut.StepRis(lambda c: uart(dut))
     init(dut)
     reset(dut)
-    step_count = 1000000
     print("Starting simulation with step count:", step_count)
     dut.Step(step_count)
     dut.Finish()
