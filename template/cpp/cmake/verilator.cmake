@@ -26,7 +26,7 @@ function(XSPTarget)
 	set(CustomLinkOptions ${XSP_CUSTOM_LINK_OPTIONS})
 
 	execute_process(
-		COMMAND bash -c "verilator -V|grep ROOT|grep verilator|head -n 1|awk '{print $3}'"
+		COMMAND bash -c "verilator -V|grep ROOT|grep verilator|tail -n 1|awk '{print $3}'"
 		OUTPUT_VARIABLE CMD_VERILATOR_ROOT
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
