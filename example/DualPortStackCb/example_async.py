@@ -43,7 +43,7 @@ class SinglePortDriver:
         self.port_dict["in_data"].value = random.randint(0, 2**8-1)
         await self.dut.AStep(1)
 
-        await self.dut.ACondition(lambda: self.port_dict["in_ready"].value != 1)
+        await self.dut.ACondition(lambda: self.port_dict["in_ready"].value == 1)
         self.port_dict["in_valid"].value = 0
 
         if is_push:
@@ -53,7 +53,7 @@ class SinglePortDriver:
         self.port_dict["out_ready"].value = 1
         await self.dut.AStep(1)
 
-        await self.dut.ACondition(lambda: self.port_dict["out_valid"].value != 1)
+        await self.dut.ACondition(lambda: self.port_dict["out_valid"].value == 1)
         self.port_dict["out_ready"].value = 0
 
         if self.port_dict["out_cmd"].value == self.BusCMD.POP_OKAY.value:
