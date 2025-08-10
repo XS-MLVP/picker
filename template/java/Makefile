@@ -1,10 +1,11 @@
 CURRENT_DIR := $(shell pwd)
+.PHONY: all test compile clean purge copy_xspcomm
 
 all: test clean
 	@echo "All complete"
 
 test: compile
-	@echo "--------------Comple Success Test Step DUT--------------------"
+	@echo "--------------Compile Success Test Step DUT--------------------"
 	@java -cp {{__XSPCOMM_JAR__}}:${TARGET}-java.jar -ea com.ut.example
 	@echo "--------------------------------------------------------------"
 
@@ -27,7 +28,7 @@ clean:
 	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.a build
 
 purge: clean
-	@ls|grep -v ".jar"|xargs rm -rf
+	@find . -mindepth 1 -maxdepth 1 -not -name "*.jar" -exec rm -rf {} +
 	@mv ./* ../ || true
 	@echo "purge complete"
 	@rm -rf $(CURRENT_DIR)

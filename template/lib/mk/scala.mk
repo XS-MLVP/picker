@@ -1,3 +1,4 @@
+ .PHONY: default
 default:
 	@cp scala/example.scala ${TARGET}/../example.scala
 	@cp scala/cmake/${SIMULATOR}.cmake ${TARGET}/dut.cmake

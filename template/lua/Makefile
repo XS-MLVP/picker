@@ -1,11 +1,12 @@
 CURRENT_DIR := $(shell pwd)
+.PHONY: all test compile clean purge copy_xspcomm
 
 all: test clean
 	@echo "All complete"
 
 test: compile
 	@rm *.a 2>/dev/null || true
-	@echo "--------------Comple Success Test Step DUT--------------------"
+	@echo "--------------Compile Success Test Step DUT--------------------"
 	@cd ../ && LUA_PATH={{__XSPCOMM_LUA__}}/?.lua lua example.lua && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || (echo "Error: Test failed, plz check whether behavior is correct" && sleep 10)
 	@echo "--------------------------------------------------------------"
 
@@ -13,10 +14,10 @@ test: compile
 copy_xspcomm_lib={{__COPY_XSPCOMM_LIB__}}
 ifneq ($(copy_xspcomm_lib), true)
 copy_xspcomm:
-	@echo "Ignore copy python module: xspcomm"
+	@echo "Ignore copy lua module: xspcomm"
 else
 copy_xspcomm:
-	@echo "Try copy python module: xspcomm"
+	@echo "Try copy lua module: xspcomm"
 	@cp -r {{__XSPCOMM_LUA__}} xspcomm
 endif
 
