@@ -1,3 +1,4 @@
+ .PHONY: default
 default:
 	@cp lua/example.lua ${TARGET}/../example.lua
 	@cp lua/cmake/${SIMULATOR}.cmake ${TARGET}/dut.cmake

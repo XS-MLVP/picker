@@ -1,11 +1,12 @@
 CURRENT_DIR := $(shell pwd)
+.PHONY: all test compile clean purge copy_xspcomm
 
 all: test clean
 	@echo "All complete"
 
 test: compile
 	@rm *.a 2>/dev/null || true
-	@echo "--------------Comple Success Test Step DUT--------------------"
+	@echo "--------------Compile Success Test Step DUT--------------------"
 	@cd ../ && PYTHONPATH=.:{{__XSPCOMM_PYTHON__}}/.. python3 example.py && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || (echo "Error: Test failed, plz check whether behavior is correct" && sleep 10)
 	@echo "--------------------------------------------------------------"
 

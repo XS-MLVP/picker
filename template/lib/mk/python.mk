@@ -1,3 +1,4 @@
+ .PHONY: default
 default:
 	@cp python/example.py ${TARGET}/../example.py
 	@cp python/cmake/${SIMULATOR}.cmake ${TARGET}/dut.cmake

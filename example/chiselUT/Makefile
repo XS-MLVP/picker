@@ -1,5 +1,5 @@
 default: test
-.PHONY: check-picker
+.PHONY: check-picker test clean default
 
 export PATH := ../../build/bin:${PATH}
 
