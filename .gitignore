@@ -57,3 +57,12 @@ dependence/xcomm
 AppDir/
 app_image_build/
 
+# Test artifacts
+test_params.txt
+test_io.txt
+pack_example/
+Testing
+
+# Local verible installs/archives
+verible-*/
+verible-*.tar.gz

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      VERIBLE_VERSION: v0.0-4007-g98bdb38a
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build pkg-config \
+            python3 python3-pip python3-venv libpython3-dev \
+            git curl wget ca-certificates \
+            verilator
+
+      - name: Install Verible (format + syntax)
+        run: |
+          ARCH=x86_64
+          wget "https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-${ARCH}.tar.gz" -O /tmp/verible.tar.gz
+          tar -xzf /tmp/verible.tar.gz -C /tmp
+          sudo cp /tmp/verible-${VERIBLE_VERSION}/bin/* /usr/local/bin/
+          verible-verilog-format --version || true
+          verible-verilog-syntax --version || true
+
+      - name: Build
+        run: |
+          make -j"$(nproc)"
+
+      - name: Unit test (test_picker_utils)
+        run: |
+          cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL="$(nproc)"
+          cmake --build build --target test_picker_utils -j"$(nproc)"
+          ./build/bin/test_picker_utils
+
+      - name: Smoke tests
+        run: |
+          make -C test smoke
+
+      - name: Full tests (make -C test all)
+        run: |
+          make -C test all -j"$(nproc)"
+
+      - name: Cleanup generated artifacts
+        if: always()
+        run: |
+          make -C test clean || true
+          rm -f test_params.txt test_io.txt || true

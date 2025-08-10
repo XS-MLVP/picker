@@ -2,7 +2,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
 .PHONY: all init build install appimage test test_all test_vpi_all test_mem_direct_all \
-        test_all_java test_all_scala clean wheel wheel_install
+        test_all_java test_all_scala clean wheel wheel_install tests smoke_tests unit_tests
 
 export BUILD_XSPCOMM_SWIG ?= python
 verible_arch := $(shell uname -m)
@@ -114,3 +114,14 @@ wheel: init
 wheel_install: wheel
 	pip3 uninstall -y xspcomm picker || true
 	pip3 install dist/xspcomm*.whl dist/picker*.whl
+
+# Run test suite
+tests:
+	$(MAKE) -C test all
+
+smoke_tests:
+	$(MAKE) -C test smoke
+
+unit_tests:
+	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS)
+	cd build && ctest --output-on-failure -j`nproc`
