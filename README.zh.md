@@ -25,6 +25,7 @@ Picker 目前支持的 RTL 仿真器：
 
 1. Verilator
 1. Synopsys VCS
+1. [GSIM](https://github.com/OpenXiangShan/gsim)
 
 # 使用方法
 
@@ -132,7 +133,7 @@ Options:
   -h,--help                   Print this help message and exit
   --fs,--filelist TEXT ...    DUT .v/.sv source files, contain the top module, split by comma.
                               Or use '*.txt' file  with one RTL file path per line to specify the file list
-  --sim TEXT [verilator]      vcs or verilator as simulator, default is verilator
+  --sim TEXT [verilator]      vcs, gsim or verilator as simulator, default is verilator
   --lang,--language TEXT:{python,cpp,java,scala,golang,lua} [python]
                               Build target project with assigned language, default python
   --sdir,--source_dir TEXT    Template Files Dir, default is ${picker_install_path}/../picker/template
