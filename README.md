@@ -135,6 +135,8 @@ Options:
   --fs,--filelist TEXT ...    DUT .v/.sv source files, contain the top module, split by comma.
                               Or use '*.txt' file  with one RTL file path per line to specify the file list
   --sim TEXT [verilator]      vcs or verilator as simulator, default is verilator
+  --rw,--access-mode ENUM:value in {dpi->0,mem_direct->1} OR {0,1}
+                              How to drive the hardware model, DPI or MEM_DIRECT(verilator only), default is DPI
   --lang,--language TEXT:{python,cpp,java,scala,golang,lua} [python]
                               Build target project with assigned language, default python
   --sdir,--source_dir TEXT [/home/yaozhicheng/workspace/picker/template]
@@ -156,9 +158,8 @@ Options:
   --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
                               Copy xspcomm lib to generated DUT dir, default is true
   -V,--vflag TEXT             User defined simulator compile args, passthrough.
-                              Eg: Using vcs simulator for exporting line coverage, -V '"-cm line -cm_dir /abs_path_to_store_coverage_data"'
-  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough.
-                              Eg: -C '"-O3 -std=c++17 -I./include"'
+                              Eg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'
+  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'
   --verbose                   Verbose mode
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
