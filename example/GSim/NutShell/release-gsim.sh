@@ -31,4 +31,11 @@ else
     echo "No example file copied, use default config."
 fi
 
-cd picker_out_GSIM/NutShell && CC=clang CXX=clang++ make EXAMPLE=ON
+if [ -z $CC ] && [ -z $CXX ]; then
+    echo "CC and CXX not set, using default clang and clang++."
+    export CC=clang
+    export CXX=clang++
+else
+    echo "Using CC=$CC and CXX=$CXX"
+fi
+cd picker_out_GSIM/NutShell && make EXAMPLE=ON
