@@ -30,7 +30,18 @@ namespace picker { namespace parser { namespace gsim {
     }
     std::vector<cpp_variableInfo> processDeclarations(const std::vector<std::string> &declarations){
         std::vector<cpp_variableInfo> vars;
-        std::regex pattern(R"(^((?:unsigned\s+)?(?:uint\d+_t|_BitInt\(\d+\)))\s+([a-zA-Z_$][a-zA-Z0-9_$]*)(\[[\d\[\]]+\])?\s*;\s*//\s*width\s*=\s*(\d+)(?:,\s*lineno\s*=\s*\d+)?)");
+        // Regex breakdown:
+        // 1. Type: (unsigned uintN_t or unsigned _BitInt(N))
+        // 2. Name: variable name (letters, digits, _, $)
+        // 3. Array: optional array dimensions ([N][M]...)
+        // 4. Semicolon and comment: ; // width = N, optional lineno
+        std::string type_pattern = R"((?:unsigned\s+)?(?:uint\d+_t|_BitInt\(\d+\)))";
+        std::string name_pattern = R"([a-zA-Z_$][a-zA-Z0-9_$]*)";
+        std::string array_pattern_str = R"((\[[\d\[\]]+\])?)";
+        std::string semicolon_pattern = R"(\s*;)";
+        std::string comment_pattern = R"(\s*//\s*width\s*=\s*(\d+)(?:,\s*lineno\s*=\s*\d+)?)";
+        std::string full_pattern = "^(" + type_pattern + R"()\s+)" + name_pattern + array_pattern_str + semicolon_pattern + comment_pattern;
+        std::regex pattern(full_pattern);
         std::regex array_pattern(R"(\[(\d+)\])");
         for (const auto &declaration : declarations) {
             cpp_variableInfo var_info;
