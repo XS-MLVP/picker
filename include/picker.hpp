@@ -29,6 +29,7 @@
 #include "parser/internalcfg.hpp"
 #include "parser/verilator_root.hpp"
 #include "parser/gsim_root.hpp"
+#include "parser/parser_map.hpp"
 
 extern std::map<std::string, std::string> lang_lib_map;
 extern std::map<std::string, std::string> display_names;

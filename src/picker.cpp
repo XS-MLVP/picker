@@ -337,17 +337,12 @@ int main(int argc, char **argv)
             std::string source_file = export_opts.file[0];
             std::vector<std::string> declarations;
             std::vector<picker::cpp_variableInfo> vars;
-            if (export_opts.sim == "verilator") {
-                PK_MESSAGE("Parsing Verilator source file: %s", source_file.c_str());
-                declarations = picker::parser::verilator::readVarDeclarations(source_file);
-                vars = picker::parser::verilator::processDeclarations(declarations);
-            } else if (export_opts.sim == "gsim") {
-                PK_MESSAGE("Parsing GSIM source file: %s", source_file.c_str());
-                declarations = picker::parser::gsim::readVarDeclarations(source_file);
-                vars = picker::parser::gsim::processDeclarations(declarations);
-            } else {
-                PK_FATAL("Parse internal signals not supported simulator: %s", export_opts.sim.c_str());
-            }
+
+            auto readVarDeclarations = picker::parser::GetReadVarDeclarations(export_opts.sim);
+            auto processDeclarations = picker::parser::GetProcessDeclarations(export_opts.sim);
+            declarations = readVarDeclarations(source_file);
+            vars = processDeclarations(declarations);
+
             picker::codegen::render_md_addr_generator(vars, export_opts);
             picker::parser::outputYAML(vars, export_opts.target_dir + "/vars.yaml"); 
             exit(0);
@@ -357,15 +352,8 @@ int main(int argc, char **argv)
         std::vector<picker::sv_signal_define> internal_sginal_result; // configuration signal pings
 
         nlohmann::json signal_tree_json;
-        if(export_opts.sim == "gsim") {
-            if(export_opts.rw_type != picker::SignalAccessType::MEM_DIRECT) {
-                PK_FATAL("GSIM only support MEM_DIRECT access mode, please use --rw mem_direct");
-            }
-            // read the signal tree json from the verilator root
-            picker::parser::firrtl(export_opts, sv_module_result);
-        }else{
-            picker::parser::sv(export_opts, sv_module_result);
-        }
+        auto input_parser = picker::parser::GetInputParser(export_opts.sim);
+        input_parser(export_opts, sv_module_result);
         picker::parser::internal(export_opts, internal_sginal_result);
 
         auto sv_pin_result =

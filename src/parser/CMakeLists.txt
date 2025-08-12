@@ -8,6 +8,7 @@ set(source_file
      verilator_root.cpp
      firrtl.cpp
      gsim_root.cpp
+     parser_map.cpp
 )
 
 add_library(parser ${source_file})

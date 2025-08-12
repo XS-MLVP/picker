@@ -192,6 +192,9 @@ namespace picker { namespace parser {
 
     // Parse FIRRTL file and extract main circuit module and its ports
     int firrtl(picker::export_opts &opts, std::vector<picker::sv_module_define> &external_pin){
+        if(opts.rw_type != picker::SignalAccessType::MEM_DIRECT) {
+                PK_FATAL("GSIM only support MEM_DIRECT access mode, please use --rw mem_direct");
+        }
         if(opts.file.empty()) {
             PK_FATAL("No input file given for FIRRTL parser. Please specify a .fir file.");
         }
