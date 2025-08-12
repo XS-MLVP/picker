@@ -35,12 +35,13 @@ namespace picker { namespace parser { namespace gsim {
         // 2. Name: variable name (letters, digits, _, $)
         // 3. Array: optional array dimensions ([N][M]...)
         // 4. Semicolon and comment: ; // width = N, optional lineno
-        std::string type_pattern = R"((?:unsigned\s+)?(?:uint\d+_t|_BitInt\(\d+\)))";
-        std::string name_pattern = R"([a-zA-Z_$][a-zA-Z0-9_$]*)";
-        std::string array_pattern_str = R"((\[[\d\[\]]+\])?)";
+        // full reg: R"(^((?:unsigned\s+)?(?:uint\d+_t|_BitInt\(\d+\)))\s+([a-zA-Z_$][a-zA-Z0-9_$]*)(\[[\d\[\]]+\])?\s*;\s*//\s*width\s*=\s*(\d+)(?:,\s*lineno\s*=\s*\d+)?)"
+        std::string type_pattern = R"(((?:unsigned\s+)?(?:uint\d+_t|_BitInt\(\d+\))))";  // Capture group 1
+        std::string name_pattern = R"(([a-zA-Z_$][a-zA-Z0-9_$]*))";  // Capture group 2
+        std::string array_pattern_str = R"(((?:\[\d+\])*))";  // Capture group 3 - fixed for multi-dimensional arrays
         std::string semicolon_pattern = R"(\s*;)";
-        std::string comment_pattern = R"(\s*//\s*width\s*=\s*(\d+)(?:,\s*lineno\s*=\s*\d+)?)";
-        std::string full_pattern = "^(" + type_pattern + R"()\s+)" + name_pattern + array_pattern_str + semicolon_pattern + comment_pattern;
+        std::string comment_pattern = R"(\s*//\s*width\s*=\s*(\d+)(?:,\s*lineno\s*=\s*\d+)?)";  // Capture group 4
+        std::string full_pattern = "^" + type_pattern + R"(\s+)" + name_pattern + array_pattern_str + semicolon_pattern + comment_pattern;
         std::regex pattern(full_pattern);
         std::regex array_pattern(R"(\[(\d+)\])");
         for (const auto &declaration : declarations) {
@@ -56,6 +57,7 @@ namespace picker { namespace parser { namespace gsim {
             // uint64_t soc$nutcore$backend$isu$rf[32]; // width = 64, lineno = 5605
             // uint32_t soc$nutcore$io_imem_cache$metaArray$ram$array[128][4]; // width = 21, lineno = 12965
             if (std::regex_match(declaration, match, pattern)) {
+                PK_DEBUG("Found declaration: type=%s, name=%s, array_part=%s, width=%s", match[1].str().c_str(), match[2].str().c_str(), match[3].str().c_str(), match[4].str().c_str());
                 var_info.type = match[1];
                 var_info.name = match[2];
                 std::string array_part = match[3];
@@ -69,6 +71,7 @@ namespace picker { namespace parser { namespace gsim {
                         array_size *= dimension;
                     }
                 }
+                PK_DEBUG("Parsed variable: type=%s, name=%s, width=%d, array_size=%d", var_info.type.c_str(), var_info.name.c_str(), var_info.width, array_size);
                 var_info.array_size = array_size;
             } else {
                 PK_ERROR("Find Invalid declaration: %s", declaration.c_str());
