@@ -53,7 +53,7 @@ int set_options_export_rtl(CLI::App &top_app)
         ->delimiter(',');
 
     // Set DUT RTL Simulator, Optional, default is verilator
-    app->add_option("--sim", export_opts.sim, "vcs or verilator as simulator, default is verilator")
+    app->add_option("--sim", export_opts.sim, "vcs, gsim or verilator as simulator, default is verilator")
         ->default_val("verilator");
 
     // Set DUT RTL RW Type, Optional, default is DPI
@@ -264,7 +264,10 @@ int check_picker_support()
         if (export_opts.internal != "") { PK_MESSAGE("It's recommended to use MEM_DIRECT for internal signal access"); }
         break;
     case picker::SignalAccessType::MEM_DIRECT:
-        if (export_opts.sim != "verilator") { PK_FATAL("MEM_DIRECT only support verilator simulator"); }
+        std::unordered_set<std::string> supported_simulators = {"verilator", "gsim"};
+        if (supported_simulators.count(export_opts.sim) == 0) {
+            PK_ERROR("[Err] MEM_DIRECT not support simulator '%s'", export_opts.sim.c_str());
+        }
         break;
     }
 
@@ -332,8 +335,13 @@ int main(int argc, char **argv)
             PK_MESSAGE("Rendering mem_direct");         
             // picker is invoked by codegen Makefile, so the export_opts.file is NOT sv but the Verilator CPP (for now).
             std::string source_file = export_opts.file[0];
-            auto declarations = picker::parser::readVarDeclarations(source_file);
-            auto vars = picker::parser::processDeclarations(declarations); 
+            std::vector<std::string> declarations;
+            std::vector<picker::cpp_variableInfo> vars;
+
+            auto readVarDeclarations = picker::parser::GetReadVarDeclarations(export_opts.sim);
+            auto processDeclarations = picker::parser::GetProcessDeclarations(export_opts.sim);
+            declarations = readVarDeclarations(source_file);
+            vars = processDeclarations(declarations);
 
             picker::codegen::render_md_addr_generator(vars, export_opts);
             picker::parser::outputYAML(vars, export_opts.target_dir + "/vars.yaml"); 
@@ -344,7 +352,8 @@ int main(int argc, char **argv)
         std::vector<picker::sv_signal_define> internal_sginal_result; // configuration signal pings
 
         nlohmann::json signal_tree_json;
-        picker::parser::sv(export_opts, sv_module_result);
+        auto input_parser = picker::parser::GetInputParser(export_opts.sim);
+        input_parser(export_opts, sv_module_result);
         picker::parser::internal(export_opts, internal_sginal_result);
 
         auto sv_pin_result =

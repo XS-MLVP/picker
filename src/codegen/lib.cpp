@@ -122,6 +122,23 @@ namespace picker { namespace codegen {
         std::string verilaotr_coverage, vcs_coverage;
     }
 
+    void gen_expins(nlohmann::json &expins, picker::export_opts &opts,
+                    const std::vector<picker::sv_signal_define> &external_pins)
+    {
+        if (opts.rw_type != picker::SignalAccessType::MEM_DIRECT) {
+            return;
+        }
+        for (const auto &pin : external_pins) {
+            nlohmann::json expin;
+            expin["name"] = pin.logic_pin;
+            expin["type"] = (pin.logic_pin_type[0] == 'i') ? "In" : "Out";
+            expin["hb"] = pin.logic_pin_hb;
+            expin["lb"] = pin.logic_pin_lb;
+            expin["size"] = pin.logic_pin_hb - pin.logic_pin_lb + 1;
+            expins.push_back(expin);
+        }
+    }
+
     std::vector<picker::sv_signal_define> lib(picker::export_opts &opts,
                                               const std::vector<picker::sv_module_define> sv_module_result,
                                               const std::vector<picker::sv_signal_define> &internal_pin,
@@ -142,7 +159,14 @@ namespace picker { namespace codegen {
 
         data["__TOP_MODULE_NAME__"] = dst_module_name;
 
-        ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator, opts.rw_type);
+        // firrtl base simulators
+        std::unordered_set<std::string> firrtl_simulators = {"gsim"};
+        if (firrtl_simulators.count(opts.sim)) {
+            ret = gen_firrtl_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator, opts.rw_type);
+        // verilog based simulators
+        } else {
+            ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator, opts.rw_type);
+        }
         gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag, env, data);
 
         // Set clock period
@@ -152,6 +176,11 @@ namespace picker { namespace codegen {
         // Render lib filelist
         gen_filelist(files, ifilelists, ofilelist);
 
+        // Render expins info
+        auto expins = nlohmann::json::array();
+        gen_expins(expins, opts, ret);
+
+        data["__MODULE_EXTERNAL_PINS__"]  = expins;
         data["__VCS_CLOCK_PERIOD_HIGH__"] = vcs_clock_period_h;
         data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
         data["__VERBOSE__"]               = opts.verbose ? "ON" : "OFF";
@@ -185,7 +214,8 @@ namespace picker { namespace codegen {
             }
         }
         for (auto &f : files) {
-            std::filesystem::copy_file(f, dst_dir + "/" + dst_module_name + ".v",
+            auto ext = f.substr(f.find_last_of('.'));
+            std::filesystem::copy_file(f, dst_dir + "/" + dst_module_name + ext, //reserve the original extension
                                        std::filesystem::copy_options::overwrite_existing);
         }
         PK_MESSAGE("Generate DPI files successfully!");

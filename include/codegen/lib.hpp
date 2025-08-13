@@ -3,6 +3,7 @@
 #include <bits/stdc++.h>
 #include "picker.hpp"
 #include "parser/sv.hpp"
+#include "parser/firrtl.hpp"
 
 namespace picker { namespace codegen {
 

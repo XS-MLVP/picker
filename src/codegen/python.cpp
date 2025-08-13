@@ -32,7 +32,8 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
                 data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
-                data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
+                auto pin_uniq_name = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
+                data["pin_uniq_name"]  = replace_all(replace_all(pin_uniq_name, "$$", "_"), "$", "_");
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
                                                0 :
@@ -44,8 +45,7 @@ namespace picker { namespace codegen {
                     xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
                     break;
                 case SignalAccessType::MEM_DIRECT:
-                    // xdata_bindrw = xdata_bindrw + env.render(xdata_bindptr_template, data);
-                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                    xdata_bindrw = xdata_bindrw + env.render(xdata_bindptr_template, data);
                     break;
                 }
                 xport_add    = xport_add + env.render(xport_add_template, data);
@@ -144,6 +144,7 @@ namespace picker { namespace codegen {
         data["__SWIG_CONSTANT__"]    = swig_constant;
         data["__USE_SIMULATOR__"]    = "USE_" + simulator;
         data["__COPY_XSPCOMM_LIB__"] = opts.cp_lib;
+        data["__SIMULATOR__"]        = opts.sim;
 
         // Render
         inja::Environment env;

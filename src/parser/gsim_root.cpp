@@ -1,0 +1,84 @@
+
+#include "parser/gsim_root.hpp"
+
+namespace picker { namespace parser { namespace gsim {
+    std::vector<std::string> readVarDeclarations(const std::string &filename){
+        std::vector<std::string> declarations;
+        std::ifstream file(filename);
+        std::string line;
+        // eg:
+        // uint32_t _var_start;
+        // ....
+        // uint32_t _var_end;
+        bool find_var_start = false;
+        while (getline(file, line)) {
+            line = picker::trim(line);
+            if (line.empty()) continue;
+            if (find_var_start == false && line.find("uint32_t") == 0 && line.find("_var_start") != std::string::npos) {
+                find_var_start = true;
+                continue; // start of variable declarations
+            }
+            if (find_var_start) {
+                if (line.find("uint32_t") == 0 && line.find("_var_end") != std::string::npos) {
+                    find_var_start = false;
+                    break; // end of variable declarations
+                }
+            }
+            if (find_var_start)declarations.push_back(line);
+        }
+        return declarations;
+    }
+    std::vector<cpp_variableInfo> processDeclarations(const std::vector<std::string> &declarations){
+        std::vector<cpp_variableInfo> vars;
+        // Regex breakdown:
+        // 1. Type: (unsigned uintN_t or unsigned _BitInt(N))
+        // 2. Name: variable name (letters, digits, _, $)
+        // 3. Array: optional array dimensions ([N][M]...)
+        // 4. Semicolon and comment: ; // width = N, optional lineno
+        // full reg: R"(^((?:unsigned\s+)?(?:uint\d+_t|_BitInt\(\d+\)))\s+([a-zA-Z_$][a-zA-Z0-9_$]*)(\[[\d\[\]]+\])?\s*;\s*//\s*width\s*=\s*(\d+)(?:,\s*lineno\s*=\s*\d+)?)"
+        std::string type_pattern = R"(((?:unsigned\s+)?(?:uint\d+_t|_BitInt\(\d+\))))";  // Capture group 1
+        std::string name_pattern = R"(([a-zA-Z_$][a-zA-Z0-9_$]*))";  // Capture group 2
+        std::string array_pattern_str = R"(((?:\[\d+\])*))";  // Capture group 3 - fixed for multi-dimensional arrays
+        std::string semicolon_pattern = R"(\s*;)";
+        std::string comment_pattern = R"(\s*//\s*width\s*=\s*(\d+)(?:,\s*lineno\s*=\s*\d+)?)";  // Capture group 4
+        std::string full_pattern = "^" + type_pattern + R"(\s+)" + name_pattern + array_pattern_str + semicolon_pattern + comment_pattern;
+        std::regex pattern(full_pattern);
+        std::regex array_pattern(R"(\[(\d+)\])");
+        for (const auto &declaration : declarations) {
+            cpp_variableInfo var_info;
+            std::istringstream iss(declaration);
+            std::string type, name;
+            std::smatch match;
+            // Eg:
+            // uint8_t soc$nutcore$backend$exu$mdu$div$state$NEXT; // width = 3, lineno = 6692
+            // unsigned _BitInt(192) soc$nutcore$backend$exu$mdu$div$shiftReg$NEXT; // width = 129, lineno = 6697
+            // uint64_t soc$nutcore$backend$exu$mdu$div$bReg$NEXT; // width = 64, lineno = 6719
+            // uint8_t soc$nutcore$backend$exu$mdu$div$cnt_value$NEXT; // width = 6, lineno = 6726
+            // uint64_t soc$nutcore$backend$isu$rf[32]; // width = 64, lineno = 5605
+            // uint32_t soc$nutcore$io_imem_cache$metaArray$ram$array[128][4]; // width = 21, lineno = 12965
+            if (std::regex_match(declaration, match, pattern)) {
+                PK_DEBUG("Found declaration: type=%s, name=%s, array_part=%s, width=%s", match[1].str().c_str(), match[2].str().c_str(), match[3].str().c_str(), match[4].str().c_str());
+                var_info.type = match[1];
+                var_info.name = match[2];
+                std::string array_part = match[3];
+                var_info.width = std::stoi(match[4]);
+                int array_size = 1;
+                if (!array_part.empty()) {
+                    std::sregex_iterator iter(array_part.begin(), array_part.end(), array_pattern);
+                    std::sregex_iterator end;
+                    for (; iter != end; ++iter) {
+                        int dimension = std::stoi((*iter)[1]);
+                        array_size *= dimension;
+                    }
+                }
+                PK_DEBUG("Parsed variable: type=%s, name=%s, width=%d, array_size=%d", var_info.type.c_str(), var_info.name.c_str(), var_info.width, array_size);
+                var_info.array_size = array_size;
+            } else {
+                PK_ERROR("Find Invalid declaration: %s", declaration.c_str());
+                continue; // skip invalid declarations
+            }
+            vars.push_back(var_info);
+        }
+        return vars;
+    }
+}}}; // namespace picker::parser::gsim

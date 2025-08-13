@@ -26,6 +26,11 @@ build:
 	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS)
 	cd build && make -j`nproc`
 
+clean_build:
+	rm -rf build
+
+rebuild: clean_build build
+
 install: build
 	cd build && make install
 

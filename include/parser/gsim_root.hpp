@@ -1,12 +1,12 @@
 #pragma once
 #include "picker.hpp"
+#include "parser/verilator_root.hpp"
 
 namespace picker {
 namespace parser {
-    void outputYAML(const std::vector<cpp_variableInfo> &vars, const std::string &fileName = "");
-namespace verilator {
+namespace gsim {
     std::vector<std::string> readVarDeclarations(const std::string &filename);
     std::vector<cpp_variableInfo> processDeclarations(const std::vector<std::string> &declarations);
-} // namespace verilator
+} // namespace gsim
 } // namespace parser
 } // namespace picker

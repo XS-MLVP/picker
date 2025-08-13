@@ -12,6 +12,7 @@ set(source_file
      lua.cpp
      uvm.cpp
      mem_direct.cpp
+     firrtl.cpp
 )
 
 add_library(codegen_ STATIC ${source_file})

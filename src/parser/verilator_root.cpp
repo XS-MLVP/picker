@@ -16,7 +16,7 @@ namespace picker { namespace parser {
         return std::string(start, end + 1);
     }
 
-    void outputYAML(const std::vector<VariableInfo> &vars, const std::string &fileName)
+    void outputYAML(const std::vector<cpp_variableInfo> &vars, const std::string &fileName)
     {
         std::ostream *out = &std::cout;
         std::ofstream file;
@@ -41,6 +41,7 @@ namespace picker { namespace parser {
         if (file.is_open()) { file.close(); }
     }
 
+namespace verilator {
     std::vector<std::string> readVarDeclarations(const std::string &filename)
     {
         std::vector<std::string> declarations;
@@ -90,16 +91,16 @@ namespace picker { namespace parser {
         return declarations;
     }
 
-    VariableInfo parseType(const std::string &typeStr)
+    cpp_variableInfo parseType(const std::string &typeStr)
     {
-        VariableInfo info;
+        cpp_variableInfo info;
         std::smatch match;
 
         // Match VlUnpacked type
         if (std::regex_match(typeStr, match, std::regex(R"(^VlUnpacked<(.+),\s*(\d+)>$)"))) {
             std::string innerType = trim(match[1]);
             info.array_size       = stoi(match[2]);
-            VariableInfo inner    = parseType(innerType);
+            cpp_variableInfo inner    = parseType(innerType);
             info.type             = inner.type;
             info.width            = inner.width;
         }
@@ -131,9 +132,9 @@ namespace picker { namespace parser {
         return info;
     }
 
-    std::vector<VariableInfo> processDeclarations(const std::vector<std::string> &declarations)
+    std::vector<cpp_variableInfo> processDeclarations(const std::vector<std::string> &declarations)
     {
-        std::vector<VariableInfo> vars;
+        std::vector<cpp_variableInfo> vars;
         std::regex varRegex(R"(^(.+[^\s])\s+([a-zA-Z_]\w*);$)");
 
         for (const auto &decl : declarations) {
@@ -143,7 +144,7 @@ namespace picker { namespace parser {
                 std::string varName = trim(match[2]);
 
                 PK_DEBUG("typeStr: %s, varName: %s", typeStr.c_str(), varName.c_str());
-                VariableInfo info = parseType(typeStr);
+                cpp_variableInfo info = parseType(typeStr);
                 info.name         = varName;
                 if (!info.type.empty()) vars.push_back(info);
             }
@@ -151,4 +152,4 @@ namespace picker { namespace parser {
         return vars;
     }
 
-}} // namespace picker::parser
+}}} // namespace picker::parser::verilator
