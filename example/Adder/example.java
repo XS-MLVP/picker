@@ -12,7 +12,7 @@ public class example {
             int N = 1000000;
             long a = (long) (Math.random() * N);
             long b = (long) (Math.random() * N);
-            int c = (int) (Math.random() * N) > 50 ? 1 : 0;
+            boolean c = (Math.random() * N) > 50;
             // set inputs
             adder.a.Set(a);
             adder.b.Set(b);
@@ -22,8 +22,8 @@ public class example {
             // reference model
             long sum = a + b;
             boolean carry = sum < a ? true : false;
-            sum += c;
-            carry = carry || sum < c;
+            sum += c ? 1 : 0;
+            carry = carry || sum < (c ? 1 : 0);
             // assert
             assert adder.sum.U().longValue() == sum : "sum mismatch: " + adder.sum.U() + " != " + sum;
             assert adder.cout.U().intValue() == (carry ? 1 : 0) : "carry mismatch: " + adder.cout.U() + " != " + carry;
