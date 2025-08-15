@@ -215,6 +215,8 @@ namespace picker { namespace codegen {
         }
         for (auto &f : files) {
             auto ext = f.substr(f.find_last_of('.'));
+            if (ext == ".sv")
+                ext = ".v";
             std::filesystem::copy_file(f, dst_dir + "/" + dst_module_name + ext, //reserve the original extension
                                        std::filesystem::copy_options::overwrite_existing);
         }
