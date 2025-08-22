@@ -56,16 +56,22 @@ install: build
 VERIBLE_VERSION ?= v0.0-4007-g98bdb38a
 
 appimage:
-	rm -rf AppDir app_image_build
-# Build Picker Binary and XSPCOMM library
-	cmake -DCMAKE_INSTALL_PREFIX=/usr . -Bapp_image_build -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS) 
-	cd app_image_build && $(MAKE) -j`nproc` && $(MAKE) install DESTDIR=`pwd`/../AppDir
-# Intergrate verible
+	rm -rf AppDir
+# Reuse existing build if present; otherwise configure and build
+	@if [ ! -d build ]; then \
+		cmake -DCMAKE_INSTALL_PREFIX=/usr . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS); \
+		cd build && $(MAKE) -j`nproc`; \
+	else \
+		echo "Using existing build directory for AppImage"; \
+	fi
+# Install into AppDir
+	cd build && $(MAKE) install DESTDIR=`pwd`/../AppDir
+# Integrate verible
 	wget "https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-${verible_arch}.tar.gz" \
-		-O app_image_build/verible.tar.gz
-	tar -xzf app_image_build/verible.tar.gz -C app_image_build/
-	mv app_image_build/verible-${VERIBLE_VERSION}/bin/verible-verilog-syntax AppDir/usr/bin/verible-verilog-syntax
-# Packing Final AppImage
+		-O build/verible.tar.gz
+	tar -xzf build/verible.tar.gz -C build/
+	mv build/verible-${VERIBLE_VERSION}/bin/verible-verilog-syntax AppDir/usr/bin/verible-verilog-syntax
+# Pack Final AppImage
 	linuxdeploy --appdir AppDir/ --output appimage  --desktop-file src/appimage/picker.desktop --icon-file src/appimage/logo256.png
 
 test: build
