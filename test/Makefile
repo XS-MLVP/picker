@@ -18,12 +18,12 @@ preflight:
 		echo "[preflight] picker not built"; \
 		need_rebuild=1; \
 	fi; \
-	# python support: detect either top-level build path or xcomm standalone build path
+	# python support: detect either top-level build path or xcomm standalone build path \
 	if [ ! -d "$$XCOMM_BUILD_DIR/python/xspcomm" ] && [ ! -d "$$XCOMM_SRC_DIR/build/python" ]; then \
 		echo "[preflight] xcomm python support missing"; \
 		need_rebuild=1; \
 	fi; \
-	# java support: detect either top-level build path or xcomm standalone build path
+	# java support: detect either top-level build path or xcomm standalone build path \
 	if [ ! -f "$$XCOMM_BUILD_DIR/java/xspcomm-java.jar" ] && [ ! -f "$$XCOMM_SRC_DIR/build/java/xspcomm-java.jar" ]; then \
 		echo "[preflight] xcomm java support missing"; \
 		need_rebuild=1; \
