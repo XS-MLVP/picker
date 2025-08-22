@@ -18,15 +18,53 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install base build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkg-config \
-            python3 python3-pip python3-venv libpython3-dev \
-            git curl wget ca-certificates swig \
-            default-jdk \
-            verilator
+            ca-certificates tzdata \
+            build-essential git wget curl \
+            python3 python3-pip python3-dev libpython3-dev \
+            pkg-config libpcre3-dev libpcre2-dev libfl-dev \
+            bison flex gperf clang g++ zlib1g-dev \
+            gnupg autoconf automake libtool help2man \
+            openjdk-17-jdk
+
+      - name: Install latest CMake from Kitware APT
+        run: |
+          set -euo pipefail
+          wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
+            gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | \
+            sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake
+
+      - name: Build and install SWIG from source
+        env:
+          SWIG_VERSION: v4.2.1
+        run: |
+          set -euo pipefail
+          git clone https://github.com/swig/swig.git -b "${SWIG_VERSION}" --depth=1 /tmp/swig
+          cd /tmp/swig
+          ./autogen.sh
+          ./configure --prefix=/usr/local
+          make -j"$(nproc)"
+          sudo make install
+          rm -rf /tmp/swig
+
+      - name: Build and install Verilator from source
+        env:
+          VERILATOR_VERSION: v5.018
+        run: |
+          set -euo pipefail
+          git clone https://github.com/verilator/verilator -b "${VERILATOR_VERSION}" --depth=1 /tmp/verilator
+          cd /tmp/verilator
+          autoconf
+          ./configure --prefix=/usr/local
+          make -j"$(nproc)"
+          sudo make install
+          rm -rf /tmp/verilator
 
       - name: Install Verible (format + syntax)
         run: |
@@ -83,8 +121,6 @@ jobs:
 
       - name: Install AppImage dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends swig
           ARCH=$(uname -m)
           if [ "$ARCH" = "arm64" ]; then
             ARCH="aarch64"
