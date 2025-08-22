@@ -20,9 +20,16 @@ init:
 	else \
 		git -C dependence/xcomm fetch --all --tags --prune; \
 	fi
-	# checkout the same branch as the parent project (if exists)
+	# Checkout same branch as parent if it exists; otherwise fallback to latest master
 	@PARENT_BRANCH=$$(git branch --show-current); \
-	cd dependence/xcomm && git checkout $$PARENT_BRANCH || echo "there is no branch $$PARENT_BRANCH in xcomm"
+	if git -C dependence/xcomm ls-remote --exit-code --heads origin "$$PARENT_BRANCH" >/dev/null 2>&1; then \
+		echo "[xcomm] Using branch $$PARENT_BRANCH"; \
+		git -C dependence/xcomm checkout -B "$$PARENT_BRANCH" "origin/$$PARENT_BRANCH"; \
+	else \
+		echo "[xcomm] No branch $$PARENT_BRANCH; fallback to latest master"; \
+		git -C dependence/xcomm fetch origin master; \
+		git -C dependence/xcomm checkout -B master origin/master; \
+	fi
 	
 build:
 	@if ! command -v verible-verilog-format >/dev/null 2>&1; then \
