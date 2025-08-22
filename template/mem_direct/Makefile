@@ -1,10 +1,9 @@
+ .PHONY: default
 default: export.bin
 
-
 TOP_NAME?=
-
-{% if __SIMULATOR__ == "verilator" %}
-V_ROOT=$(shell $(shell echo $$SHELL) -c  "verilator -V | grep VERILATOR_ROOT | awk '{print \$$3}' | head -n1")
+# Use the last VERILATOR_ROOT reported by `verilator -V`
+V_ROOT := $(shell verilator -V | awk '/VERILATOR_ROOT/ {v=$$3} END{print v}')
 
 CXXFLAGS += -I ${V_ROOT}/include -I ${V_ROOT}/include/vltstd/ \
 		-I ../build/DPI${TOP_NAME} \

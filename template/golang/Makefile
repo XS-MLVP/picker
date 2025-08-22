@@ -1,10 +1,11 @@
 CURRENT_DIR := $(shell pwd)
+.PHONY: all test compile clean purge copy_xspcomm
 
 all: test clean
 	@echo "All complete"
 
 test: compile
-	@echo "--------------Comple Success Test Step DUT--------------------"
+	@echo "--------------Compile Success Test Step DUT--------------------"
 	@cd ../ && GO111MODULE=off GOPATH="`pwd`/${TARGET}/golang:{{__XSPCOMM_GOLANG__}}" go run example.go && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || true
 	@echo "--------------------------------------------------------------"
 
@@ -37,7 +38,7 @@ clean:
 	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.a build
 
 purge: clean
-	@ls|grep -v golang|xargs rm -rf
+	@find . -mindepth 1 -maxdepth 1 -not -name golang -exec rm -rf {} +
 	@mv ./* ../ || true
 	@echo "purge complete"
 	@rm -rf $(CURRENT_DIR)

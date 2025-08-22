@@ -1,3 +1,4 @@
+ .PHONY: default
 default:
 	@cp golang/example.go ${TARGET}/../example.go
 	@cp golang/cmake/${SIMULATOR}.cmake ${TARGET}/dut.cmake
