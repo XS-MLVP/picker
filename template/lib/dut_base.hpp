@@ -29,8 +29,8 @@ public:
     // Set waveform file path
     virtual void SetWaveform(const char *filename) = 0;
     virtual void FlushWaveform()                   = 0;
-    virtual bool OpenWaveform()                    = 0;
-    virtual bool CloseWaveform()                   = 0;
+    virtual bool ResumeWaveformDump()              = 0;
+    virtual bool PauseWaveformDump()               = 0;
     virtual void WaveformEnable(bool enable)       = 0;
     // Set coverage file path
     virtual void SetCoverage(const char *filename) = 0;
@@ -68,8 +68,8 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void FlushWaveform();
-    bool OpenWaveform();
-    bool CloseWaveform();
+    bool ResumeWaveformDump();
+    bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     int CheckPoint(const char *filename);
@@ -103,8 +103,8 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void FlushWaveform();
-    bool OpenWaveform();
-    bool CloseWaveform();
+    bool ResumeWaveformDump();
+    bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     int CheckPoint(const char *filename);
@@ -142,8 +142,8 @@ public:
     int Finish();
     void SetWaveform(const char *filename);
     void FlushWaveform();
-    bool OpenWaveform();
-    bool CloseWaveform();
+    bool ResumeWaveformDump();
+    bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     int CheckPoint(const char *filename);
@@ -163,6 +163,16 @@ protected:
     void *lib_handle;
     int argc;
     char **argv;
+    
+    // Bitmask of the enabled code coverage metrics, configured at compile time. 0 indicates coverage is disabled.
+    static const int coverage_metrics;
+
+    // File extension for the waveform trace file (e.g., "vcd", "fsdb"), configured at compile time.
+    // This will be an empty string if waveform dumping is disabled.
+    static const char waveform_format[];
+
+    // Flag to track if waveform dumping is paused. 0 means active, 1 means paused/closed.
+    int waveform_paused;
 
 #if defined(USE_VERILATOR)
     DutVerilatorBase *dut;
@@ -224,6 +234,9 @@ public:
     void SetWaveform(const char *filename);
     void SetWaveform(const std::string filename);
 
+    // Get the waveform extension, or an empty string if disabled.
+    static std::string GetWaveFormat();
+    
     // Flush waveform from mem cache to file
     void FlushWaveform();
 
@@ -231,12 +244,18 @@ public:
     void WaveformEnable(bool enable = true);
 
     // Open and close waveform file
-    bool OpenWaveform();
-    bool CloseWaveform();
+    bool ResumeWaveformDump();
+    bool PauseWaveformDump();
+
+    // Returns 1 if waveform export is paused
+    int WaveformPaused();
 
     // Set coverage file path
-    void SetCoverage(const char *filename);      
-    void SetCoverage(const std::string filename); 
+    void SetCoverage(const char *filename);
+    void SetCoverage(const std::string filename);
+
+    // Get the bitmask for collected coverage metrics. 0 means coverage is disabled
+    static int GetCovMetrics();
 
     // Save Model Status with Simulator Capabilities
     // Return current cycle, warning: strictly limited to same design

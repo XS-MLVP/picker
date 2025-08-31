@@ -80,12 +80,16 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) StepFal(fc func(uint64)){
     self.Xclock.StepFal(fc)
 }
 
-func (self *UT_{{__TOP_MODULE_NAME__}}) OpenWaveform() bool {
-    return self.Dut.OpenWaveform()
+func (self *UT_{{__TOP_MODULE_NAME__}}) ResumeWaveformDump() bool {
+    return self.Dut.ResumeWaveformDump()
 }
 
-func (self *UT_{{__TOP_MODULE_NAME__}}) CloseWaveform() bool {
-    return self.Dut.CloseWaveform()
+func (self *UT_{{__TOP_MODULE_NAME__}}) PauseWaveformDump() bool {
+    return self.Dut.PauseWaveformDump()
+}
+
+func (self *UT_{{__TOP_MODULE_NAME__}}) WaveformPaused() int {
+    return self.Dut.WaveformPaused()
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) GetXClock() xspcomm.XClock {
@@ -98,6 +102,10 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) GetXPort() xspcomm.XPort {
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) SetWaveform(filename string){
     self.Dut.SetWaveform(filename)
+}
+
+func (self *UT_{{__TOP_MODULE_NAME__}}) GetWaveFormat() string {
+    return DutUnifiedBaseGetWaveFormat()
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) FlushWaveform(){
@@ -219,6 +227,10 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) VPIInternalSignalList(args ...interface{
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) SetCoverage(filename string){
     self.Dut.SetCoverage(filename)
+}
+
+func (self *UT_{{__TOP_MODULE_NAME__}}) GetCovMetrics() int {
+    return DutUnifiedBaseGetCovMetrics()
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) RefreshComb(){

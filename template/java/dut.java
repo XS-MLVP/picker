@@ -113,11 +113,14 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     /*************************************************/
     /*                  User APIs                    */
     /*************************************************/
-    public boolean OpenWaveform(){
-        return this.dut.OpenWaveform();
+    public boolean ResumeWaveformDump(){
+        return this.dut.ResumeWaveformDump();
     }
-    public boolean CloseWaveform(){
-        return this.dut.CloseWaveform();
+    public boolean PauseWaveformDump(){
+        return this.dut.PauseWaveformDump();
+    }
+    public int WaveformPaused() {
+        return this.dut.WaveformPaused();
     }
     public XClock GetXClock(){
         return this.xclock;
@@ -128,11 +131,17 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public void SetWaveform(String wave_name){
         this.dut.SetWaveform(wave_name);
     }
+    public String GetWaveFormat() {
+        return this.dut.GetWaveFormat();
+    }
     public void FlushWaveform() {
         this.dut.FlushWaveform();
     }
     public void SetCoverage(String coverage_name){
         this.dut.SetCoverage(coverage_name);
+    }
+    public int GetCovMetrics() {
+        return this.dut.GetCovMetrics();
     }
     public void Step(int i){
         this.xclock.Step(i);

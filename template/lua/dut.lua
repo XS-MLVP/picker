@@ -107,12 +107,16 @@ function DUT{{__TOP_MODULE_NAME__}}:StepFal(callback)
     self.xclock:StepFal(callback)
 end
 
-function DUT{{__TOP_MODULE_NAME__}}:OpenWaveform()
-    return self.dut:OpenWaveform()
+function DUT{{__TOP_MODULE_NAME__}}:ResumeWaveformDump()
+    return self.dut:ResumeWaveformDump()
 end
 
-function DUT{{__TOP_MODULE_NAME__}}:CloseWaveform()
-    return self.dut:CloseWaveform()
+function DUT{{__TOP_MODULE_NAME__}}:PauseWaveformDump()
+    return self.dut:PauseWaveformDump()
+end
+
+function DUT{{__TOP_MODULE_NAME__}}:WaveformPaused()
+    return self.dut:WaveformPaused()
 end
 
 function DUT{{__TOP_MODULE_NAME__}}:GetXClock()
@@ -127,12 +131,20 @@ function DUT{{__TOP_MODULE_NAME__}}:SetWaveform(filename)
     self.dut:SetWaveform(filename)
 end
 
+function DUT{{__TOP_MODULE_NAME__}}:GetWaveFormat()
+    self.dut:GetWaveFormat()
+end
+
 function DUT{{__TOP_MODULE_NAME__}}:FlushWaveform()
     self.dut:FlushWaveform()
 end
 
 function DUT{{__TOP_MODULE_NAME__}}:SetCoverage(filename)
     self.dut:SetCoverage(filename)
+end
+
+function DUT{{__TOP_MODULE_NAME__}}:GetCovMetrics()
+    return self.dut:GetCovMetrics()
 end
 
 function DUT{{__TOP_MODULE_NAME__}}:CheckPoint(name)

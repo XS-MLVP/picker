@@ -65,8 +65,8 @@ object chiselUT {
 trait BaseDUTTrait{
     def GetXClock(): XClock                         // 获取时钟 (Get clock)
     def GetXPort(): XPort                           // 获取引脚Port (Get pin Port)
-    def OpenWaveform(): Boolean                     // 开启波形 (需要参数开启) (Enable waveform,requires parameter setting)
-    def CloseWaveform(): Boolean                    // 关闭波形 (Close waveform)
+    def ResumeWaveformDump(): Boolean               // 恢复波形导出 (需要参数开启) (Resume waveform dump, requires parameter setting)
+    def PauseWaveformDump(): Boolean                // 暂停波形导出 (Pause waveform dump)
     def SetWaveform(wave_name: String): Unit        // 开启波形并设置波形文件名 (Enable waveform and set waveform filename)
     def FlushWaveform(): Unit                       // 刷新波形缓存 (Flush waveform cache)
     def SetCoverage(coverage_name: String): Unit    // 设置覆盖率文件 (需要参数开启) (Set coverage file, requires parameter setting)
