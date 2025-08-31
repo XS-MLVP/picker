@@ -1,5 +1,6 @@
 #include <bits/stdc++.h>
 #include "codegen/lib.hpp"
+#include "picker.hpp"
 
 namespace picker { namespace codegen {
 
@@ -122,6 +123,33 @@ namespace picker { namespace codegen {
         std::string verilaotr_coverage, vcs_coverage;
     }
 
+    void gen_coverage_metrics(std::string &simulator, picker::export_opts &opts, std::string &vflag, 
+            nlohmann::json &data)
+    {
+        const bool &coverage = opts.coverage;
+        // Bitmask for collected coverage metrics.
+        //
+        // Bit | Metric
+        // ----|---------
+        //  0  | line
+        //  1  | cond
+        //  2  | fsm
+        //  3  | toggle
+        //  4  | branch
+        //  5  | assert
+        int metrics = 0;
+        if (coverage && simulator == "verilator") {
+            // Verilator doesn't support fsm coverage
+            metrics = 0b111011;
+        } else if (simulator == "vcs"){
+            PK_MESSAGE("VCS not supported now");
+            // TODO: Parse the vflag for vcs
+        }
+
+        data["__COVERAGE__"] = coverage ? "ON" : "OFF";
+        data["__COVERAGE_METRICS__"] = metrics;
+    }
+
     void gen_expins(nlohmann::json &expins, picker::export_opts &opts,
                     const std::vector<picker::sv_signal_define> &external_pins)
     {
@@ -173,6 +201,9 @@ namespace picker { namespace codegen {
         printf("Frequency: %s\n", opts.frequency.c_str());
         get_clock_period(vcs_clock_period_h, vcs_clock_period_l, opts.frequency);
 
+        // Get coverage metrics
+        gen_coverage_metrics(simulator, opts, vflag, data);
+
         // Render lib filelist
         gen_filelist(files, ifilelists, ofilelist);
 
@@ -185,7 +216,6 @@ namespace picker { namespace codegen {
         data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
         data["__VERBOSE__"]               = opts.verbose ? "ON" : "OFF";
         data["__EXAMPLE__"]               = opts.example ? "ON" : "OFF";
-        data["__COVERAGE__"]              = opts.coverage ? "ON" : "OFF";
         data["__CHECKPOINTS__"]           = opts.checkpoints ? "ON" : "OFF";
         data["__VPI__"]                   = opts.vpi ? "ON" : "OFF";
         data["__RW_TYPE__"]               = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";

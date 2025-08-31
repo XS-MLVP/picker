@@ -93,12 +93,12 @@ void DutVcsBase::FlushWaveform()
 {
     XInfo("VCS waveform is not supported");
 };
-bool DutVcsBase::OpenWaveform()
+bool DutVcsBase::ResumeWaveformDump()
 {
     XInfo("VCS waveform is not supported");
     return true;
 };
-bool DutVcsBase::CloseWaveform()
+bool DutVcsBase::PauseWaveformDump()
 {
     XInfo("VCS waveform is not supported");
     return true;
@@ -179,12 +179,12 @@ void DutGSimBase::FlushWaveform()
 {
 }
 
-bool DutGSimBase::OpenWaveform()
+bool DutGSimBase::ResumeWaveformDump()
 {
     return false;
 }
 
-bool DutGSimBase::CloseWaveform()
+bool DutGSimBase::PauseWaveformDump()
 {
     return false;
 }
@@ -381,7 +381,7 @@ void DutVerilatorBase::FlushWaveform()
 #endif
 };
 
-bool DutVerilatorBase::OpenWaveform(){
+bool DutVerilatorBase::ResumeWaveformDump(){
 #if defined(VL_TRACE)
     if(((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->__Vm_dumperp)return false;
     ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->_traceDumpOpen();
@@ -391,7 +391,7 @@ bool DutVerilatorBase::OpenWaveform(){
     return true;
 };
 
-bool DutVerilatorBase::CloseWaveform(){
+bool DutVerilatorBase::PauseWaveformDump(){
 #if defined(VL_TRACE)
     if(!((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->__Vm_dumperp)return false;
     ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->__Vm_dumperp->flush();
@@ -517,6 +517,8 @@ inline void vcsLibPathConvert(char *path)
 
 int DutUnifiedBase::lib_count     = 0;
 bool DutUnifiedBase::main_ns_flag = false;
+const char DutUnifiedBase::waveform_format[] = "{% if __TRACE__ == "OFF" %}{% else %}{{__TRACE__}}{% endif %}";
+const int DutUnifiedBase::coverage_metrics = {{__COVERAGE_METRICS__}};
 
 DutUnifiedBase::DutUnifiedBase()
 {
@@ -574,6 +576,7 @@ DutUnifiedBase::DutUnifiedBase(std::vector<std::string> args)
 
 void DutUnifiedBase::init(int argc, const char **argv)
 {
+    this->waveform_paused = 0;
     // check whether the ENABLE_XINFO is set
     const char *enable_xinfo_env = std::getenv("ENABLE_XINFO");
     if (enable_xinfo_env) {
@@ -869,10 +872,6 @@ int DutUnifiedBase::Finish()
     for (int i = 0; i < this->argc; i++) { free(this->argv[i]); }
     return 0;
 }
-void DutUnifiedBase::SetWaveform(const char *filename)
-{
-    return this->dut->SetWaveform(filename);
-}
 void DutUnifiedBase::SetCoverage(const std::string filename)
 {
     return this->dut->SetCoverage(filename.c_str());
@@ -881,21 +880,39 @@ void DutUnifiedBase::SetCoverage(const char *filename)
 {
     return this->dut->SetCoverage(filename);
 }
+int DutUnifiedBase::GetCovMetrics()
+{
+    return DutUnifiedBase::coverage_metrics;
+}
+void DutUnifiedBase::SetWaveform(const char *filename)
+{
+    return this->dut->SetWaveform(filename);
+}
 void DutUnifiedBase::SetWaveform(const std::string filename)
 {
     return this->dut->SetWaveform(filename.c_str());
+}
+std::string DutUnifiedBase::GetWaveFormat()
+{
+    return std::string(DutUnifiedBase::waveform_format);
 }
 void DutUnifiedBase::FlushWaveform()
 {
     return this->dut->FlushWaveform();
 }
-bool DutUnifiedBase::OpenWaveform()
+bool DutUnifiedBase::ResumeWaveformDump()
 {
-    return this->dut->OpenWaveform();
+    this->waveform_paused = 0;
+    return this->dut->ResumeWaveformDump();
 }
-bool DutUnifiedBase::CloseWaveform()
+bool DutUnifiedBase::PauseWaveformDump()
 {
-    return this->dut->CloseWaveform();
+    this->waveform_paused = 1;
+    return this->dut->PauseWaveformDump();
+}
+int DutUnifiedBase::WaveformPaused()
+{
+    return this->waveform_paused;
 }
 void DutUnifiedBase::WaveformEnable(bool enable)
 {

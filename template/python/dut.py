@@ -63,11 +63,15 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def StepFal(self, callback, args=(), kwargs={}):
         self.xclock.StepFal(callback, args, kwargs)
 
-    def OpenWaveform(self):
-        return self.dut.OpenWaveform()
+    def ResumeWaveformDump(self):
+        return self.dut.ResumeWaveformDump()
 
-    def CloseWaveform(self):
-        return self.dut.CloseWaveform()
+    def PauseWaveformDump(self):
+        return self.dut.PauseWaveformDump()
+
+    def WaveformPaused(self) -> int:
+        """ Returns 1 if waveform export is paused """
+        return self.dut.WaveformPaused()
 
     def GetXPort(self):
         return self.xport
@@ -77,12 +81,36 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     def SetWaveform(self, filename: str):
         self.dut.SetWaveform(filename)
-    
+
+    def GetWaveFormat(self) -> str:
+        """
+        Get the waveform extension, or an empty string if disabled.
+
+        Returns:
+            str: The extension of waveform file.
+        """
+        return self.dut.GetWaveFormat()
+
     def FlushWaveform(self):
         self.dut.FlushWaveform()
 
     def SetCoverage(self, filename: str):
         self.dut.SetCoverage(filename)
+
+    def GetCovMetrics(self) -> int:
+        """
+        Get the bitmask for collected coverage metrics. 0 means coverage is disabled
+
+        Returns:
+            int: Collected coverage metrics bitmask:
+                - Bit 0: line   (Line coverage)
+                - Bit 1: cond   (Condition coverage)
+                - Bit 2: fsm    (Finite-State Machine coverage)
+                - Bit 3: toggle (Toggle coverage)
+                - Bit 4: branch (Branch coverage)
+                - Bit 5: assert (Assertion coverage)
+        """
+        return self.dut.GetCovMetrics()
     
     def CheckPoint(self, name: str) -> int:
         self.dut.CheckPoint(name)

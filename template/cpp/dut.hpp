@@ -71,18 +71,26 @@ public:
     {
         return &this->xport;
     }
-    bool OpenWaveform()
+    bool ResumeWaveformDump()
     {
-        return this->dut->OpenWaveform();
+        return this->dut->ResumeWaveformDump();
     }
-    bool CloseWaveform()
+    bool PauseWaveformDump()
     {
-        return this->dut->CloseWaveform();
+        return this->dut->PauseWaveformDump();
+    }
+    int WaveformPaused()
+    {
+        return this->dut->WaveformPaused();
     }
     void SetWaveform(std::string filename)
     {
         this->dut->SetWaveform((const char *)filename.c_str());
     }
+    std::string GetWaveFormat()
+    {
+        return this->dut->GetWaveFormat();
+    } 
     void FlushWaveform()
     {
         this->dut->FlushWaveform();
@@ -90,6 +98,10 @@ public:
     void SetCoverage(std::string filename)
     {
         this->dut->SetCoverage((const char *)filename.c_str());
+    }
+    int GetCovMetrics()
+    {
+        return this->dut->GetCovMetrics();
     }
     void CheckPoint(std::string filename)
     {

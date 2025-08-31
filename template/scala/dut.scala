@@ -65,20 +65,29 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     def GetXPort(): XPort = {
         this.xport
     }
-    def OpenWaveform(): Boolean = {
-        this.dut.OpenWaveform()
+    def ResumeWaveformDump(): Boolean = {
+        this.dut.ResumeWaveformDump()
     }
-    def CloseWaveform(): Boolean = {
-        this.dut.CloseWaveform()
+    def PauseWaveformDump(): Boolean = {
+        this.dut.PauseWaveformDump()
+    }
+    def WaveformPaused(): Int = {
+        this.dut.WaveformPaused()
     }
     def SetWaveform(wave_name: String) = {
         this.dut.SetWaveform(wave_name)
+    }
+    def GetWaveFormat(): String = {
+        this.dut.GetWaveFormat()
     }
     def FlushWaveform() = {
         this.dut.FlushWaveform()
     }
     def SetCoverage(coverage_name: String) = {
         this.dut.SetCoverage(coverage_name)
+    }
+    def GetCovMetrics(): Int = {
+        this.dut.GetCovMetrics()
     }
     def Step(i: Int = 1): Unit = {
         this.xclock.Step(i)

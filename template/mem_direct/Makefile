@@ -2,6 +2,8 @@
 default: export.bin
 
 TOP_NAME?=
+
+{% if __SIMULATOR__ == "simulator" %}
 # Use the last VERILATOR_ROOT reported by `verilator -V`
 V_ROOT := $(shell verilator -V | awk '/VERILATOR_ROOT/ {v=$$3} END{print v}')
 
