@@ -74,10 +74,23 @@ jobs:
 
       - name: Install Verible (format + syntax)
         run: |
-          ARCH=x86_64
-          wget "https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-${ARCH}.tar.gz" -O /tmp/verible.tar.gz
+          set -euo pipefail
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64|amd64)
+              VERIBLE_PKG_ARCH="linux-static-x86_64";;
+            aarch64|arm64)
+              VERIBLE_PKG_ARCH="linux-static-arm64";;
+            *)
+              echo "Unsupported architecture: $ARCH" >&2
+              exit 1;;
+          esac
+          URL="https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-${VERIBLE_PKG_ARCH}.tar.gz"
+          echo "Downloading Verible from: $URL"
+          wget "$URL" -O /tmp/verible.tar.gz
           tar -xzf /tmp/verible.tar.gz -C /tmp
           sudo cp /tmp/verible-${VERIBLE_VERSION}/bin/* /usr/local/bin/
+          sudo chmod +x /usr/local/bin/verible-verilog-format /usr/local/bin/verible-verilog-syntax || true
           verible-verilog-format --version || true
           verible-verilog-syntax --version || true
 
