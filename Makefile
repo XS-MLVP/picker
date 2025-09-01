@@ -55,7 +55,7 @@ install: build
 
 VERIBLE_VERSION ?= v0.0-4007-g98bdb38a
 
-appimage:
+appimage: init
 	rm -rf AppDir
 # Reuse existing build if present; otherwise configure and build
 	@if [ ! -d build ]; then \
