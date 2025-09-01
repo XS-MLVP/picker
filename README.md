@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 **picker** is a chip verification auxiliary tool with two main functions:
 
-1. **Expot RTL designs into verification modules:** Picker can convert RTL design verification modules (.v/.scala/.sv) into dynamic libraries and provide programming interfaces in multiple high-level languages (currently supporting C++, Python, Java, Scala, Golang, Lua) to drive the circuits.
+1. **Export RTL designs into verification modules:** Picker can convert RTL design verification modules (.v/.scala/.sv) into dynamic libraries and provide programming interfaces in multiple high-level languages (currently supporting C++, Python, Java, Scala, Golang, Lua) to drive the circuits.
 1. **Pack UVM-TLM transaction with other languages:** Picker can automatically encapsulate TLM code based on user-provided UVM sequence_items, providing communication interfaces between UVM and other high-level languages (such as Python).
 
 This tool allows users to perform chip unit testing based on existing software testing frameworks, such as pytest, junit, TestNG, go test, etc.
@@ -84,7 +84,7 @@ pip install dist/picker-0.0.1-cp311-cp311-linux_x86_64.whl
 make wheel_install
 ```
 
-After installation, execute the `picker` command to except the flow output:
+After installation, execute the `picker` command to expect the following output:
 
 ```
 XDut Generate.
@@ -109,7 +109,7 @@ Options:
                               Print golang module xspcomm location
   --show_xcom_lib_location_lua
                               Print lua module xspcomm location
-  --check                     check install location and supproted languages
+  --check                     check install location and supported languages
 
 Subcommands:
   export                      Export RTL Projects Sources as Software libraries such as C++/Python
@@ -152,7 +152,7 @@ Options:
   --vpi                       Enable VPI, for flexible internal signal access default is OFF
   -F,--frequency TEXT [100MHz]
                               Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit
-  -w,--wave_file_name TEXT    Wave file name, emtpy mean don't dump wave
+  -w,--wave_file_name TEXT    Wave file name, empty means don't dump wave
   -c,--coverage               Enable coverage, default is not selected as OFF
   --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
                               Copy xspcomm lib to generated DUT dir, default is true

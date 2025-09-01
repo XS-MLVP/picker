@@ -9,9 +9,9 @@
 //              example_scoreboard compares the data sent and received by UVM to 
 //              ensure consistency. 
 //              To use the picker, you need to create a new monitor and driver, 
-//              extends from picker-generated xxxdriver and xxxmonitor class. 
+//              extends from picker-generated xxxdriver and xxxmonitor classes. 
 //              Then override the transaction_sub and transaction_pub methods in 
-//              these new classes.//
+//              these new classes.
 // Version    : {{version}}
 //==============================================================================//
 import uvm_pkg::*;
@@ -19,7 +19,7 @@ import uvmc_pkg::*;
 `include "../../{{filepath}}"
 `include "../{{className}}_xagent.sv"
 
-interface example_interface(input clk, input rsst_n);
+interface example_interface(input clk, input rst_n);
     int data;
     logic valid;
     
@@ -39,7 +39,7 @@ class example_monitor extends {{className}}_xmonitor;
 
     function void build_phase(uvm_phase phase);
         if(!uvm_config_db#(virtual example_interface)::get(this, "", "vif", vif))
-            `uvm_fatal("example_env","vritual_interface must be set for vif!!!")
+            `uvm_fatal("example_env","virtual_interface must be set for vif!!!")
     endfunction
 
     task sequence_send({{className}} tr);
@@ -105,7 +105,7 @@ class example_scoreboard extends uvm_scoreboard;
         join
     endtask
     
-    // get transaction from queue, then compare the transaction published by UVM with the subscribed trasaction
+    // get transaction from queue, then compare the transaction published by UVM with the subscribed transaction
     virtual task post_main_phase(uvm_phase phase);
         {{className}} pub_tmp,sub_tmp;
         while(pub_queue.size() > 0) begin
@@ -121,7 +121,7 @@ class example_scoreboard extends uvm_scoreboard;
     endtask
 endclass
 
-// initial xagent and configure its parameters 
+    // initialize xagent and configure its parameters 
 class example_env extends uvm_env;
     `uvm_component_utils(example_env)
     {{className}}_xagent                    xagent;
@@ -150,7 +150,7 @@ class example_env extends uvm_env;
         xagent = {{className}}_xagent::type_id::create("xagent",this);
         scb = example_scoreboard::type_id::create("scb",this);
         if(!uvm_config_db#(virtual example_interface)::get(this,"", "vif", vif))
-            `uvm_fatal("example_env","vritual_interface must be set for vif!!!")
+            `uvm_fatal("example_env","virtual_interface must be set for vif!!!")
     endfunction
 
     function void connect_phase (uvm_phase phase);
@@ -216,5 +216,4 @@ module sv_main;
         run_test("example_test");
     end
 endmodule
-
 

@@ -30,10 +30,10 @@ int main() {
   // case transforms + first upper
   assert(picker::lower_case("AbC") == string("abc"));
   assert(picker::capitalize_first_letter("abc") == string("Abc"));
-  assert(picker::first_upercase("abc") == string("Abc"));
+  assert(picker::first_uppercase("abc") == string("Abc"));
 
   // conflict pin name map and fixer
-  auto cmap = picker::get_default_confilct_map();
+  auto cmap = picker::get_default_conflict_map();
   assert(!cmap.empty());
   auto pin  = picker::fix_conflict_pin_name("dut", cmap, false);
   auto pinC = picker::fix_conflict_pin_name("dut", cmap, true);
@@ -48,7 +48,7 @@ int main() {
 
   // contains helpers and key_as_vector
   vector<int> vi{1, 2, 3};
-  assert(picker::contians(vi, 2));
+  assert(picker::contains(vi, 2));
   map<string, int> m{{"x", 1}, {"y", 2}};
   auto keys = picker::key_as_vector(m);
   assert(keys.size() == 2);

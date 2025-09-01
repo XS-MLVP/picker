@@ -100,13 +100,13 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_flag("--checkpoints", export_opts.checkpoints, "Enable checkpoints, save/restore , default is OFF");
     app->add_flag("--vpi", export_opts.vpi, "Enable VPI, for flexible internal signal access default is OFF");
 
-    // Simulate frequncy while using VCS simulator, Optional, default is 100MHz
+    // Simulate frequency while using VCS simulator, Optional, default is 100MHz
     app->add_option("-F,--frequency", export_opts.frequency,
                     "Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit")
         ->default_val("100MHz");
 
     // Dump wave file name, Optional, default is empty means don't dump wave
-    app->add_option("-w,--wave_file_name", export_opts.wave_file_name, "Wave file name, emtpy mean don't dump wave");
+    app->add_option("-w,--wave_file_name", export_opts.wave_file_name, "Wave file name, empty means don't dump wave");
 
     // Enable coverage, Optional, default is OFF
     app->add_flag("-c,--coverage", export_opts.coverage, "Enable coverage, default is not selected as OFF");
@@ -172,7 +172,7 @@ int set_options_main(CLI::App &app)
                  "Print golang module xspcomm location");
     app.add_flag("--show_xcom_lib_location_lua", main_opts.show_xcom_lib_location_lua,
                  "Print lua module xspcomm location");
-    app.add_flag("--check", main_opts.check, "check install location and supproted languages");
+    app.add_flag("--check", main_opts.check, "check install location and supported languages");
     return 0;
 }
 
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
         return app.exit(e);
     }
 
-    // handel main options here
+    // handle main options here
     // if need version, print version
     if (main_opts.version) {
         PK_MESSAGE("version: %s-%s-%s%s", PROJECT_VERSION, GIT_BRANCH, GIT_HASH, GIT_DIRTY);
@@ -349,15 +349,15 @@ int main(int argc, char **argv)
         }
 
         std::vector<picker::sv_module_define> sv_module_result; // sv signal pins
-        std::vector<picker::sv_signal_define> internal_sginal_result; // configuration signal pings
+        std::vector<picker::sv_signal_define> internal_signal_result; // configuration signal pins
 
         nlohmann::json signal_tree_json;
         auto input_parser = picker::parser::GetInputParser(export_opts.sim);
         input_parser(export_opts, sv_module_result);
-        picker::parser::internal(export_opts, internal_sginal_result);
+        picker::parser::internal(export_opts, internal_signal_result);
 
         auto sv_pin_result =
-            picker::codegen::lib(export_opts, sv_module_result, internal_sginal_result, signal_tree_json);
+            picker::codegen::lib(export_opts, sv_module_result, internal_signal_result, signal_tree_json);
 
         std::map<std::string, std::function<void(picker::export_opts &, std::vector<picker::sv_signal_define>,
                                                  std::vector<picker::sv_signal_define>, nlohmann::json &)>>
@@ -365,7 +365,7 @@ int main(int argc, char **argv)
                 {"cpp", picker::codegen::cpp},     {"python", picker::codegen::python}, {"java", picker::codegen::java},
                 {"scala", picker::codegen::scala}, {"golang", picker::codegen::golang}, {"lua", picker::codegen::lua},
             };
-        func_map[export_opts.language](export_opts, sv_pin_result, internal_sginal_result, signal_tree_json);
+        func_map[export_opts.language](export_opts, sv_pin_result, internal_signal_result, signal_tree_json);
 
         // build the result with make
         if (export_opts.autobuild) {

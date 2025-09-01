@@ -150,7 +150,7 @@ namespace picker { namespace parser {
                 return ret;
             }
             for (auto m : m_names) {
-                if (picker::contians(module_list, m)) {
+                if (picker::contains(module_list, m)) {
                     PK_MESSAGE("find module: %s in file: %s", m.c_str(), f.c_str())
                     ret[m] = module_token;
                     // todo: can be optimized, only collect matched module tokens instead of all tokens in this file

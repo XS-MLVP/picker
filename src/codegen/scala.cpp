@@ -26,7 +26,7 @@ namespace picker { namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
-            auto pin_map        = picker::get_default_confilct_map();
+            auto pin_map        = picker::get_default_conflict_map();
             data["moudle_name"] = moudle_name;
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
@@ -57,7 +57,7 @@ namespace picker { namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
-            auto pin_map        = picker::get_default_confilct_map();
+            auto pin_map        = picker::get_default_conflict_map();
             data["moudle_name"] = moudle_name;
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
