@@ -37,7 +37,7 @@ preflight:
 		echo "[preflight] picker already has python+java support"; \
 	fi
 
-smoke:
+smoke: preflight
 	bash "$(SCRIPT_DIR)/test_cli.sh"
 
 export_python: preflight
@@ -56,10 +56,10 @@ pack_python: preflight
 export_java: preflight
 	bash "$(SCRIPT_DIR)/test_export_adder_java.sh"
 
-sv_build:
+sv_build: preflight
 	bash "$(SCRIPT_DIR)/test_sv_verilator_build.sh"
 
-gsim_smoke:
+gsim_smoke: preflight
 	bash "$(SCRIPT_DIR)/test_export_gsim_smoke.sh"
 
 clean:
