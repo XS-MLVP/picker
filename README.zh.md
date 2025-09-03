@@ -59,7 +59,7 @@ sudo -E make install
 ```
 
 > 默认的安装的目标路径是 `/usr/local`， 二进制文件被置于 `/usr/local/bin`，模板文件被置于 `/usr/local/share/picker`。
-> 如果需要修改安装目录，可以通过指定 ARGS 给 cmake 传递参数，例如`make ARGS="-DCMAKE_INSTALL_PREFIX=your_instal_dir"`
+> 如果需要修改安装目录，可以通过指定 ARGS 给 cmake 传递参数，例如`make ARGS="-DCMAKE_INSTALL_PREFIX=your_install_dir"`
 > 安装时会自动安装 `xspcomm`基础库（[https://github.com/XS-MLVP/xcomm](https://github.com/XS-MLVP/xcomm)），该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**  
 > 如果开启了 Java 等语言支持，还会安装 `xspcomm` 对应的多语言软件包。
 
@@ -107,7 +107,7 @@ Options:
                               Print golang module xspcomm location
   --show_xcom_lib_location_lua
                               Print lua module xspcomm location
-  --check                     check install location and supproted languages
+  --check                     check install location and supported languages
 
 Subcommands:
   export                      Export RTL Projects Sources as Software libraries such as C++/Python
@@ -147,7 +147,7 @@ Options:
   --internal TEXT             Exported internal signal config file, default is empty, means no internal pin
   -F,--frequency TEXT [100MHz]
                               Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit
-  -w,--wave_file_name TEXT    Wave file name, emtpy mean don't dump wave
+  -w,--wave_file_name TEXT    Wave file name, empty means don't dump wave
   -c,--coverage               Enable coverage, default is not selected as OFF
   --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
                               Copy xspcomm lib to generated DUT dir, default is true

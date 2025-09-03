@@ -1,3 +1,4 @@
+ .PHONY: default
 default:
 	@cp java/example.java ${TARGET}/../example.java
 	@cp java/cmake/${SIMULATOR}.cmake ${TARGET}/dut.cmake

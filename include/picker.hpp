@@ -160,7 +160,8 @@ inline std::string capitalize_first_letter(const std::string &input)
     return result;
 }
 
-inline std::map<std::string, std::string> get_default_confilct_map()
+// Correctly spelled helpers (preferred)
+inline std::map<std::string, std::string> get_default_conflict_map()
 {
     std::map<std::string, std::string> pin_map;
     std::vector<std::string> conflict_pin = {"xclock",      "xport",   "dut",        "initclock",
@@ -168,6 +169,12 @@ inline std::map<std::string, std::string> get_default_confilct_map()
                                              "setcoverage", "finish",  "refreshcomb"};
     for (auto &p : conflict_pin) { pin_map[p] = "pin_"; }
     return pin_map;
+}
+
+// Backward-compatible wrapper with previous misspelling
+inline std::map<std::string, std::string> get_default_confilct_map()
+{
+    return get_default_conflict_map();
 }
 
 inline std::string fix_conflict_pin_name(const std::string &in, std::map<std::string, std::string> &pin_map,
@@ -203,6 +210,12 @@ inline bool strconatins(std::string str, std::string subs)
     return str.find(subs) != std::string::npos;
 }
 
+// Correctly spelled alias
+inline bool str_contains(const std::string &str, const std::string &subs)
+{
+    return str.find(subs) != std::string::npos;
+}
+
 inline std::string streplace(std::string str, std::string s, std::string t = "")
 {
     std::string input = str;
@@ -224,12 +237,19 @@ inline std::string streplace(std::string str, std::initializer_list<std::string>
 }
 
 template <typename T>
-inline bool contians(std::vector<T> v, T a)
+inline bool contains(const std::vector<T> &v, const T &a)
 {
-    for (T x : v) {
+    for (const T &x : v) {
         if (x == a) return true;
     }
     return false;
+}
+
+// Backward-compatible wrapper with previous misspelling
+template <typename T>
+inline bool contians(const std::vector<T> &v, const T &a)
+{
+    return contains(v, a);
 }
 
 template <typename T, typename F>
@@ -260,11 +280,15 @@ inline std::string exec_result(std::string cmd, int index)
     return result[index];
 }
 
-inline std::string first_upercase(std::string input)
+inline std::string first_uppercase(const std::string &input)
 {
-    std::string ret = input;
-    ret[0]          = std::toupper(input[0]);
-    return ret;
+    return capitalize_first_letter(input);
+}
+
+// Backward-compatible wrapper with previous misspelling
+inline std::string first_upercase(const std::string &input)
+{
+    return first_uppercase(input);
 }
 
 inline std::string base_name(std::string const &path, bool with_subfix = true)
@@ -455,7 +479,7 @@ inline std::string get_xcomm_location()
         return appimage::get_picker_lib("");
     }
     auto path = get_executable_path();
-    return get_target_path_from(path, {"../../dependence/xcomm",  // 1. search in bulid dir (for dev)
+    return get_target_path_from(path, {"../../dependence/xcomm",  // 1. search in build dir (for dev)
                                        "./picker",                // 2. search in current dir
                                        "../../share/picker",      // 3. search in share dir (for install)
                                        "/usr/local/share/picker", // 4. search in /usr/local/share
@@ -489,7 +513,7 @@ inline std::string get_template_path()
                                            "/usr/local/share/picker/template", // 4. search in /usr/local/share
                                            "/etc/picker/template"});           // 5. search in /etc
     if (!tmp.empty()) { return tmp; }
-    PK_FATAL("template not found, please check the installation or mannualy set the source dir path");
+    PK_FATAL("template not found, please check the installation or manually set the source dir path");
 }
 inline std::string extract_name(const std::string &input, char delimiter, int isFirst)
 {

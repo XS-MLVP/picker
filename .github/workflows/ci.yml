@@ -1,0 +1,279 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ "**" ]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [ "**" ]
+    tags: [ 'v*' ]
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-22.04-arm]
+    runs-on: ${{ matrix.os }}
+    env:
+      VERIBLE_VERSION: v0.0-4007-g98bdb38a
+      BUILD_XSPCOMM_SWIG: python,java
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install base build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ca-certificates tzdata \
+            build-essential git wget curl \
+            python3 python3-pip python3-dev libpython3-dev \
+            pkg-config libpcre3-dev libpcre2-dev libfl-dev \
+            bison flex gperf clang g++ zlib1g-dev \
+            gnupg autoconf automake libtool help2man \
+            openjdk-17-jdk
+
+      - name: Install latest CMake from Kitware APT
+        run: |
+          set -euo pipefail
+          wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
+            gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | \
+            sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake
+
+      - name: Build and install SWIG from source
+        env:
+          SWIG_VERSION: v4.2.1
+        run: |
+          set -euo pipefail
+          git clone https://github.com/swig/swig.git -b "${SWIG_VERSION}" --depth=1 /tmp/swig
+          cd /tmp/swig
+          ./autogen.sh
+          ./configure --prefix=/usr/local
+          make -j"$(nproc)"
+          sudo make install
+          rm -rf /tmp/swig
+
+      - name: Build and install Verilator from source
+        env:
+          VERILATOR_VERSION: v5.018
+        run: |
+          set -euo pipefail
+          git clone https://github.com/verilator/verilator -b "${VERILATOR_VERSION}" --depth=1 /tmp/verilator
+          cd /tmp/verilator
+          autoconf
+          ./configure --prefix=/usr/local
+          make -j"$(nproc)"
+          sudo make install
+          rm -rf /tmp/verilator
+
+      - name: Install Verible (format + syntax)
+        run: |
+          set -euo pipefail
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64|amd64)
+              VERIBLE_PKG_ARCH="linux-static-x86_64";;
+            aarch64|arm64)
+              VERIBLE_PKG_ARCH="linux-static-arm64";;
+            *)
+              echo "Unsupported architecture: $ARCH" >&2
+              exit 1;;
+          esac
+          URL="https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-${VERIBLE_PKG_ARCH}.tar.gz"
+          echo "Downloading Verible from: $URL"
+          wget "$URL" -O /tmp/verible.tar.gz
+          tar -xzf /tmp/verible.tar.gz -C /tmp
+          sudo cp /tmp/verible-${VERIBLE_VERSION}/bin/* /usr/local/bin/
+          sudo chmod +x /usr/local/bin/verible-verilog-format /usr/local/bin/verible-verilog-syntax || true
+          verible-verilog-format --version || true
+          verible-verilog-syntax --version || true
+
+      - name: Build
+        run: |
+          make init
+          # Ensure install prefix is /usr so files land in AppDir/usr
+          cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL="$(nproc)" -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Install into AppDir (prepare artifact)
+        run: |
+          
+          # Install into AppDir alongside the repo
+          cd build && make install DESTDIR="$(pwd)"/../AppDir
+
+      - name: Upload build directory
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-builddir
+          path: build
+
+      - name: Upload AppDir (preinstalled files)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-appdir
+          path: AppDir
+      
+      - name: Unit test (test_picker_utils)
+        run: |
+          cmake --build build --target test_picker_utils -j"$(nproc)"
+          ./build/bin/test_picker_utils
+
+      - name: Smoke tests
+        run: |
+          make -C test smoke
+
+      - name: Full tests (make -C test all)
+        run: |
+          make -C test all -j"$(nproc)"
+
+      - name: Cleanup generated artifacts
+        if: always()
+        run: |
+          make -C test clean || true
+          rm -f test_params.txt test_io.txt || true
+
+  appimage-build:
+    needs: build-and-test
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-22.04-arm]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install AppImage dependencies
+        run: |
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "arm64" ]; then
+            ARCH="aarch64"
+          fi
+          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${ARCH}.AppImage
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage
+          chmod +x appimagetool-${ARCH}.AppImage
+          sudo mv appimagetool-${ARCH}.AppImage /usr/bin/appimagetool
+          chmod +x linuxdeploy-${ARCH}.AppImage
+          sudo mv linuxdeploy-${ARCH}.AppImage /usr/bin/linuxdeploy
+
+      - name: Download AppDir artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.os }}-appdir
+          path: AppDir
+
+      - name: Package AppImage from AppDir
+        env:
+          VERIBLE_VERSION: v0.0-4007-g98bdb38a
+        run: |
+          set -euo pipefail
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64|amd64)
+              VERIBLE_PKG_ARCH="linux-static-x86_64";;
+            aarch64|arm64)
+              VERIBLE_PKG_ARCH="linux-static-arm64";;
+            *)
+              echo "Unsupported architecture: $ARCH" >&2
+              exit 1;;
+          esac
+          # Integrate verible into AppDir
+          URL="https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-${VERIBLE_PKG_ARCH}.tar.gz"
+          wget "$URL" -O /tmp/verible.tar.gz
+          tar -xzf /tmp/verible.tar.gz -C /tmp
+          mkdir -p AppDir/usr/bin
+          mv /tmp/verible-${VERIBLE_VERSION}/bin/verible-verilog-syntax AppDir/usr/bin/verible-verilog-syntax
+          # Build AppImage from the prepared AppDir
+          linuxdeploy --appdir AppDir/ --output appimage \
+            --desktop-file src/appimage/picker.desktop \
+            --icon-file src/appimage/logo256.png
+
+      - name: Upload AppImage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-appimage
+          path: '*.AppImage'
+
+  appimage-publish:
+    needs: appimage-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    steps:
+      - name: Download AppImage
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: appimages
+
+      - name: Generate release tag
+        id: tag_vars
+        run: |
+          DATE=$(date +'%Y%m%d')
+          SHORT_SHA=${GITHUB_SHA::6}
+          echo "TAG_NAME=$DATE-$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Create AppImage release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            appimages/*.AppImage
+          tag_name: ${{ steps.tag_vars.outputs.TAG_NAME }}
+          name:    Picker AppImage ${{ steps.tag_vars.outputs.TAG_NAME }}
+          body: |
+            This is the AppImage release for Picker.
+            It includes the latest changes and features.
+          target_commitish: ${{ github.sha }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-build-push:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: xs-mlvp/picker
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=local,src=/tmp/.buildx-cache

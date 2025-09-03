@@ -57,7 +57,7 @@ namespace picker { namespace codegen {
             if (path.starts_with("#")) { continue; }                      // skip comment line
             path = picker::trim(path.substr(0, path.find_first_of("#"))); // remove comment part
             if (path.empty()) { continue; }                               // skip empty line
-            if (picker::contians(source_file, path)) { continue; }        // skip source file
+            if (picker::contains(source_file, path)) { continue; }        // skip source file
 
             if (check_file_type(path, allow_file_types)) { // file
                 auto target_file = path;

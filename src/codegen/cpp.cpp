@@ -59,7 +59,7 @@ namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
-            auto pin_map = picker::get_default_confilct_map();
+            auto pin_map = picker::get_default_conflict_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
@@ -68,7 +68,7 @@ namespace codegen {
 
                 // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
                 // render
-                data["logic_pin_type"] = first_upercase(pin[i].logic_pin_type);
+                data["logic_pin_type"] = first_uppercase(pin[i].logic_pin_type);
 
                 BIND_DPI_RW;
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -103,7 +103,7 @@ namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
-            auto pin_map = picker::get_default_confilct_map();
+            auto pin_map = picker::get_default_conflict_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;

@@ -1,3 +1,4 @@
+ .PHONY: default
 default:
 	@cp cpp/dut.cpp ${TARGET}/${TARGET}.cpp 
 	@cp cpp/dut.hpp ${TARGET}/${TARGET}.hpp

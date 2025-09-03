@@ -12,7 +12,7 @@ public class example {
             int N = 1000000;
             long a = (long) (Math.random() * N);
             long b = (long) (Math.random() * N);
-            boolean c = (Math.random() * N) > 50;
+            boolean c = (Math.random() * N) > 50; // just for testing boolean type  
             // set inputs
             adder.a.Set(a);
             adder.b.Set(b);

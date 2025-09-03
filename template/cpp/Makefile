@@ -1,4 +1,5 @@
 CURRENT_DIR := $(shell pwd)
+.PHONY: all test compile clean purge copy_xspcomm
 
 all: test clean
 	@echo "All complete"
@@ -6,7 +7,7 @@ all: test clean
 test: compile
 	@cp build/UT{{__TOP_MODULE_NAME__}}_example .
 	@rm -rf build
-	@echo "--------------Comple Success Test Step DUT--------------------"
+	@echo "--------------Compile Success Test Step DUT--------------------"
 	@./UT{{__TOP_MODULE_NAME__}}_example && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || true
 	@echo "--------------------------------------------------------------"
 
