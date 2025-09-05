@@ -277,9 +277,7 @@ namespace picker { namespace parser {
                     PK_MESSAGE("Find: %s", parse_line.c_str());
                     std::vector<sv_signal_define> parsed_ports = parse_firrtl_port(parse_line);
                     for (const auto& port : parsed_ports) {
-                        PK_MESSAGE("Find pin: %s", port.logic_pin.c_str());
                         if (!port.logic_pin.empty()) {
-                            PK_MESSAGE("Push pin: %s", port.logic_pin.c_str());
                             ports.push_back(port);
                         }
                     }
