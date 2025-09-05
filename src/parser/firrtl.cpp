@@ -1,4 +1,3 @@
-
 #include "parser/firrtl.hpp"
 #include <fstream>
 #include <sstream>
@@ -220,57 +219,64 @@ namespace picker { namespace parser {
         std::string main_module_name;
         std::vector<sv_signal_define> ports;
         
+        bool found_main_module = false;
         bool in_main_module = false;
         bool parsing_ports = false;
-        
+
         // Parse FIRRTL file line by line
         while (std::getline(file, line)) {
-            // Remove leading/trailing whitespace
-            line = std::regex_replace(line, std::regex(R"(^\s+|\s+$)"), "");
-            
             if (line.empty() || line[0] == ';') continue; // Skip empty lines and comments
             
             // Parse circuit declaration: "circuit MyCircuit :"
-            std::regex circuit_regex(R"(circuit\s+(\w+)\s*:)");
-            std::smatch circuit_match;
-            if (std::regex_search(line, circuit_match, circuit_regex)) {
-                circuit_name = circuit_match[1].str();
+            if (!found_main_module) {
+                size_t pos = line.find("circuit ");
+                if (pos == std::string::npos)
+                    continue;
+                pos += 8;
+                auto end = line.find(' ', pos);
+                auto len = end - pos;
+                circuit_name = line.substr(pos, len);
                 main_module_name = circuit_name; // Main module typically has same name as circuit
+                found_main_module = true;
                 PK_MESSAGE("Found circuit: %s", circuit_name.c_str());
-                continue;
-            }
-            
+            } 
             // Parse module declaration: "module MyModule :"
-            std::regex module_regex(R"(module\s+(\w+)\s*:)");
-            std::smatch module_match;
-            if (std::regex_search(line, module_match, module_regex)) {
-                std::string module_name = module_match[1].str();
-                
-                // Check if this is the main module (same name as circuit)
+            else if (!in_main_module) {
+                auto pos = line.find("module ");
+                // No module define in this line.
+                if (pos == std::string::npos)
+                    continue;
+                pos += 7;
+                auto end = line.find(' ', pos);
+                auto len = end - pos;
+                auto module_name = line.substr(pos, len);
+                 // Check if this is the main module (same name as circuit)
                 if (module_name == circuit_name) {
                     in_main_module = true;
                     parsing_ports = true;
                     PK_MESSAGE("Found main module: %s", module_name.c_str());
-                } else {
-                    in_main_module = false;
-                    parsing_ports = false;
                 }
-                continue;
             }
-            
             // Parse ports in main module
-            if (in_main_module && parsing_ports) {
+            else if (in_main_module && parsing_ports) {
                 // Check for port lines: "input clock : Clock" or "output result : UInt<32>"
-                if (line.find("input ") == 0 || line.find("output ") == 0) {
-                    std::vector<sv_signal_define> parsed_ports = parse_firrtl_port(line);
+                auto input_pos = line.find("input ");
+                auto output_pos = line.find("output ");
+                auto pos = std::min(input_pos, output_pos);
+                if (pos != std::string::npos) {
+                    auto parse_line = line.substr(pos);
+                    PK_MESSAGE("Find: %s\n", parse_line.c_str());
+                    std::vector<sv_signal_define> parsed_ports = parse_firrtl_port(parse_line);
                     for (const auto& port : parsed_ports) {
+                        PK_MESSAGE("Find pin: %s", port.logic_pin.c_str());
                         if (!port.logic_pin.empty()) {
+                            PK_MESSAGE("Push pin: %s", port.logic_pin.c_str());
                             ports.push_back(port);
                         }
                     }
                 }
                 // Stop parsing ports when we hit non-port content
-                else if (!line.empty() && line.find("input ") != 0 && line.find("output ") != 0) {
+                else if (!line.empty()) {
                     parsing_ports = false;
                 }
             }
