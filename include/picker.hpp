@@ -105,42 +105,52 @@ inline std::string trim(std::string s, std::string p)
 {
     if (s.empty()) { return s; }
     s.erase(0, s.find_first_not_of(p));
-    s.erase(s.find_last_not_of(p) + p.size());
+    size_t pos = s.find_last_not_of(p);
+    if (pos != std::string::npos) { s.erase(pos + 1); }
     return s;
 }
 
 inline std::string ltrim(std::string s)
 {
+    if (s.empty()) { return s; }
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
     return s;
 }
 
 inline std::string rtrim(std::string s)
 {
+    if (s.empty()) { return s; }
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(), s.end());
     return s;
 }
 
 inline std::string trim(std::string s)
 {
+    if (s.empty()) { return s; }
     return rtrim(ltrim(s));
 }
 
 inline std::vector<std::string> strsplit(std::string str, std::string s = " ")
 {
-    std::vector<std::string> ret;
-    int start = 0;
-    int end   = str.find(s);
-    while (end != -1) {
+    std::cout << "strsplit: '" << str << "' by '" << s << "'" << std::endl;
+    std::vector<std::string> ret = {};
+    if (s.empty()) {
+        auto token = trim(str);
+        if (!token.empty()) ret.push_back(token);
+        return ret;
+    }
+    size_t start = 0;
+    size_t end   = str.find(s);
+    while (end != std::string::npos) {
         auto sub = str.substr(start, end - start);
-        trim(sub);
-        ret.push_back(sub);
+        sub      = trim(sub);
+        if (!sub.empty()) ret.push_back(sub);
         start = end + s.size();
         end   = str.find(s, start);
     }
-    auto sub = str.substr(start, end - start);
-    trim(sub);
-    ret.push_back(sub);
+    auto sub = str.substr(start);
+    sub      = trim(sub);
+    if (!sub.empty()) ret.push_back(sub);
     return ret;
 }
 
@@ -393,7 +403,10 @@ inline std::string read_params(std::string fname)
     if (ifile.is_open()) {
         std::string line_txt;
         while (std::getline(ifile, line_txt)) {
-            line_txt = trim(strsplit(line_txt, "#").front());
+            // Remove comments (anything after '#') and trim
+            auto hash_pos = line_txt.find('#');
+            if (hash_pos != std::string::npos) { line_txt.erase(hash_pos); }
+            line_txt = trim(line_txt);
             if (line_txt.empty()) { continue; }
             if (ret.empty()) {
                 ret = line_txt;
@@ -508,10 +521,10 @@ inline std::string get_template_path()
     }
     auto path = get_executable_path();
     auto tmp  = get_target_path_from(path, {"../../../template",                // 1. search in source dir (for dev)
-                                           "./template",                       // 2. search in current dir
-                                           "../../share/picker/template",      // 3. search in share dir (for install)
-                                           "/usr/local/share/picker/template", // 4. search in /usr/local/share
-                                           "/etc/picker/template"});           // 5. search in /etc
+                                            "./template",                       // 2. search in current dir
+                                            "../../share/picker/template",      // 3. search in share dir (for install)
+                                            "/usr/local/share/picker/template", // 4. search in /usr/local/share
+                                            "/etc/picker/template"});           // 5. search in /etc
     if (!tmp.empty()) { return tmp; }
     PK_FATAL("template not found, please check the installation or manually set the source dir path");
 }

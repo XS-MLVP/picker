@@ -18,7 +18,7 @@ int main() {
   assert(picker::ltrim(string("  hi")) == "hi");
   assert(picker::rtrim(string("hi  ")) == "hi");
   assert(picker::trim(string("  hi \t")) == "hi");
-  assert(picker::trim(string("--x--"), string("-")) == string("x--"));
+  assert(picker::trim(string("--x--"), string("-")) == string("x"));
 
   // strsplit basic
   auto ss = picker::strsplit(string("a b  c"));
