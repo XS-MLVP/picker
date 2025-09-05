@@ -262,10 +262,19 @@ namespace picker { namespace parser {
                 // Check for port lines: "input clock : Clock" or "output result : UInt<32>"
                 auto input_pos = line.find("input ");
                 auto output_pos = line.find("output ");
-                auto pos = std::min(input_pos, output_pos);
+		size_t pos;
+                if (input_pos != std::string::npos && output_pos != std::string::npos) {
+                    pos = std::min(input_pos, output_pos);
+                } else if (input_pos != std::string::npos) {
+                    pos = input_pos;
+                } else if (output_pos != std::string::npos) {
+                    pos = output_pos;
+                } else {
+                    pos = std::string::npos;
+                }
                 if (pos != std::string::npos) {
-                    auto parse_line = line.substr(pos);
-                    PK_MESSAGE("Find: %s\n", parse_line.c_str());
+		    auto parse_line = line.substr(pos);
+                    PK_MESSAGE("Find: %s", parse_line.c_str());
                     std::vector<sv_signal_define> parsed_ports = parse_firrtl_port(parse_line);
                     for (const auto& port : parsed_ports) {
                         PK_MESSAGE("Find pin: %s", port.logic_pin.c_str());
