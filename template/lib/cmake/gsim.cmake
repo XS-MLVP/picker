@@ -2,7 +2,8 @@ if(SIMULATOR STREQUAL "gsim")
 	add_definitions(-DUSE_GSIM)
 	add_definitions(-DNO_SV_VPI)
 	message(STATUS "gsim simulator generate source files")
-	set(SIMULATOR_FLAGS "$ENV{GSIM_FLAGS}")
+	string(REPLACE ";" " " GSIM_FLAGS "$ENV{SIMULATOR_FLAGS}")
+	separate_arguments(GSIM_FLAG_LIST UNIX_COMMAND "${GSIM_FLAGS}")
 	# find cmd gsim and generate source files
 	find_program(GSIM_EXECUTABLE gsim)
 	if(NOT GSIM_EXECUTABLE)
@@ -15,7 +16,7 @@ if(SIMULATOR STREQUAL "gsim")
 	execute_process(
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			COMMAND
-				${GSIM_EXECUTABLE} ${SIMULATOR_FLAGS} --dir=_SRC
+				${GSIM_EXECUTABLE} ${GSIM_FLAG_LIST} --dir=_SRC
 				${CMAKE_CURRENT_SOURCE_DIR}/${ModuleName}.fir
 			COMMAND_ECHO STDOUT
 			)
