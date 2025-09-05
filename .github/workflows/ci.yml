@@ -21,6 +21,7 @@ jobs:
     env:
       VERIBLE_VERSION: v0.0-4007-g98bdb38a
       BUILD_XSPCOMM_SWIG: python,java
+      VERILATOR_VERSION: v5.018
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,17 +62,44 @@ jobs:
           rm -rf /tmp/swig
 
       - name: Build and install Verilator from source
-        env:
-          VERILATOR_VERSION: v5.018
+        id: setup-verilator
+        run: |
+          set -euo pipefail
+          echo "VERILATOR_PREFIX=${HOME}/.cache/verilator/${VERILATOR_VERSION}" >> "$GITHUB_ENV"
+      
+      - name: Restore Verilator fakeroot cache
+        id: cache-verilator
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/verilator/${{ env.VERILATOR_VERSION }}
+          key: verilator-${{ matrix.os }}-${{ env.VERILATOR_VERSION }}-v1
+
+      - name: Use cached Verilator (if available)
+        if: steps.cache-verilator.outputs.cache-hit == 'true'
+        run: |
+          echo "${VERILATOR_PREFIX}/bin" >> "$GITHUB_PATH"
+          verilator --version || true
+
+      - name: Build and install Verilator into fakeroot
+        if: steps.cache-verilator.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           git clone https://github.com/verilator/verilator -b "${VERILATOR_VERSION}" --depth=1 /tmp/verilator
           cd /tmp/verilator
           autoconf
-          ./configure --prefix=/usr/local
+          ./configure --prefix="${VERILATOR_PREFIX}"
           make -j"$(nproc)"
-          sudo make install
+          make install
           rm -rf /tmp/verilator
+          echo "${VERILATOR_PREFIX}/bin" >> "$GITHUB_PATH"
+          verilator --version || true
+
+      - name: Save Verilator fakeroot cache (trusted contexts only)
+        if: steps.cache-verilator.outputs.cache-hit != 'true' && github.event_name == 'push'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/verilator/${{ env.VERILATOR_VERSION }}
+          key: verilator-${{ matrix.os }}-${{ env.VERILATOR_VERSION }}-v1
 
       - name: Install Verible (format + syntax)
         run: |
@@ -99,8 +127,7 @@ jobs:
         run: |
           make init
           # Ensure install prefix is /usr so files land in AppDir/usr
-          cmake . -B build DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL="$(nproc)" -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build build --parallel $(nproc)
+          cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL="$(nproc)" -DCMAKE_INSTALL_PREFIX=/usr
 
       - name: Install into AppDir (prepare artifact)
         run: |
