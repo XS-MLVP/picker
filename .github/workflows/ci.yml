@@ -99,7 +99,8 @@ jobs:
         run: |
           make init
           # Ensure install prefix is /usr so files land in AppDir/usr
-          cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL="$(nproc)" -DCMAKE_INSTALL_PREFIX=/usr
+          cmake . -B build DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL="$(nproc)" -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build --parallel $(nproc)
 
       - name: Install into AppDir (prepare artifact)
         run: |
