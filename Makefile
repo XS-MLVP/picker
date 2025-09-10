@@ -14,6 +14,16 @@ endif
 all: init build
 
 init:
+	@if ! command -v verible-verilog-syntax >/dev/null 2>&1; then \
+		echo "verible-verilog-syntax could not be found, please install verible first"; \
+		echo "you can install verible by following command:"; \
+		echo "\t$$ wget \"https://github.com/chipsalliance/verible/releases/download/v0.0-4007-g98bdb38a/verible-v0.0-4007-g98bdb38a-linux-static-${verible_arch}.tar.gz\""; \
+		echo "\t$$ tar -xzf verible-v0.0-4007-g98bdb38a-linux-static-${verible_arch}.tar.gz"; \
+		echo "\t$$ mv verible-v0.0-4007-g98bdb38a/bin/verible-verilog-format /usr/local/bin/"; \
+		echo "or you can install in user local directory, remember to add ~/.local/bin to your PATH"; \
+		echo "\t$$ mv verible-v0.0-4007-g98bdb38a/bin/verible-verilog-format ~/.local/bin/"; \
+		exit 1; \
+	fi
 	@if [ ! -d dependence/xcomm/.git ]; then \
 		mkdir -p dependence && \
 		git clone --depth=1 https://github.com/XS-MLVP/xcomm.git dependence/xcomm; \
@@ -32,16 +42,6 @@ init:
 	fi
 	
 build:
-	@if ! command -v verible-verilog-format >/dev/null 2>&1; then \
-		echo "verible-verilog-format could not be found, please install verible first"; \
-		echo "you can install verible by following command:"; \
-		echo "\t$$ wget \"https://github.com/chipsalliance/verible/releases/download/v0.0-4007-g98bdb38a/verible-v0.0-4007-g98bdb38a-linux-static-${verible_arch}.tar.gz\""; \
-		echo "\t$$ tar -xzf verible-v0.0-4007-g98bdb38a-linux-static-${verible_arch}.tar.gz"; \
-		echo "\t$$ mv verible-v0.0-4007-g98bdb38a/bin/verible-verilog-format /usr/local/bin/"; \
-		echo "or you can install in user local directory, remember to add ~/.local/bin to your PATH"; \
-		echo "\t$$ mv verible-v0.0-4007-g98bdb38a/bin/verible-verilog-format ~/.local/bin/"; \
-		exit 1; \
-	fi
 	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS)
 	cd build && $(MAKE) -j`nproc`
 
