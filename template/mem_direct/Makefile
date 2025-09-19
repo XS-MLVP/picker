@@ -5,7 +5,7 @@ TOP_NAME?=
 
 {% if __SIMULATOR__ == "verilator" %}
 # Use the last VERILATOR_ROOT reported by `verilator -V`
-V_ROOT := $(shell verilator -V | grep ROOT | grep verilator | tail -n 1 | awk '{print $3}')
+V_ROOT := $(shell verilator -V | grep ROOT | grep verilator | tail -n 1 | awk '{print $$3}')
 
 CXXFLAGS += -I ${V_ROOT}/include -I ${V_ROOT}/include/vltstd/ \
 		-I ../build/DPI${TOP_NAME} \
