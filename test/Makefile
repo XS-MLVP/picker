@@ -1,11 +1,11 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: all preflight smoke export_python export_vpi_python pack_python export_java sv_build gsim_smoke clean
+.PHONY: all preflight smoke export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg clean
 
 SCRIPT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/scripts
 
-all: preflight smoke export_python export_vpi_python export_java sv_build gsim_smoke pack_python
+all: preflight smoke export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg pack_python
 
 # Ensure picker is built with python and java support before running tests
 preflight:
@@ -61,6 +61,9 @@ sv_build: preflight
 
 gsim_smoke: preflight
 	bash "$(SCRIPT_DIR)/test_export_gsim_smoke.sh"
+
+export_cachecfg: preflight
+	bash "$(SCRIPT_DIR)/test_export_cachecfg_memdirect.sh"
 
 clean:
 	rm -rf picker_out_* pack_example

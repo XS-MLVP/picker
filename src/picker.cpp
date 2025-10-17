@@ -41,10 +41,11 @@ int set_options_export_rtl(CLI::App &top_app)
 {
     auto app = top_app.add_subcommand("export", "Export RTL Projects Sources as Software libraries such as C++/Python");
 
-    // Set DUT RTL Source File, Required
-    app->add_option("file", export_opts.file, "DUT .v/.sv source file, contain the top module")
-        ->delimiter(',')
-        ->required();
+    // Set DUT RTL Source File, conditionally required
+    // Note: Required only when --sname/--source_module_name is NOT specified
+    app->add_option("file", export_opts.file,
+                    "DUT .v/.sv source file. Required if --sname is not specified.")
+        ->delimiter(',');
 
     // Set DUT RTL Extra Source File List, Optional
     app->add_option("--fs,--filelist", export_opts.filelists,

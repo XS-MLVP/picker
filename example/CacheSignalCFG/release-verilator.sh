@@ -14,8 +14,11 @@ fi
 
 # run cache codegen
 rm -rf picker_out/CacheCFG
-./build/bin/picker export  example/CacheSignalCFG/Cache.v --autobuild false  --rw mem_direct \
-    --tname CacheCFG --fs example/CacheSignalCFG/Test.v \
+# Use file list and explicit sname to locate top module in list
+./build/bin/picker export --autobuild false --rw mem_direct \
+    --sname Cache \
+    --tname CacheCFG \
+    --fs example/CacheSignalCFG/Cache.txt \
     -w cache.vcd --sim verilator --tdir ./picker_out/ $@
 
 if [[ $@ == *"python"* ]]; then

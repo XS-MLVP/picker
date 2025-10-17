@@ -10,6 +10,78 @@
 
 namespace picker { namespace parser {
 
+    // Helper: check if a path is a Verilog/SystemVerilog source file
+    static inline bool is_verilog_src(const std::string &p){
+        return p.ends_with(".sv") || p.ends_with(".v");
+    }
+
+    // Helper: trim comments and whitespace from a line taken from filelist
+    static inline std::string strip_comment_and_trim(const std::string &line){
+        auto s = picker::trim(line);
+        if (s.starts_with("#")) return std::string("");
+        auto pos = s.find('#');
+        if (pos != std::string::npos) s = picker::trim(s.substr(0, pos));
+        return s;
+    }
+
+    // Collect .v/.sv files from --fs/--filelist options for module search
+    static void collect_verilog_from_filelists(const std::vector<std::string> &filelists,
+                                               std::vector<std::string> &out)
+    {
+        namespace fs = std::filesystem;
+        std::vector<std::string> entries;
+        std::string last_list_base;
+
+        for (const auto &fl : filelists) {
+            if (fl.ends_with(".txt") || fl.ends_with(".f")) {
+                // Lines inside are relative to the filelist file
+                last_list_base = fs::absolute(fl).parent_path().string();
+                std::ifstream ifs(fl);
+                std::string line;
+                while (std::getline(ifs, line)) {
+                    entries.push_back(line);
+                }
+            } else {
+                // Comma-separated entries directly from CLI
+                std::stringstream ss(fl);
+                std::string token;
+                while (std::getline(ss, token, ',')) {
+                    entries.push_back(token);
+                }
+            }
+        }
+
+        for (auto entry : entries) {
+            entry = strip_comment_and_trim(entry);
+            if (entry.empty()) continue;
+
+            // Resolve relative path against the last seen filelist base if present
+            std::string path = entry;
+            if (!fs::exists(path) && !path.starts_with("/") && !last_list_base.empty()) {
+                path = (fs::path(last_list_base) / path).string();
+            }
+
+            if (!fs::exists(path)) {
+                // Not fatal here; filelist may contain non-Verilog or generated paths not yet present
+                continue;
+            }
+
+            if (fs::is_directory(path)) {
+                for (auto const &dir_entry : fs::recursive_directory_iterator(path)) {
+                    if (!dir_entry.is_regular_file()) continue;
+                    auto p = dir_entry.path().string();
+                    if (is_verilog_src(p)) {
+                        out.push_back(fs::absolute(p).string());
+                    }
+                }
+            } else if (fs::is_regular_file(path)) {
+                if (is_verilog_src(path)) {
+                    out.push_back(fs::absolute(path).string());
+                }
+            }
+        }
+    }
+
     std::vector<picker::sv_signal_define> sv_pin(nlohmann::json &module_token, std::string &src_module_name)
     {
         PK_MESSAGE("want module: %s", src_module_name.c_str());
@@ -128,11 +200,42 @@ namespace picker { namespace parser {
         return ret;
     }
 
+    // Quick text-based prefilter to reduce heavy syntax parsing invocations
+    static bool file_may_contain_any_module(const std::string &filepath, const std::vector<std::string> &m_names)
+    {
+        std::ifstream ifs(filepath);
+        if (!ifs.is_open()) return false;
+        std::string line;
+        while (std::getline(ifs, line)) {
+            if (line.find("module") == std::string::npos) continue;
+            for (const auto &m : m_names) {
+                // Look for pattern: word-boundary 'module' + spaces + name + non-identifier boundary
+                auto pos = line.find("module "+m);
+                if (pos == std::string::npos) continue;
+                // Check preceding boundary
+                bool ok_prev = (pos == 0) || !std::isalnum(static_cast<unsigned char>(line[pos-1])) && line[pos-1] != '_';
+                // After 'module ' + m
+                size_t endpos = pos + std::string("module ").size() + m.size();
+                bool ok_next = (endpos >= line.size()) || (!std::isalnum(static_cast<unsigned char>(line[endpos])) && line[endpos] != '_');
+                if (ok_prev && ok_next) return true;
+            }
+        }
+        return false;
+    }
+
     std::map<std::string, nlohmann::json> match_module_with_file(std::vector<std::string> files,
                                                                  std::vector<std::string> m_names)
     {
         std::map<std::string, nlohmann::json> ret;
         for (auto f : files) {
+            // If module list specified, quickly skip files that obviously do not contain any of them
+            if (!m_names.empty()) {
+                try {
+                    if (!file_may_contain_any_module(f, m_names)) continue;
+                } catch (...) {
+                    // On any error in quick pass, fall back to full check to be safe
+                }
+            }
             std::string fpath = "/tmp/" + std::filesystem::path(f).filename().string() + std::string(lib_random_hash)
                                 + picker::get_node_uuid() + ".json";
             std::string syntax_cmd =
@@ -158,6 +261,7 @@ namespace picker { namespace parser {
             }
             PK_DEBUG("rm -f %s", fpath.c_str());
             exec(("rm -f " + fpath).c_str());
+            if (ret.size() == m_names.size()) break; // All found
         }
         for (auto m : m_names) { vassert(ret.count(m), "Module: " + m + " not find in input file"); }
         return ret;
@@ -179,9 +283,23 @@ namespace picker { namespace parser {
             m_names = picker::key_as_vector(m_json);
             for (auto &v : m_names) { m_nums[v] = 1; }
         } else {
+            // When top module is given, search it within both `file` and expanded `--fs/--filelist` entries
             m_nums  = parse_mname_and_numbers(opts.source_module_name_list);
             m_names = picker::key_as_vector(m_nums);
-            m_json  = match_module_with_file(opts.file, m_names);
+
+            std::vector<std::string> search_files = opts.file; // always include explicit files
+            std::vector<std::string> extra_files;
+            collect_verilog_from_filelists(opts.filelists, extra_files);
+
+            // De-duplicate while preserving order
+            std::unordered_set<std::string> seen;
+            for (auto &f : search_files) seen.insert(std::filesystem::absolute(f).string());
+            for (auto &f : extra_files) {
+                auto af = std::filesystem::absolute(f).string();
+                if (seen.insert(af).second) search_files.push_back(af);
+            }
+
+            m_json = match_module_with_file(search_files, m_names);
         }
 
         auto target_name = picker::join_str_vec(m_names, "_");
