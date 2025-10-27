@@ -4,6 +4,7 @@ SHELL := /bin/bash
 .PHONY: all init build install appimage test test_all test_vpi_all test_mem_direct_all \
         test_all_java test_all_scala clean wheel wheel_install tests smoke_tests unit_tests
 
+export NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
 export BUILD_XSPCOMM_SWIG ?= python
 verible_arch := $(shell uname -m)
 ifneq ($(verible_arch),x86_64)
@@ -42,8 +43,8 @@ init:
 	fi
 	
 build:
-	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS)
-	cd build && $(MAKE) -j`nproc`
+	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=$(NPROC) $(ARGS)
+	cd build && $(MAKE) -j$(NPROC)
 
 clean_build:
 	rm -rf build

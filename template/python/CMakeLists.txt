@@ -34,7 +34,14 @@ endfunction()
 init_xspcomm()
 
 # Non-root install
-set(CMAKE_BUILD_RPATH $ORIGIN)
+# set rpath
+set(CMAKE_BUILD_RPATH "")
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin") # macOS
+	list(APPEND CMAKE_BUILD_RPATH "@loader_path")
+elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+	list(APPEND CMAKE_BUILD_RPATH "$ORIGIN")
+endif()
+
 set(NON_ROOT_INC_DIR "$ENV{HOME}/.local/include")
 if(EXISTS ${NON_ROOT_INC_DIR})
 	include_directories(${NON_ROOT_INC_DIR})
@@ -66,7 +73,7 @@ set(SWIG_OUTFILE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_pyswig)
 
 # Python Initialization
 
-find_package(Python COMPONENTS Interpreter Development)
+find_package(Python3 REQUIRED COMPONENTS Development.Module)
 include_directories(${Python_INCLUDE_DIRS})
 
 link_directories({{__XSPCOMM_LIB__}})
