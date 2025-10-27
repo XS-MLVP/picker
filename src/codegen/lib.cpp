@@ -1,6 +1,8 @@
-#include <bits/stdc++.h>
+#include <unordered_set>
 #include "codegen/lib.hpp"
 #include "picker.hpp"
+#include "codegen/sv.hpp"
+#include "codegen/firrtl.hpp"
 
 namespace picker { namespace codegen {
 
@@ -225,7 +227,7 @@ namespace picker { namespace codegen {
         data["__GENERATOR_PICKER_PATH__"] =
             appimage::is_running_as_appimage() ?
                 (getenv("APPIMAGE") != nullptr ? std::string(getenv("APPIMAGE")) : std::string()) :
-                std::filesystem::read_symlink("/proc/self/exe").string();
+                get_executable_path();
         data["__GENERATOR_TEMPLATE_PATH__"] = std::filesystem::path(opts.source_dir).string();
 
         // Render lib files

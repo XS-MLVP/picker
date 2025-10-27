@@ -1,5 +1,5 @@
-#include <bits/stdc++.h>
 #include "codegen/python.hpp"
+#include "codegen/lib.hpp"
 
 namespace picker { namespace codegen {
 
@@ -31,9 +31,9 @@ namespace picker { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
-                data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 auto pin_uniq_name = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
-                data["pin_uniq_name"]  = replace_all(replace_all(pin_uniq_name, "$$", "_"), "$", "_");
+                data["pin_uniq_name"]  = str_replace_all(str_replace_all(pin_uniq_name, "$$", "_"), "$", "_");
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
                                                0 :
@@ -68,7 +68,7 @@ namespace picker { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector

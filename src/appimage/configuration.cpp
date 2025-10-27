@@ -1,5 +1,3 @@
-#include <bits/stdc++.h>
-#include <bits/fs_fwd.h>
 #include "picker.hpp"
 
 namespace picker::appimage {

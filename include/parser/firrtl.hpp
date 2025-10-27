@@ -1,6 +1,5 @@
 #pragma once
 
-#include <bits/stdc++.h>
 #include "picker.hpp"
 
 namespace picker { namespace parser {

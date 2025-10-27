@@ -1,5 +1,11 @@
 #pragma once
-#include <bits/stdc++.h>
+#include <cstdio>
+#include <cstdint>
+#include <map>
+#include <string>
+#include <vector>
+#include <iostream>
+#include <initializer_list>
 
 #if defined(USE_VERILATOR) || defined(USE_VCS)
 #include <svdpi.h>

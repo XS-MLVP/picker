@@ -1,4 +1,3 @@
-#include <bits/stdc++.h>
 #include "codegen/sv.hpp"
 
 namespace picker { namespace codegen {
