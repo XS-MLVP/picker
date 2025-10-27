@@ -83,8 +83,21 @@ if(SIMULATOR STREQUAL "verilator")
 	add_dependencies(dut_base DPI${ModuleName})
 
 	add_library(${ModuleName} SHARED dut_base)
-	target_link_libraries(${ModuleName} "-Wl,--whole-archive" DPI${ModuleName}
-	"-Wl,--no-whole-archive" dl )
+
+	if(${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+    	target_link_libraries(${ModuleName} PRIVATE
+			"-Wl,-force_load,$<TARGET_FILE:DPI${ModuleName}>"
+			dl
+			z
+    	)
+	else()
+    	target_link_libraries(${ModuleName} PRIVATE
+			"-Wl,--whole-archive"
+			DPI${ModuleName}
+			"-Wl,--no-whole-archive"
+			dl
+    	)
+	endif()
 
 	execute_process(
 		COMMAND ${CMAKE_COMMAND} -E copy 
