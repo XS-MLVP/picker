@@ -1,5 +1,7 @@
 
 #include "parser/parser_map.hpp"
+#include "parser/sv.hpp"
+#include "parser/firrtl.hpp"
 
 
 namespace picker{namespace parser {

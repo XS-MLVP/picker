@@ -1,5 +1,8 @@
 #include "codegen/mem_direct.hpp"
+#include "codegen/lib.hpp"
+
 #define MAX_VAR_PERFILE 5000
+
 namespace picker { namespace codegen {
 
     static const std::string yaml_varible_info =

@@ -1,8 +1,20 @@
 #include <iostream>
 #include <algorithm>
 #include <filesystem>
+#include <unordered_set>
 #include "picker.hpp"
+#include "codegen/lib.hpp"
 #include "codegen/mem_direct.hpp"
+#include "codegen/cpp.hpp"
+#include "codegen/python.hpp"
+#include "codegen/java.hpp"
+#include "codegen/scala.hpp"
+#include "codegen/golang.hpp"
+#include "codegen/lua.hpp"
+#include "codegen/sv.hpp"
+#include "codegen/firrtl.hpp"
+#include "parser/parser_map.hpp"
+#include "parser/internalcfg.hpp"
 
 picker::main_opts main_opts;
 picker::export_opts export_opts;
