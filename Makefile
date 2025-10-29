@@ -60,8 +60,8 @@ appimage: init
 	rm -rf AppDir
 # Reuse existing build if present; otherwise configure and build
 	@if [ ! -d build ]; then \
-		cmake -DCMAKE_INSTALL_PREFIX=/usr . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS); \
-		cd build && $(MAKE) -j`nproc`; \
+		cmake -DCMAKE_INSTALL_PREFIX=/usr . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=$(NPROC) $(ARGS); \
+		cd build && $(MAKE) -j$(NPROC); \
 	else \
 		echo "Using existing build directory for AppImage"; \
 	fi
@@ -137,5 +137,5 @@ smoke_tests:
 	$(MAKE) -C test smoke
 
 unit_tests:
-	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=`nproc` $(ARGS)
-	cd build && ctest --output-on-failure -j`nproc`
+	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=$(NPROC) $(ARGS)
+	cd build && ctest --output-on-failure -j$(NPROC)
