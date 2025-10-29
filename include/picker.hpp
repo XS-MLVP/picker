@@ -568,4 +568,17 @@ inline std::string get_node_uuid()
     return std::to_string(hasher(get_hostname() + std::to_string(getpid())));
 }
 
+inline std::string get_shared_lib_suffix()
+{
+#if defined(_WIN32) || defined(_WIN64)
+    return "dll";
+#elif defined(__linux__)
+    return "so";
+#elif defined(__APPLE__)
+    return "dylib";
+#else
+    return "";
+#endif
+}
+
 } // namespace picker

@@ -138,6 +138,7 @@ namespace picker { namespace codegen {
         data["__XSPCOMM_GOLANG__"]  = golang_location;
         data["__XDATA_DECL__"]      = xdata_decl;
         data["__TOP_MODULE_NAME__"] = dst_module_name;
+        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
         data["__XDATA_INIT__"]         = xdata_init;
         data["__XDATA_BIND__"]         = xdata_bindrw;

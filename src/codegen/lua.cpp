@@ -125,6 +125,7 @@ namespace picker { namespace codegen {
         data["__XSPCOMM_LIB__"]     = cpplib_location;
         data["__XSPCOMM_LUA__"]     = lua_location;
         data["__TOP_MODULE_NAME__"] = dst_module_name;
+        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
         data["__XDATA_INIT__"]     = xdata_init;
         data["__XDATA_BIND__"]     = xdata_bindrw;

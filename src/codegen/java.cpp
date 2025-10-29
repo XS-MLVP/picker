@@ -138,6 +138,11 @@ namespace picker { namespace codegen {
         data["__XSPCOMM_LIB__"]     = cpplib_location;
         data["__XSPCOMM_JAR__"]     = java_location;
         data["__TOP_MODULE_NAME__"] = dst_module_name;
+        std::string native_lib_suffix = get_shared_lib_suffix();
+        // The suffix of Java native library in macOS is `jnilib`
+        if (native_lib_suffix == "dylib") { native_lib_suffix = "jnilib"; }
+        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
+        data["__JNI_LIB_SUFFIX__"] = native_lib_suffix;
 
         data["__XDATA_DECL__"]         = xdata_decl;
         data["__XDATA_INIT__"]         = xdata_init;

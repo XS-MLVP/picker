@@ -173,6 +173,7 @@ namespace codegen {
         data["__XSPCOMM_LIB__"]     = cpplib_location;
         data["__XSPCOMM_INCLUDE__"] = include_location;
         data["__TOP_MODULE_NAME__"] = dst_module_name;
+        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
         data["__XDATA_DECLARATION__"]  = xdata_declaration;
         data["__XDATA_REINIT__"]       = xdata_reinit;

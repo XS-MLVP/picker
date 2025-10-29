@@ -186,6 +186,7 @@ namespace picker { namespace codegen {
         nlohmann::json data;
 
         data["__TOP_MODULE_NAME__"] = dst_module_name;
+        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
         // firrtl base simulators
         std::unordered_set<std::string> firrtl_simulators = {"gsim"};
