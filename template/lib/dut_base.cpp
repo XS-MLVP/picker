@@ -601,11 +601,7 @@ void DutUnifiedBase::init(int argc, const char **argv)
 
     // find whether the shared library path is provided
     // share library suffix
-#if defined(__linux__)
-    const std::string lib_suffix = ".so";
-#elif defined(__APPLE__)
-    const std::string lib_suffix = ".dylib";
-#endif
+    const std::string lib_suffix = ".{{__SHARED_LIB_SUFFIX__}}";
     if (argc == 0 || !std::string(this->argv[0]).ends_with(lib_suffix)) {
         // add the shared library path to argv
         for (int i = argc; i > 0; i--) { this->argv[i] = this->argv[i - 1]; }
