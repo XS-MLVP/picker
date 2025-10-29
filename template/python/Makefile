@@ -25,7 +25,7 @@ compile: copy_xspcomm
 	@echo "start build wrapper at" && date
 	cmake . -Bbuild
 	cmake --build build --config Debug --parallel `nproc`
-	@cp build/_${TARGET}.{{__SHARED_LIB_SUFFIX__}} .
+	@cp build/_${TARGET}.so .
 	@cp build/lib${TARGET}.py .
 	@touch ../__init__.py
 	@echo "end build wrapper at" && date
