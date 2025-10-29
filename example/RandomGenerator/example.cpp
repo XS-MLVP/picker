@@ -1,4 +1,8 @@
 #include "UT_RandomGenerator.hpp"
+#include <cstdio>
+#include <cstdint>
+#include <random>
+#include <iostream>
 
 int64_t random_int64()
 {
