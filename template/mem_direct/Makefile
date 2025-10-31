@@ -5,8 +5,6 @@ UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S), Darwin)
     # macOS: need full path of library
     WHOLE_ARCHIVE_LDFLAGS = -Wl,-force_load,$(LIB_DUT_PATH)
-    # macOS need this, according to https://github.com/verilator/verilator/blob/master/include/verilated.mk.in#L114-L118
-    LDFLAGS += -Wl,-U,__Z15vl_time_stamp64v,-U,__Z13sc_time_stampv
 else
     # Linux/GNU: need the name of library
     WHOLE_ARCHIVE_LDFLAGS = -Wl,--whole-archive -l$(LIB_DUT_NAME) -Wl,--no-whole-archive
@@ -22,8 +20,8 @@ V_ROOT := $(shell verilator -V | grep ROOT | grep verilator | tail -n 1 | awk '{
 CXXFLAGS += -I ${V_ROOT}/include -I ${V_ROOT}/include/vltstd/ \
 		-I ../build/DPI${TOP_NAME} \
 		-L../build  ${CFLAGS}
-LDFLAGS += $(WHOLE_ARCHIVE_LDFLAGS)
-LDLIBS += -lpthread -lz -lsystemc
+LDFLAGS += $(WHOLE_ARCHIVE_LDFLAGS) -Wl,-undefined,dynamic_lookup
+LDLIBS += -lpthread -lz
 {% endif %}
 
 {% if __SIMULATOR__ == "gsim" %}
