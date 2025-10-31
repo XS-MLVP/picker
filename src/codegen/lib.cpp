@@ -229,7 +229,7 @@ namespace picker { namespace codegen {
             appimage::is_running_as_appimage() ?
                 (getenv("APPIMAGE") != nullptr ? std::string(getenv("APPIMAGE")) : std::string()) :
                 get_executable_path();
-        data["__GENERATOR_TEMPLATE_PATH__"] = std::filesystem::path(opts.source_dir).string();
+        data["__GENERATOR_TEMPLATE_PATH__"] = std::filesystem::absolute(opts.source_dir);
 
         // Render lib files
         recursive_render(src_dir, dst_dir, data, env);

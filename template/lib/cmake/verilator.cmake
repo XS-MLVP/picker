@@ -49,7 +49,7 @@ if(SIMULATOR STREQUAL "verilator")
 
 	set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--MAKEFLAGS" "-DVL_INLINE_OPT=inline" "-O3" "--instr-count-dpi" "0")
 	message(STATUS "Verilator flags: ${SIMULATOR_FLAGS}")
-	
+
 
 	set(VERILATE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/DPI${ModuleName})
 	include_directories(${VERILATE_DIRECTORY})
@@ -84,8 +84,8 @@ if(SIMULATOR STREQUAL "verilator")
 
 	add_library(${ModuleName} SHARED dut_base)
 
-	if(${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
-    	target_link_libraries(${ModuleName} PRIVATE
+	if (APPLE)
+		target_link_libraries(${ModuleName} PRIVATE
 			"-Wl,-force_load,$<TARGET_FILE:DPI${ModuleName}>"
 			dl
 			z
@@ -100,7 +100,7 @@ if(SIMULATOR STREQUAL "verilator")
 	endif()
 
 	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E copy 
+		COMMAND ${CMAKE_COMMAND} -E copy
 		${VERILATE_DIRECTORY}/V${ModuleName}__Dpi.h
 		${CMAKE_BINARY_DIR}/UT_${ModuleName}/UT_${ModuleName}_dpi.hpp
 	)
