@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
-
+if (APPLE)
+	include({{__GENERATOR_TEMPLATE_PATH__}}/toolchain/macos-homebrew-llvm.cmake)
+endif ()
 set(ModuleName ${PROJECT})
 project(${ModuleName} VERSION 1.0)
 

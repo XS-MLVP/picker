@@ -1,6 +1,9 @@
 # cmake for picker
 
 cmake_minimum_required(VERSION 3.11)
+if(APPLE)
+    include(cmake/MacOSHomebrewLLVM.cmake)
+endif ()
 project(picker VERSION 0.9.0)
 
 unset(CMAKE_MODULE_PATH)
