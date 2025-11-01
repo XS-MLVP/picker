@@ -78,7 +78,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.dut.SetWaveform(wave_name)
     }
     def GetWaveFormat(): String = {
-        this.dut.GetWaveFormat()
+        com.ut.{{__TOP_MODULE_NAME__}}.DutUnifiedBase.GetWaveFormat()
     }
     def FlushWaveform() = {
         this.dut.FlushWaveform()
@@ -87,7 +87,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.dut.SetCoverage(coverage_name)
     }
     def GetCovMetrics(): Int = {
-        this.dut.GetCovMetrics()
+        com.ut.{{__TOP_MODULE_NAME__}}.DutUnifiedBase.GetCovMetrics()
     }
     def Step(i: Int = 1): Unit = {
         this.xclock.Step(i)
