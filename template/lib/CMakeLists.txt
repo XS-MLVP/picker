@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.15)
 if (APPLE)
 	include({{__GENERATOR_TEMPLATE_PATH__}}/toolchain/macos-homebrew-llvm.cmake)
 endif ()
