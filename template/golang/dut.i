@@ -2,7 +2,7 @@
 %module(directors="1") libUT_{{__TOP_MODULE_NAME__}}
 
 %insert(cgo_comment) %{
-#cgo LDFLAGS: ${SRCDIR}/UT_{{__TOP_MODULE_NAME__}}.so
+#cgo LDFLAGS: ${SRCDIR}/UT_{{__TOP_MODULE_NAME__}}.so -Wl,-rpath,${SRCDIR} -Wl,-rpath,${SRCDIR}/../xspcomm
 %}
 
 %feature("director") DutUnifiedBase;
