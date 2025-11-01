@@ -21,7 +21,13 @@ set(CHECKPOINTS "$ENV{CHECKPOINTS}")
 set(VPI "$ENV{VPI}")
 
 # Non-root install
-set(CMAKE_BUILD_RPATH $ORIGIN)
+set(CMAKE_BUILD_RPATH "")
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin") # macOS
+	list(APPEND CMAKE_BUILD_RPATH "@loader_path")
+elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+	list(APPEND CMAKE_BUILD_RPATH "$ORIGIN")
+endif()
+
 set(NON_ROOT_INC_DIR "$ENV{HOME}/.local/include")
 if(EXISTS ${NON_ROOT_INC_DIR})
 	include_directories(${NON_ROOT_INC_DIR})
