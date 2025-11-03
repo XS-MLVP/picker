@@ -1,5 +1,5 @@
-#include <bits/stdc++.h>
 #include "codegen/scala.hpp"
+#include "codegen/lib.hpp"
 
 namespace picker { namespace codegen {
 
@@ -31,7 +31,7 @@ namespace picker { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
-                data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -62,7 +62,7 @@ namespace picker { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -130,6 +130,11 @@ namespace picker { namespace codegen {
         data["__XSPCOMM_LIB__"]     = cpplib_location;
         data["__XSPCOMM_JAR__"]     = scala_location;
         data["__TOP_MODULE_NAME__"] = dst_module_name;
+        std::string native_lib_suffix = get_shared_lib_suffix();
+        // The suffix of Java native library in macOS is `jnilib`
+        if (native_lib_suffix == "dylib") { native_lib_suffix = "jnilib"; }
+        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
+        data["__JNI_LIB_SUFFIX__"] = native_lib_suffix;
 
         data["__XDATA_INIT__"]         = xdata_init;
         data["__XDATA_BIND__"]         = xdata_bindrw;

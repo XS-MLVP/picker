@@ -1,4 +1,3 @@
-#include <bits/stdc++.h>
 #include "codegen/sv.hpp"
 
 namespace picker { namespace codegen {
@@ -71,7 +70,7 @@ namespace picker { namespace codegen {
                         data["raw_pin"]                    = pin[i].logic_pin;
                         data["logic_pin"]                  = temp_pin.logic_pin;
                         data["logic_pin_type"]             = pin[i].logic_pin_type;
-                        data["pin_func_name"]              = replace_all(temp_pin.logic_pin, ".", "_");
+                        data["pin_func_name"]              = str_replace_all(temp_pin.logic_pin, ".", "_");
                         data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
                         // Set empty or [hb:lb] for verilog render
                         data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ?
@@ -115,7 +114,7 @@ namespace picker { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]                  = pin[i].logic_pin;
                 data["logic_pin_type"]             = pin[i].logic_pin_type;
-                data["pin_func_name"]              = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]              = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
 
                 // Set empty or [hb:lb] for verilog render
@@ -219,7 +218,7 @@ namespace picker { namespace codegen {
             // Build the TRIE
             TrieNode *root = new TrieNode();
             for (auto signal : signal_list) {
-                std::vector<std::string> signal_split = split(replace_all(signal.logic_pin, ".", "_"), '_');
+                std::vector<std::string> signal_split = split(str_replace_all(signal.logic_pin, ".", "_"), '_');
                 TrieNode *current                     = root;
                 for (auto part_name : signal_split) {
                     if (current->children.find(part_name) == current->children.end()) {

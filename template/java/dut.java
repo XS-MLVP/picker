@@ -19,7 +19,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         if (inputStream == null) {
             throw new IOException("Could not find library: " + path);
         }
-        File tempFile = File.createTempFile("lib", ".so");
+        File tempFile = File.createTempFile("lib", ".{{__SHARED_LIB_SUFFIX__}}");
         tempFile.deleteOnExit();
         try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
             byte[] buffer = new byte[1024];
@@ -48,12 +48,12 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     }
     static {
         try {
-            loadLibraryFromJar("/libUT{{__TOP_MODULE_NAME__}}.so");
-            loadLibraryFromJar("/libUT_{{__TOP_MODULE_NAME__}}.so");
+            loadLibraryFromJar("/libUT{{__TOP_MODULE_NAME__}}.{{__SHARED_LIB_SUFFIX__}}");
+            loadLibraryFromJar("/libUT_{{__TOP_MODULE_NAME__}}.{{__JNI_LIB_SUFFIX__}}");
             xspcomm.init();
             LIB_LOADED = true;
         } catch (Exception e) {
-            System.err.println("Error load so fail:");
+            System.err.println("Error load native/shared library fail:");
             e.printStackTrace();
             LIB_LOADED = false;
         }

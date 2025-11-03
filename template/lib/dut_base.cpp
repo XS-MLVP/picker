@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <filesystem>
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -485,14 +486,14 @@ char *locateLibPath()
     XInfo("Shared DPI Library Path: %s", lib_path.c_str());
 
     // get PWD
-    char *pwd = get_current_dir_name();
+    std::string pwd = std::filesystem::current_path();
 
     // get relative path
     std::string rel_path;
     if (lib_path.find(pwd) == std::string::npos) {
         rel_path = lib_path;
     } else {
-        rel_path = lib_path.substr(strlen(pwd) + 1);
+        rel_path = lib_path.substr(pwd.length() + 1);
     }
 
     char *res = (char *)malloc(rel_path.size() + 128);
@@ -599,7 +600,9 @@ void DutUnifiedBase::init(int argc, const char **argv)
     }
 
     // find whether the shared library path is provided
-    if (argc == 0 || !std::string(this->argv[0]).ends_with(".so")) {
+    // share library suffix
+    const std::string lib_suffix = ".{{__SHARED_LIB_SUFFIX__}}";
+    if (argc == 0 || !std::string(this->argv[0]).ends_with(lib_suffix)) {
         // add the shared library path to argv
         for (int i = argc; i > 0; i--) { this->argv[i] = this->argv[i - 1]; }
         this->argv[0] = locateLibPath();
@@ -628,7 +631,23 @@ void DutUnifiedBase::init(int argc, const char **argv)
     // get dynamic library path from argv
     if (this->argc == 0) { XFatal("Shared DPI Library Path is required for Simulator"); }
 
+#if defined(__linux__)
     this->lib_handle = dlmopen(LM_ID_NEWLM, this->argv[0], RTLD_NOW | RTLD_DEEPBIND);
+#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+    XFatal("Native Windows API to load library is not supported now");
+#else
+    if (dlopen(this->argv[0], RTLD_NOLOAD)) {
+        XFatal(
+            "Dynamic multi-module is only supported in linux!\n"
+            "If you want to create multiple module instances, please use `Static multi-module`"
+            "(reference link: https://github.com/XS-MLVP/picker/blob/master/README.md).\n"
+            "Otherwise, check whether multiple instances of the DUT class have been created."
+            );
+    } else {
+        this->lib_handle = dlopen(this->argv[0], RTLD_NOW | RTLD_LOCAL);
+    }
+#endif
+
     if (!this->lib_handle) { XFatal("Failed to open shared DPI library %s, %s", this->argv[0], dlerror()); }
     this->lib_count++;
 
@@ -782,7 +801,7 @@ std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(std::string name,
     vpi_handle_t vpi_handle = _get_vpi_handle_name((char *)scope.c_str(), 0);
     XDebug("Traversing %s %d", scope.c_str(), depth);
     if (vpi_handle == 0) { XInfo("Failed to find VPI handle %s", scope.c_str()); return res; }
-    XDebug("Found VPI handle 0x%lx, type %ld", vpi_handle, _vpi_get(vpiType, vpi_handle));
+    XDebug("Found VPI handle 0x%llx, type %lld", vpi_handle, _vpi_get(vpiType, vpi_handle));
 
     // Traverse the VPI handle
     traverse(vpi_handle, depth);

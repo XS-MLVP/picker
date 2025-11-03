@@ -1,6 +1,8 @@
-#include <bits/stdc++.h>
+#include <unordered_set>
 #include "codegen/lib.hpp"
 #include "picker.hpp"
+#include "codegen/sv.hpp"
+#include "codegen/firrtl.hpp"
 
 namespace picker { namespace codegen {
 
@@ -184,6 +186,7 @@ namespace picker { namespace codegen {
         nlohmann::json data;
 
         data["__TOP_MODULE_NAME__"] = dst_module_name;
+        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
         // firrtl base simulators
         std::unordered_set<std::string> firrtl_simulators = {"gsim"};
@@ -225,8 +228,8 @@ namespace picker { namespace codegen {
         data["__GENERATOR_PICKER_PATH__"] =
             appimage::is_running_as_appimage() ?
                 (getenv("APPIMAGE") != nullptr ? std::string(getenv("APPIMAGE")) : std::string()) :
-                std::filesystem::read_symlink("/proc/self/exe").string();
-        data["__GENERATOR_TEMPLATE_PATH__"] = std::filesystem::path(opts.source_dir).string();
+                get_executable_path();
+        data["__GENERATOR_TEMPLATE_PATH__"] = std::filesystem::absolute(opts.source_dir);
 
         // Render lib files
         recursive_render(src_dir, dst_dir, data, env);

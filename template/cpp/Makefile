@@ -19,8 +19,8 @@ copy_xspcomm:
 else
 copy_xspcomm:
 	@echo "Try copy xspcomm lib and include"
-	@cp {{__XSPCOMM_LIB__}}/libxspcomm.so .
-	@cp {{__XSPCOMM_INCLUDE__}} -r .
+	@cp {{__XSPCOMM_LIB__}}/libxspcomm.{{__SHARED_LIB_SUFFIX__}} .
+	@cp -r {{__XSPCOMM_INCLUDE__}} .
 endif
 
 compile: copy_xspcomm

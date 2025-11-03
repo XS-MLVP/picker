@@ -2,6 +2,8 @@
 #include "parser/sv.hpp"
 #include "parser/exprtk.hpp"
 
+#include <unordered_set>
+
 #define token_res(i)                                                                                                   \
     (std::string(module_token[i]["tag"])).size() > 1 ? (std::string)module_token[i]["text"] :                          \
                                                        (std::string)module_token[i]["tag"]

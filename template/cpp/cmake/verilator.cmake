@@ -1,6 +1,16 @@
 add_definitions(-DUSE_VERILATOR)
 
 function(XSPTarget)
+	set(CMAKE_BUILD_RPATH "")
+	if(CMAKE_SYSTEM_NAME MATCHES "Darwin") # macOS
+		list(APPEND CMAKE_BUILD_RPATH "@loader_path")
+	elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+		list(APPEND CMAKE_BUILD_RPATH "$ORIGIN")
+	endif()
+
+	list(APPEND CMAKE_BUILD_RPATH "{{__XSPCOMM_LIB__}}")
+	list(APPEND CMAKE_BUILD_RPATH "$ENV{HOME}/.local/lib")
+	list(APPEND CMAKE_BUILD_RPATH "/usr/local/lib")
 
 	cmake_parse_arguments(
 		XSP
@@ -38,15 +48,15 @@ function(XSPTarget)
 	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 	add_library(UT${RTLModuleName} SHARED IMPORTED)
 	set_property(
-		TARGET UT${RTLModuleName}
-		PROPERTY IMPORTED_LOCATION
-						 ${CMAKE_CURRENT_SOURCE_DIR}/libUT${RTLModuleName}.so)
+			TARGET UT${RTLModuleName}
+			PROPERTY IMPORTED_LOCATION
+			${CMAKE_CURRENT_SOURCE_DIR}/libUT${RTLModuleName}${CMAKE_SHARED_LIBRARY_SUFFIX})
 	add_executable(${ExecutableName} UT_${RTLModuleName}.cpp)
 	target_link_libraries(${ExecutableName} UT${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
-	target_link_options(${ExecutableName} PRIVATE 
-		-Wl,-rpath={{__XSPCOMM_LIB__}}
-		-Wl,-rpath=~/.local/lib
-		-Wl,-rpath=/usr/local/lib  
-		${CustomLinkOptions})
-
+	target_link_options(${ExecutableName} PRIVATE ${CustomLinkOptions})
+	if(APPLE)
+		# According to https://leopard-adc.pepas.com/documentation/Darwin/Reference/ManPages/man1/ld.1.html
+		# macOS treats undefined symbols as errors by default
+		target_link_options(${ExecutableName} PRIVATE "-Wl,-undefined,dynamic_lookup")
+	endif ()
 endfunction()

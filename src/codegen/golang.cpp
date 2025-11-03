@@ -1,5 +1,5 @@
-#include <bits/stdc++.h>
 #include "codegen/golang.hpp"
+#include "codegen/lib.hpp"
 
 namespace picker { namespace codegen {
 
@@ -32,7 +32,7 @@ namespace picker { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "IOType_Input" : "IOType_Output";
-                data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, true);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -64,7 +64,7 @@ namespace picker { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, true);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -138,6 +138,7 @@ namespace picker { namespace codegen {
         data["__XSPCOMM_GOLANG__"]  = golang_location;
         data["__XDATA_DECL__"]      = xdata_decl;
         data["__TOP_MODULE_NAME__"] = dst_module_name;
+        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
         data["__XDATA_INIT__"]         = xdata_init;
         data["__XDATA_BIND__"]         = xdata_bindrw;

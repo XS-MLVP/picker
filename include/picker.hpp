@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include <bits/stdc++.h>
 #include <sys/time.h>
 #include <chrono>
 #include <regex>
@@ -15,21 +14,6 @@
 #include "CLI11.hpp"
 #include "version.hpp"
 #include "appimage/configuration.hpp"
-#include "codegen/cpp.hpp"
-#include "codegen/python.hpp"
-#include "codegen/java.hpp"
-#include "codegen/scala.hpp"
-#include "codegen/golang.hpp"
-#include "codegen/sv.hpp"
-#include "codegen/firrtl.hpp"
-#include "codegen/lib.hpp"
-#include "codegen/lua.hpp"
-#include "parser/sv.hpp"
-#include "parser/firrtl.hpp"
-#include "parser/internalcfg.hpp"
-#include "parser/verilator_root.hpp"
-#include "parser/gsim_root.hpp"
-#include "parser/parser_map.hpp"
 
 extern std::map<std::string, std::string> lang_lib_map;
 extern std::map<std::string, std::string> display_names;
@@ -246,6 +230,16 @@ inline std::string streplace(std::string str, std::initializer_list<std::string>
     return ret;
 }
 
+inline std::string str_replace_all(std::string str, const std::string &from, const std::string &to)
+{
+    size_t start_pos = 0;
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+    }
+    return str;
+}
+
 template <typename T>
 inline bool contains(const std::vector<T> &v, const T &a)
 {
@@ -338,7 +332,7 @@ inline std::string path_join(std::initializer_list<std::string> args)
 
 inline std::string current_path()
 {
-    return std::string(get_current_dir_name());
+    return std::filesystem::current_path().string();
 }
 
 template <typename... Args>
@@ -428,7 +422,7 @@ inline std::string get_executable_path()
     return std::string(buffer);
 }
 
-#elif __APPLE__
+#elif defined(__APPLE__)
 #include <mach-o/dyld.h>
 
 inline std::string get_executable_path()
@@ -441,7 +435,7 @@ inline std::string get_executable_path()
         return std::string("");
 }
 
-#elif __linux__
+#elif defined(__linux__)
 #include <unistd.h>
 
 inline std::string get_executable_path()
@@ -572,6 +566,19 @@ inline std::string get_node_uuid()
 {
     std::hash<std::string> hasher;
     return std::to_string(hasher(get_hostname() + std::to_string(getpid())));
+}
+
+inline std::string get_shared_lib_suffix()
+{
+#if defined(_WIN32) || defined(_WIN64)
+    return "dll";
+#elif defined(__linux__)
+    return "so";
+#elif defined(__APPLE__)
+    return "dylib";
+#else
+    return "";
+#endif
 }
 
 } // namespace picker

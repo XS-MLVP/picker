@@ -1,7 +1,16 @@
 add_definitions(-DUSE_VERILATOR)
 
 function(XSPyTarget)
-	set(CMAKE_BUILD_RPATH $ORIGIN)
+	set(CMAKE_BUILD_RPATH "")
+	if(CMAKE_SYSTEM_NAME MATCHES "Darwin") # macOS
+		list(APPEND CMAKE_BUILD_RPATH "@loader_path")
+	elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+		list(APPEND CMAKE_BUILD_RPATH "$ORIGIN")
+	endif()
+
+	list(APPEND CMAKE_BUILD_RPATH "{{__XSPCOMM_LIB__}}")
+	list(APPEND CMAKE_BUILD_RPATH "$ENV{HOME}/.local/lib")
+	list(APPEND CMAKE_BUILD_RPATH "/usr/local/lib")
 
 	cmake_parse_arguments(
 		XSP
@@ -35,17 +44,13 @@ function(XSPyTarget)
 	set_property(
 		TARGET UT${RTLModuleName}
 		PROPERTY IMPORTED_LOCATION
-						 ${CMAKE_CURRENT_SOURCE_DIR}/libUT${RTLModuleName}.so)
+						 ${CMAKE_CURRENT_SOURCE_DIR}/libUT${RTLModuleName}${CMAKE_SHARED_LIBRARY_SUFFIX})
 
 	set_property(SOURCE dut.i PROPERTY CPLUSPLUS ON)
 	swig_add_library(UT_${PROJECT_NAME} LANGUAGE python SOURCES dut.i)
 
-	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
-	target_link_options(UT_${PROJECT_NAME} PRIVATE 
-		-Wl,-rpath={{__XSPCOMM_LIB__}}
-		-Wl,-rpath=~/.local/lib
-		-Wl,-rpath=/usr/local/lib  
-		${CustomLinkOptions})
+	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS} Python3::Module)
+	target_link_options(UT_${PROJECT_NAME} PRIVATE ${CustomLinkOptions})
 
 
 endfunction()

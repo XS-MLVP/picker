@@ -1,5 +1,9 @@
 #pragma once
-#include <bits/stdc++.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdint>
+#include <map>
+#include <string>
 
 {% if __SIMULATOR__ == "verilator" %}
 #include "V{{__TOP_MODULE_NAME__}}.h"

@@ -1,5 +1,7 @@
 #include "UT_Adder.hpp"
 
+#include <random>
+
 int64_t random_int64()
 {
     static std::random_device rd;

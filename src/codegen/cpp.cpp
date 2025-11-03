@@ -1,17 +1,7 @@
-#include <bits/stdc++.h>
 #include "codegen/cpp.hpp"
+#include "codegen/lib.hpp"
 
 namespace picker {
-
-std::string replace_all(std::string str, const std::string &from, const std::string &to)
-{
-    size_t start_pos = 0;
-    while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-        str.replace(start_pos, from.length(), to);
-        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
-    }
-    return str;
-}
 
 namespace codegen {
 
@@ -63,7 +53,7 @@ namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
@@ -107,7 +97,7 @@ namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"]  = replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 // Set empty or [hb:lb] for verilog render
@@ -183,6 +173,7 @@ namespace codegen {
         data["__XSPCOMM_LIB__"]     = cpplib_location;
         data["__XSPCOMM_INCLUDE__"] = include_location;
         data["__TOP_MODULE_NAME__"] = dst_module_name;
+        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
         data["__XDATA_DECLARATION__"]  = xdata_declaration;
         data["__XDATA_REINIT__"]       = xdata_reinit;

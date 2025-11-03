@@ -1,7 +1,16 @@
 add_definitions(-DUSE_VERILATOR)
 
 function(XSJavaTarget)
-	set(CMAKE_BUILD_RPATH $ORIGIN)
+	set(CMAKE_BUILD_RPATH "")
+	if(CMAKE_SYSTEM_NAME MATCHES "Darwin") # macOS
+		list(APPEND CMAKE_BUILD_RPATH "@loader_path")
+	elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+		list(APPEND CMAKE_BUILD_RPATH "$ORIGIN")
+	endif()
+
+	list(APPEND CMAKE_BUILD_RPATH "{{__XSPCOMM_LIB__}}")
+	list(APPEND CMAKE_BUILD_RPATH "$ENV{HOME}/.local/lib")
+	list(APPEND CMAKE_BUILD_RPATH "/usr/local/lib")
 
 	cmake_parse_arguments(
 		XSP
@@ -35,7 +44,7 @@ function(XSJavaTarget)
 	set_property(
 		TARGET UT${RTLModuleName}
 		PROPERTY IMPORTED_LOCATION
-						 ${CMAKE_CURRENT_SOURCE_DIR}/libUT${RTLModuleName}.so)
+						 ${CMAKE_CURRENT_SOURCE_DIR}/libUT${RTLModuleName}.{{__SHARED_LIB_SUFFIX__}})
 
 	set_property(SOURCE dut.i PROPERTY CPLUSPLUS ON)
 	set(JAR_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME})
@@ -44,11 +53,7 @@ function(XSJavaTarget)
 	set_target_properties(UT_${PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${JAR_SOURCE_DIR})
 
 	target_link_libraries(UT_${PROJECT_NAME} PRIVATE UT${RTLModuleName} xspcomm ${CustomLibs} ${CMAKE_DL_LIBS})
-	target_link_options(UT_${PROJECT_NAME} PRIVATE 
-		-Wl,-rpath={{__XSPCOMM_LIB__}}
-		-Wl,-rpath=~/.local/lib
-		-Wl,-rpath=/usr/local/lib  
-		${CustomLinkOptions})
+	target_link_options(UT_${PROJECT_NAME} PRIVATE ${CustomLinkOptions})
 
 	set_property(TARGET UT_${PROJECT_NAME} PROPERTY SWIG_COMPILE_OPTIONS -package com.ut.{{__TOP_MODULE_NAME__}})
 
@@ -65,7 +70,7 @@ function(XSJavaTarget)
 				${CMAKE_CURRENT_SOURCE_DIR}/../java/dut.java
 				${JAR_SOURCE_DIR}/UT_${PROJECT_NAME}.java
 		COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/*.so
+				${CMAKE_CURRENT_SOURCE_DIR}/*.{{__SHARED_LIB_SUFFIX__}}
 				${JAR_SOURCE_DIR}/
 		COMMAND sh -c '${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/*.yaml ${JAR_SOURCE_DIR}/ || true'
 		COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAR_SOURCE_DIR} ${JAR_SOURCE_DIR}/*.java -cp {{__XSPCOMM_JAR__}}
