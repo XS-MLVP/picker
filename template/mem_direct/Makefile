@@ -42,4 +42,4 @@ export.bin: $(OBJS)
 	$(CXX) $(CXXFLAGS) -o export.bin $^ $(LDFLAGS) $(LDLIBS)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@ $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
