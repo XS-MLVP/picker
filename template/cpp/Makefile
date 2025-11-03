@@ -1,4 +1,5 @@
 CURRENT_DIR := $(shell pwd)
+NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
 .PHONY: all test compile clean purge copy_xspcomm
 
 all: test clean
@@ -26,7 +27,7 @@ endif
 compile: copy_xspcomm
 	@echo "start build wrapper at $(shell date)"
 	@cmake . -Bbuild
-	@cmake --build build --config Release --parallel `nproc`
+	@cmake --build build --config Release --parallel $(NPROC)
 	@echo "end build wrapper at $(shell date)"
 
 clean:

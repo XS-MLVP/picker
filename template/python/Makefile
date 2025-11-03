@@ -1,4 +1,5 @@
 CURRENT_DIR := $(shell pwd)
+NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
 .PHONY: all test compile clean purge copy_xspcomm
 
 all: test clean
@@ -24,7 +25,7 @@ endif
 compile: copy_xspcomm
 	@echo "start build wrapper at" && date
 	cmake . -Bbuild
-	cmake --build build --config Debug --parallel `nproc`
+	cmake --build build --config Debug --parallel $(NPROC)
 	@cp build/_${TARGET}.so .
 	@cp build/lib${TARGET}.py .
 	@touch ../__init__.py

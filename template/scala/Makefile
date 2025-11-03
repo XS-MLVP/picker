@@ -1,4 +1,5 @@
 CURRENT_DIR := $(shell pwd)
+export NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
 .PHONY: all test compile clean purge copy_xspcomm
 
 all: test clean
@@ -23,7 +24,7 @@ endif
 
 compile: copy_xspcomm
 	cmake . -Bbuild
-	cmake --build build --config Debug --parallel `nproc`
+	cmake --build build --config Debug --parallel $(NPROC)
 	
 clean:
 	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.a build
