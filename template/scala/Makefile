@@ -1,5 +1,5 @@
 CURRENT_DIR := $(shell pwd)
-export NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
+NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
 .PHONY: all test compile clean purge copy_xspcomm
 
 all: test clean
