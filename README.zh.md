@@ -34,7 +34,7 @@ Picker 目前支持的 RTL 仿真器：
 1.  [cmake](https://cmake.org/download/) ( >=3.11 )
 2.  [gcc](https://gcc.gnu.org/) ( 需要支持 c++20, 版本至少为 10, **建议 11 及以上版本** )
 3.  [python3](https://www.python.org/downloads/) ( >=3.8 )
-4.  [verilator](https://verilator.org/guide/latest/install.html#git-quick-install) ( >=4.218 )
+4.  [verilator](https://verilator.org/guide/latest/install.html#git-quick-install) ( >=5.020 )
 5.  [verible-verilog-format](https://github.com/chipsalliance/verible) ( >=0.0-3428-gcfcbb82b )
 6.  [swig](http://www.swig.org/) ( >=**4.2.0**, 多语言支持 )
 
