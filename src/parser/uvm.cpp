@@ -1,6 +1,7 @@
 #include "picker.hpp"
 #include "parser/sv.hpp"
 #include "parser/exprtk.hpp"
+#include <climits>
 
 namespace picker { namespace parser {
 
