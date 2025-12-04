@@ -3,9 +3,11 @@
 #include <unistd.h>
 #include <string>
 #include <cstdlib>
+#include <cstring>
 #include <sstream>
 #include <vector>
 #include <map>
+#include <functional>
 #include <filesystem>
 
 #define likely(x) __builtin_expect(!!(x), 1)
