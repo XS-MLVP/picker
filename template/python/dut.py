@@ -52,34 +52,101 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     #         User APIs            #
     ################################
     def InitClock(self, name: str):
+        """
+        Initialize the clock, bind the 'XClock' in the DUT to the corresponding pin
+
+        Args:
+            name(str): the name of 'XClock'
+        """
         self.xclock.Add(self.xport[name])
 
     def Step(self, i:int = 1):
+        """
+        Push the timing circuit by i clock cycles.
+
+        Args:
+            i(int): Push by i clock cycles(Default is 1)
+        """
         self.xclock.Step(i)
 
     def StepRis(self, callback, args=(), kwargs={}):
+        """
+        Set a callback function triggered on the rising edge
+
+        The callback function will be called every time the clock rises
+
+        Args:
+            callback: the callback function triggered on the rising edge
+            args: the args of the callback function
+            kwargs: the keyword args of the callback function
+        """
         self.xclock.StepRis(callback, args, kwargs)
 
     def StepFal(self, callback, args=(), kwargs={}):
+        """
+        Set a callback function triggered on the falling edge
+
+        The callback function will be called every time the clock falls
+
+        Args:
+            callback: the callback function triggered on the falling edge
+            args: the args of the callback function
+            kwargs: the keyword args of the callback function
+        """
         self.xclock.StepFal(callback, args, kwargs)
 
     def ResumeWaveformDump(self):
+        """
+        Restart waveform export and return 1
+
+        Returns:
+            bool: return 1 when restart successfully
+        """
         return self.dut.ResumeWaveformDump()
 
     def PauseWaveformDump(self):
+        """
+        Pause waveform export and return 1
+
+        Returns:
+            bool: return 1 when pause successfully
+        """
         return self.dut.PauseWaveformDump()
 
     def WaveformPaused(self) -> int:
-        """ Returns 1 if waveform export is paused """
+        """
+        Check if the waveform export has been paused
+
+        Returns:
+            bool: return 1 if waveform export is paused
+        """
         return self.dut.WaveformPaused()
 
     def GetXPort(self):
+        """
+        Get the information of XPort
+
+        Returns:
+            XPort: the XPort of dut      
+        """
         return self.xport
 
     def GetXClock(self):
+        """
+        Get the information of XClock
+
+        Returns:
+            XClock: the XClock of dut 
+        """
         return self.xclock
 
     def SetWaveform(self, filename: str):
+        """
+        Specify the output file for waveform
+
+        Args:
+            filename(str):the name of file   
+        """
         self.dut.SetWaveform(filename)
 
     def GetWaveFormat(self) -> str:
@@ -92,9 +159,18 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         return self.dut.GetWaveFormat()
 
     def FlushWaveform(self):
+        """
+        Flush waveform to the file
+        """
         self.dut.FlushWaveform()
 
     def SetCoverage(self, filename: str):
+        """
+        Specify the output file for coverage
+
+        Args:
+            filename(str):the name of file  
+        """
         self.dut.SetCoverage(filename)
 
     def GetCovMetrics(self) -> int:
@@ -113,12 +189,36 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         return self.dut.GetCovMetrics()
     
     def CheckPoint(self, name: str) -> int:
+        """
+        Save current simulation state to a file
+
+        Args:
+            name(str): the name of file    
+        """
         self.dut.CheckPoint(name)
 
     def Restore(self, name: str) -> int:
+        """
+        Restore simulation state from a file
+
+        Args:
+            name(str): the name of file  
+        """
         self.dut.Restore(name)
 
     def GetInternalSignal(self, name: str, index=-1, is_array=False, use_vpi=False):
+        """
+        Get internal signal objects by variable name
+
+        Args:
+            name(str): the name of the internal signal
+            index(int): 
+            is_array(bool): check if array signal
+            use_vpi(bool): True if the picker compilation uses VPI
+
+        Returns:
+            list: the internal signal list
+        """
         if name not in self.internal_signals:
             signal = None
             if self.dut.GetXSignalCFGBasePtr() != 0 and not use_vpi:
@@ -148,18 +248,45 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         return self.internal_signals[name]
 
     def GetInternalSignalList(self, prefix="", deep=99, use_vpi=False):
+        """
+        Get the internal signal list
+
+        Args:
+            prefix(str): the prefix of the internal signals
+            deep(int): specify the number of hierarchy levels below each top module instance
+            use_vpi(bool): True if the picker compilation uses VPI
+
+        Returns:
+            list: the internal signal list
+        """
         if self.dut.GetXSignalCFGBasePtr() != 0 and not use_vpi:
             return self.xcfg.GetSignalNames(prefix)
         else:
             return self.dut.VPIInternalSignalList(prefix, deep)
 
     def VPIInternalSignalList(self, prefix="", deep=99):
+        """
+        Get the internal signal list (requires enabling '--vpi' flag when picker compilation)
+
+        Args:
+            prefix(str): the prefix of the internal signals
+            deep(int): specify the number of hierarchy levels below each top module instance
+        
+        Returns:
+            list: the internal signal list
+        """
         return self.dut.VPIInternalSignalList(prefix, deep)
 
     def Finish(self):
+        """
+        End the simulation, and keep the result files (waveforms, coverage, etc.).
+        """
         self.dut.Finish()
 
     def RefreshComb(self):
+        """
+        Refresh the combinational logic state of the circuit
+        """
         self.dut.RefreshComb()
 
     ################################
@@ -171,12 +298,30 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     # Async APIs wrapped from XClock
     async def AStep(self,i: int):
+        """
+        Asynchronous wait for clock to push i cycle
+
+        Args:
+            i(int): wait for i clock cycles
+        """
         return await self.xclock.AStep(i)
 
     async def ACondition(self,fc_cheker):
+        """
+        Asynchronous waiting condition is true
+
+        Args:
+            fc_cheker(bool): Asynchronous waiting condition
+        """
         return await self.xclock.ACondition(fc_cheker)
 
     def RunStep(self,i: int):
+        """
+        Drive clock signal, continuously push clock by i clock cycles
+
+        Args:
+            i(int): push i clock cycles
+        """
         return self.xclock.RunStep(i)
 
     def __setattr__(self, name, value):
