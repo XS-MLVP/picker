@@ -74,7 +74,7 @@ set(SWIG_OUTFILE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_pyswig)
 # Python Initialization
 
 find_package(Python3 REQUIRED COMPONENTS Development.Module)
-include_directories(${Python_INCLUDE_DIRS})
+include_directories(${Python3_INCLUDE_DIRS})
 
 link_directories({{__XSPCOMM_LIB__}})
 
