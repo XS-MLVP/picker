@@ -51,8 +51,12 @@ typedef struct export_opts {
 typedef struct pack_opts {
     std::vector<std::string> files;
     std::vector<std::string> rename;
-    bool example;
-    bool force;
+    std::vector<std::string> filelist;
+    std::string name;
+    bool example = false;
+    bool force = false ;
+    bool generate_dut = false;
+    std::string from_rtl_file;  // RTL source file path for auto-generating transaction
 } pack_opts;
 
 typedef struct sv_signal_define {
@@ -72,19 +76,27 @@ typedef struct uvm_parameter {
     std::string name;
     int byte_count;
     int bit_count;
-    int is_marcro;
+    int is_macro;
     std::string macro_name;
     std::string current_index;
+
+    // Default constructor with sensible defaults
+    uvm_parameter()
+        : name("")
+        , byte_count(1)
+        , bit_count(1)
+        , is_macro(0)
+        , macro_name("")
+        , current_index("0")
+    {}
 } uvm_parameter;
 
 typedef struct uvm_transaction_define {
     std::string name;
     std::string filepath;
-    std::string transaction_name;
     std::string version;
     std::string data_now;
     std::vector<uvm_parameter> parameters;
-
 } uvm_transaction_define;
 
 typedef struct cpp_variableInfo {

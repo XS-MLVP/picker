@@ -27,7 +27,7 @@ namespace picker { namespace parser {
     }
 
     // Collect .v/.sv files from --fs/--filelist options for module search
-    static void collect_verilog_from_filelists(const std::vector<std::string> &filelists,
+    void collect_verilog_from_filelists(const std::vector<std::string> &filelists,
                                                std::vector<std::string> &out)
     {
         namespace fs = std::filesystem;
