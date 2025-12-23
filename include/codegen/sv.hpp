@@ -9,5 +9,4 @@ namespace picker { namespace codegen {
                                                        const std::vector<picker::sv_signal_define> &internal_signal,
                                                        nlohmann::json &signal_tree_json,
                                                        const std::string &wave_file_name, const std::string &simulator, SignalAccessType rw_type);
-    void gen_uvm_param(picker::pack_opts &opts, uvm_transaction_define transaction, std::string filename);
 }} // namespace picker::codegen
