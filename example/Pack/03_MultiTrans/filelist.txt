@@ -1,0 +1,6 @@
+# Multi-transaction filelist for ALU
+# Operation transaction
+alu_op.sv
+
+# Result transaction
+alu_result.sv
