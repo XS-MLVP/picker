@@ -82,16 +82,19 @@ comp:
 		${XSP_COMM_INCLUDE}/xspcomm/python_tlm_pbsb.i
 	$(SYSCAN) -Mdir=$(BUILD_DIR) \
 		${XSP_COMM_INCLUDE}/xspcomm/tlm_pbsb.cpp $(BUILD_DIR)/tlmps.cpp
-	@if [ -f example.sv ]; then \
-		{% if rtl_file_path -%}
-		$(VLOGAN) +incdir+$(PKG_DIR) {{rtl_file_path}} example.sv -Mdir=$(BUILD_DIR); \
-		{% else -%}
-		$(VLOGAN) +incdir+$(PKG_DIR) example.sv -Mdir=$(BUILD_DIR); \
-		{% endif -%}
+	@if [ -f example-uvm.sv ]; then \
+		UVM_FILE=example-uvm.sv; \
+	elif [ -f example.sv ]; then \
+		UVM_FILE=example.sv; \
 	else \
-		echo "Error: No example UVM file found!"; \
+		echo "Error: No example UVM file found (example.sv or example-uvm.sv)!"; \
 		exit 1; \
-	fi
+	fi; \
+	{% if rtl_file_path -%}
+	$(VLOGAN) +incdir+$(PKG_DIR) {{rtl_file_path}} $$UVM_FILE -Mdir=$(BUILD_DIR)
+	{% else -%}
+	$(VLOGAN) +incdir+$(PKG_DIR) $$UVM_FILE -Mdir=$(BUILD_DIR)
+	{% endif -%}
 	$(VCS_ELAB) -o $(PKG_DIR)/_tlm_pbsb.so -Mdir=$(BUILD_DIR)
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_DIR)

@@ -53,9 +53,9 @@ typedef struct pack_opts {
     std::vector<std::string> rename;
     std::vector<std::string> filelist;
     std::string name;
-    bool example = false;
-    bool force = false ;
-    bool generate_dut = false;
+    bool example;
+    bool force;
+    bool generate_dut;
     std::string from_rtl_file;  // RTL source file path for auto-generating transaction
 } pack_opts;
 
