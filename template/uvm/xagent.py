@@ -147,8 +147,12 @@ class {{trans.name}}(BaseTransaction):
 class Agent:
     """Unified agent managing transaction types and TLM communication."""
 
+    _vcs_initialized = False
+
     def __init__(self, monitor_callback: Optional[Callable[[str, BaseTransaction], None]] = None, auto_register: bool = True) -> None:
-        u.tlm_vcs_init("_tlm_pbsb.so", "-no_save")
+        if not Agent._vcs_initialized:
+            u.tlm_vcs_init("_tlm_pbsb.so", "-no_save")
+            Agent._vcs_initialized = True
         self._send_ports: Dict[str, any] = {}
         self._receive_ports: Dict[str, any] = {}
         self._transaction_registry: Dict[str, Type[BaseTransaction]] = {}
