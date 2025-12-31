@@ -19,6 +19,59 @@ __version__ = "{{version}}"
 
 from typing import Optional, Callable, Dict, Type, List
 import struct
+import os
+import sys
+import subprocess
+
+# Handle LD_PRELOAD for _tlm_pbsb.so (required for static TLS)
+if '_LD_PRELOAD_HANDLED' not in os.environ:
+    dut_dir = os.path.dirname(os.path.abspath(__file__))
+    so_path = os.path.join(dut_dir, '_tlm_pbsb.so')
+
+    # Setup environment
+    env = os.environ.copy()
+    env['LD_PRELOAD'] = so_path if not env.get('LD_PRELOAD') else f"{so_path}:{env['LD_PRELOAD']}"
+    env['_LD_PRELOAD_HANDLED'] = '1'
+
+    # Convert relative file paths to absolute for pytest arguments
+    def fix_path(arg):
+        if arg.startswith('-') or not ('::' in arg or os.path.exists(arg)):
+            return arg
+        if '::' in arg:
+            path, test = arg.split('::', 1)
+            return f"{os.path.abspath(path)}::{test}" if os.path.exists(path) else arg
+        return os.path.abspath(arg)
+
+    new_args = [sys.argv[0]] + [fix_path(arg) for arg in sys.argv[1:]]
+
+    # Check if we need to change directory to Adder (for VCS database files)
+    if os.path.abspath(os.getcwd()) != dut_dir:
+        # Run subprocess in Adder directory
+        result = subprocess.run([sys.executable] + new_args, env=env, cwd=dut_dir,
+                               capture_output=True, text=True)
+
+        # Handle VCS cleanup crashes: if tests passed but process crashed (SIGABRT), treat as success
+        output = result.stdout + result.stderr
+        success = result.returncode < 0 and ' passed' in output and 'PASSED' in output
+
+        print(result.stdout, end='')
+        print(result.stderr, end='', file=sys.stderr)
+        os._exit(0 if success else max(1, result.returncode))
+    else:
+        # Already in correct directory, just restart with LD_PRELOAD
+        os.execve(sys.executable, [sys.executable] + sys.argv, env)
+# Handle LD_PRELOAD for _tlm_pbsb.so
+# if '_LD_PRELOAD_HANDLED' not in os.environ:
+#     so_path = os.path.join(os.path.dirname(__file__), '_tlm_pbsb.so')
+#     env = os.environ.copy()
+#     env['LD_PRELOAD'] = so_path + ':' + env.get('LD_PRELOAD', '') if env.get('LD_PRELOAD') else so_path
+#     env['_LD_PRELOAD_HANDLED'] = '1'
+    
+#     # Restart from Adder directory
+#     dut_dir = os.path.dirname(__file__)
+#     script_path = os.path.abspath(sys.argv[0])
+#     subprocess.run([sys.executable, script_path] + sys.argv[1:], env=env, cwd=dut_dir)
+#     sys.exit(0)
 
 try:
     from . import tlm_pbsb as u
@@ -56,6 +109,9 @@ class _PinWrapper:
     def xdata(self):
         return self._xpin.xdata
 
+    @property
+    def event(self):
+        return self._xpin.event  
 
 class DUT{{package_name}}:
     """
