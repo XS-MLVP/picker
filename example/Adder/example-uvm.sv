@@ -1,5 +1,5 @@
 //==============================================================================
-// File       : example.sv
+// File       : example-uvm.sv
 // Description: UVM testbench for Adder DUT with Python integration
 //              - UVM environment drives Adder DUT  
 //              - Python can monitor/drive through Adder transaction
