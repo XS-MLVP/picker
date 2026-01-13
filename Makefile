@@ -26,8 +26,14 @@ init:
 		exit 1; \
 	fi
 	@if [ ! -d dependence/xcomm/.git ]; then \
-		mkdir -p dependence && \
-		git clone --depth=1 https://github.com/XS-MLVP/xcomm.git dependence/xcomm; \
+		mkdir -p dependence; \
+		if git clone --depth=1 https://github.com/XS-MLVP/xcomm.git dependence/xcomm; then \
+			echo "[xcomm] cloned from github"; \
+		else \
+			echo "[xcomm] github clone failed; falling back to gitlink.org.cn"; \
+			rm -rf dependence/xcomm; \
+			git clone --depth=1 https://gitlink.org.cn/XS-MLVP/xcomm.git dependence/xcomm; \
+		fi; \
 	else \
 		git -C dependence/xcomm fetch --all --tags --prune; \
 	fi
