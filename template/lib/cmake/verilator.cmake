@@ -1,3 +1,4 @@
+cmake_policy(SET CMP0058 NEW)
 if(SIMULATOR STREQUAL "verilator")
 
 	add_definitions(-DUSE_VERILATOR)

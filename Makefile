@@ -39,11 +39,17 @@ init:
 	fi
 	# Checkout same branch as parent if it exists; otherwise fallback to latest master
 	@PARENT_BRANCH=$$(git branch --show-current); \
+	if [ -z "$$PARENT_BRANCH" ]; then \
+		echo "[xcomm] In detached HEAD, falling back to master branch for xcomm"; \
+		PARENT_BRANCH="master"; \
+	fi; \
+	echo "[xcomm] Trying to align with parent branch '$$PARENT_BRANCH'"; \
 	if git -C dependence/xcomm ls-remote --exit-code --heads origin "$$PARENT_BRANCH" >/dev/null 2>&1; then \
-		echo "[xcomm] Using branch $$PARENT_BRANCH"; \
+		echo "[xcomm] Branch '$$PARENT_BRANCH' found in xcomm. Checking it out."; \
+		git -C dependence/xcomm fetch origin "$$PARENT_BRANCH"; \
 		git -C dependence/xcomm checkout -B "$$PARENT_BRANCH" "origin/$$PARENT_BRANCH"; \
 	else \
-		echo "[xcomm] No branch $$PARENT_BRANCH; fallback to latest master"; \
+		echo "[xcomm] Branch '$$PARENT_BRANCH' not found in xcomm. Falling back to master."; \
 		git -C dependence/xcomm fetch origin master; \
 		git -C dependence/xcomm checkout -B master origin/master; \
 	fi
