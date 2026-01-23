@@ -46,11 +46,11 @@ init:
 	echo "[xcomm] Trying to align with parent branch '$$PARENT_BRANCH'"; \
 	if git -C dependence/xcomm ls-remote --exit-code --heads origin "$$PARENT_BRANCH" >/dev/null 2>&1; then \
 		echo "[xcomm] Branch '$$PARENT_BRANCH' found in xcomm. Checking it out."; \
-		git -C dependence/xcomm fetch origin "$$PARENT_BRANCH"; \
+		git -C dependence/xcomm fetch origin "$$PARENT_BRANCH:refs/remotes/origin/$$PARENT_BRANCH"; \
 		git -C dependence/xcomm checkout -B "$$PARENT_BRANCH" "origin/$$PARENT_BRANCH"; \
 	else \
 		echo "[xcomm] Branch '$$PARENT_BRANCH' not found in xcomm. Falling back to master."; \
-		git -C dependence/xcomm fetch origin master; \
+		git -C dependence/xcomm fetch origin master:refs/remotes/origin/master; \
 		git -C dependence/xcomm checkout -B master origin/master; \
 	fi
 	
