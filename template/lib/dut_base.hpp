@@ -95,6 +95,8 @@ class DutVerilatorBase : public DutBase
 {
 private:
     std::string coverage_file_path;
+    bool wave_pause_deferred = false;
+    bool wave_pause_warned   = false;
 
 public:
     std::map<std::string, uint64_t> pin_address_map;

@@ -324,20 +324,27 @@ int DutVerilatorBase::Step(uint64_t ncycle, bool dump)
 #if defined(VL_VPI)
     VerilatedVpi::callValueCbs();
 #endif
-    if (dump) {
-        for (int i = 0; i < ncycle; i++) {
-            ((V{{__TOP_MODULE_NAME__}} *)(top))->eval();
+    V{{__TOP_MODULE_NAME__}} *topp = (V{{__TOP_MODULE_NAME__}} *)(top);
+    VerilatedContext *contextp = topp->contextp();
+    if (likely(dump)) {
+        for (uint64_t i = 0; i < ncycle; i++) {
+            topp->eval();
 #if defined(VL_VPI)
             VerilatedVpi::callValueCbs(); 
 #endif
-            ((V{{__TOP_MODULE_NAME__}} *)(top))->contextp()->timeInc(1);
+            contextp->timeInc(1);
         }
     } else {
         assert(ncycle == 1);
-        ((V{{__TOP_MODULE_NAME__}} *)(top))->eval_step();
+        topp->eval_step();
     }
 #if defined(VL_VPI)
     VerilatedVpi::callValueCbs(); 
+#endif
+#if defined(VL_TRACE)
+    if (unlikely(wave_pause_deferred)) {
+        wave_pause_deferred = !this->PauseWaveformDump();
+    }
 #endif
 
     return 0;
@@ -396,9 +403,17 @@ bool DutVerilatorBase::ResumeWaveformDump(){
 
 bool DutVerilatorBase::PauseWaveformDump(){
 #if defined(VL_TRACE)
-    if(!((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->__Vm_dumperp)return false;
-    ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->__Vm_dumperp->flush();
-    ((V{{__TOP_MODULE_NAME__}} *)(this->top))->rootp->vlSymsp->_traceDumpClose();
+    V{{__TOP_MODULE_NAME__}} *topp = (V{{__TOP_MODULE_NAME__}} *)(this->top);
+    if (unlikely(!topp->rootp->vlSymsp->__Vm_dumperp)) {
+        wave_pause_deferred = true;
+        if (unlikely(!wave_pause_warned)) {
+            XWarning("PauseWaveformDump before dumper exists; will pause when ready");
+            wave_pause_warned = true;
+        }
+        return false;
+    }
+    topp->rootp->vlSymsp->__Vm_dumperp->flush();
+    topp->rootp->vlSymsp->_traceDumpClose();
 #else
     std::cerr << "Verilator waveform is not enabled";
 #endif
