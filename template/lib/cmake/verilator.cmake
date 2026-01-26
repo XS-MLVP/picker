@@ -48,7 +48,7 @@ if(SIMULATOR STREQUAL "verilator")
 		set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--vpi" "--public-flat-rw")
 	endif()
 
-	set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--MAKEFLAGS" "-DVL_INLINE_OPT=inline" "-O3" "--instr-count-dpi" "0")
+	set(SIMULATOR_FLAGS ${SIMULATOR_FLAGS} "--MMD" "--MP" "--MAKEFLAGS" "-DVL_INLINE_OPT=inline" "-O3" "--instr-count-dpi" "0")
 	message(STATUS "Verilator flags: ${SIMULATOR_FLAGS}")
 
 

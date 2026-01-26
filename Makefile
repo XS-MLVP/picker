@@ -10,49 +10,15 @@ verible_arch := $(shell uname -m)
 ifneq ($(verible_arch),x86_64)
 	verible_arch := $(shell echo $(verible_arch) | sed 's/aarch64/arm64/')
 endif
+VERIBLE_VERSION ?= v0.0-4007-g98bdb38a
+VERIBLE_TGZ := verible-$(VERIBLE_VERSION)-linux-static-$(verible_arch).tar.gz
+VERIBLE_URL := https://github.com/chipsalliance/verible/releases/download/$(VERIBLE_VERSION)/$(VERIBLE_TGZ)
 
 # Default target should not destroy previous builds
 all: init build
 
 init:
-	@if ! command -v verible-verilog-syntax >/dev/null 2>&1; then \
-		echo "verible-verilog-syntax could not be found, please install verible first"; \
-		echo "you can install verible by following command:"; \
-		echo "\t$$ wget \"https://github.com/chipsalliance/verible/releases/download/v0.0-4007-g98bdb38a/verible-v0.0-4007-g98bdb38a-linux-static-${verible_arch}.tar.gz\""; \
-		echo "\t$$ tar -xzf verible-v0.0-4007-g98bdb38a-linux-static-${verible_arch}.tar.gz"; \
-		echo "\t$$ mv verible-v0.0-4007-g98bdb38a/bin/verible-verilog-format /usr/local/bin/"; \
-		echo "or you can install in user local directory, remember to add ~/.local/bin to your PATH"; \
-		echo "\t$$ mv verible-v0.0-4007-g98bdb38a/bin/verible-verilog-format ~/.local/bin/"; \
-		exit 1; \
-	fi
-	@if [ ! -d dependence/xcomm/.git ]; then \
-		mkdir -p dependence; \
-		if git clone --depth=1 https://github.com/XS-MLVP/xcomm.git dependence/xcomm; then \
-			echo "[xcomm] cloned from github"; \
-		else \
-			echo "[xcomm] github clone failed; falling back to gitlink.org.cn"; \
-			rm -rf dependence/xcomm; \
-			git clone --depth=1 https://gitlink.org.cn/XS-MLVP/xcomm.git dependence/xcomm; \
-		fi; \
-	else \
-		git -C dependence/xcomm fetch --all --tags --prune; \
-	fi
-	# Checkout same branch as parent if it exists; otherwise fallback to latest master
-	@PARENT_BRANCH=$$(git branch --show-current); \
-	if [ -z "$$PARENT_BRANCH" ]; then \
-		echo "[xcomm] In detached HEAD, falling back to master branch for xcomm"; \
-		PARENT_BRANCH="master"; \
-	fi; \
-	echo "[xcomm] Trying to align with parent branch '$$PARENT_BRANCH'"; \
-	if git -C dependence/xcomm ls-remote --exit-code --heads origin "$$PARENT_BRANCH" >/dev/null 2>&1; then \
-		echo "[xcomm] Branch '$$PARENT_BRANCH' found in xcomm. Checking it out."; \
-		git -C dependence/xcomm fetch origin "$$PARENT_BRANCH:refs/remotes/origin/$$PARENT_BRANCH"; \
-		git -C dependence/xcomm checkout -B "$$PARENT_BRANCH" "origin/$$PARENT_BRANCH"; \
-	else \
-		echo "[xcomm] Branch '$$PARENT_BRANCH' not found in xcomm. Falling back to master."; \
-		git -C dependence/xcomm fetch origin master:refs/remotes/origin/master; \
-		git -C dependence/xcomm checkout -B master origin/master; \
-	fi
+	@bash scripts/init.sh
 	
 build:
 	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=$(NPROC) $(ARGS)
@@ -66,8 +32,6 @@ rebuild: clean_build build
 install: build
 	cd build && $(MAKE) install
 
-VERIBLE_VERSION ?= v0.0-4007-g98bdb38a
-
 appimage: init
 	rm -rf AppDir
 # Reuse existing build if present; otherwise configure and build
@@ -80,7 +44,7 @@ appimage: init
 # Install into AppDir
 	cd build && $(MAKE) install DESTDIR=`pwd`/../AppDir
 # Integrate verible
-	wget "https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-${verible_arch}.tar.gz" \
+	wget "$(VERIBLE_URL)" \
 		-O build/verible.tar.gz
 	tar -xzf build/verible.tar.gz -C build/
 	mv build/verible-${VERIBLE_VERSION}/bin/verible-verilog-syntax AppDir/usr/bin/verible-verilog-syntax
@@ -150,4 +114,5 @@ smoke_tests:
 
 unit_tests:
 	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL=$(NPROC) $(ARGS)
+	cd build && $(MAKE) -j$(NPROC)
 	cd build && ctest --output-on-failure -j$(NPROC)

@@ -39,7 +39,7 @@ LDLIBS += -lpthread -lz -ldl
 OBJS = $(patsubst %.cpp, %.o, $(wildcard *.cpp))
 
 export.bin: $(OBJS)
-	$(CXX) $(CXXFLAGS) -o export.bin $^ $(LDFLAGS) $(LDLIBS)
+	$(CXX) -o export.bin $^ $(LDFLAGS) $(LDLIBS) $(CXXFLAGS)
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
