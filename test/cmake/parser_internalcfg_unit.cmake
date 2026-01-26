@@ -1,0 +1,3 @@
+
+add_executable(test_parser_internalcfg_unit test_parser_internalcfg_unit.cpp)
+target_link_libraries(test_parser_internalcfg_unit parser)

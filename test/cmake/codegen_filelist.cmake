@@ -1,0 +1,3 @@
+
+add_executable(test_codegen_filelist test_codegen_filelist.cpp)
+target_link_libraries(test_codegen_filelist codegen_ test_common)

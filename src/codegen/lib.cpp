@@ -1,3 +1,4 @@
+#include <cstring>
 #include <unordered_set>
 #include "codegen/lib.hpp"
 #include "picker.hpp"
@@ -38,29 +39,80 @@ namespace picker { namespace codegen {
     }
 
     void gen_filelist(const std::vector<std::string> &source_file, const std::vector<std::string> &ifilelists,
-                      std::string &ofilelist)
+                      std::string &ofilelist, std::vector<std::string> &incdirs)
     {
-        std::vector<std::string> path_list;
+        std::vector<std::pair<std::string, std::string>> path_list;
         const std::vector<std::string> allow_file_types = {".sv", ".v", ".cpp", ".c", ".cc", ".cxx", ".so", ".a", ".o"};
-        std::string fs_path                             = "";
+        std::unordered_set<std::string> incdir_set;
         for (auto ifilelist : ifilelists) {
             if (check_file_type(ifilelist, {".txt", ".f"})) { // file
                 std::ifstream ifs(ifilelist);
                 std::string line;
-                fs_path = std::filesystem::absolute(ifilelist).parent_path().string();
-                while (std::getline(ifs, line)) { path_list.push_back(line); }
+                auto fs_path = std::filesystem::absolute(ifilelist).parent_path().string();
+                while (std::getline(ifs, line)) { path_list.push_back({line, fs_path}); }
             } else { // split by comma
                 std::string line;
                 std::stringstream ss(ifilelist);
-                while (std::getline(ss, line, ',')) { path_list.push_back(line); }
+                while (std::getline(ss, line, ',')) { path_list.push_back({line, ""}); }
             }
         }
-        for (auto &path : path_list) {
-            path = picker::trim(path);
+
+        auto add_incdir = [&](std::string dir, const std::string &base_dir) {
+            dir = picker::trim(dir);
+            if (dir.empty()) { return; }
+            if (!std::filesystem::exists(dir) && !dir.starts_with("/") && !base_dir.empty()) {
+                PK_ERROR("Cannot find include dir: %s, try search in path: %s", dir.c_str(), base_dir.c_str());
+                dir = (std::filesystem::path(base_dir) / dir).string();
+            }
+            if (!std::filesystem::exists(dir)) { PK_FATAL("Include dir not found: %s\n", dir.c_str()); }
+            dir = std::filesystem::absolute(dir).string();
+            if (incdir_set.insert(dir).second) { incdirs.push_back(dir); }
+        };
+
+        auto parse_incdir_flags = [&](const std::string &line, const std::string &base_dir) -> bool {
+            bool matched = false;
+            std::stringstream ss(line);
+            std::string tok;
+            std::vector<std::string> tokens;
+            while (ss >> tok) { tokens.push_back(tok); }
+
+            for (size_t i = 0; i < tokens.size(); ++i) {
+                const auto &t = tokens[i];
+                if (t.starts_with("+incdir+")) {
+                    matched = true;
+                    std::string rest = t.substr(strlen("+incdir+"));
+                    size_t pos = 0;
+                    while (pos < rest.size()) {
+                        size_t next = rest.find('+', pos);
+                        std::string dir = rest.substr(pos, next - pos);
+                        add_incdir(dir, base_dir);
+                        if (next == std::string::npos) { break; }
+                        pos = next + 1;
+                    }
+                    continue;
+                }
+                if (t == "-I") {
+                    matched = true;
+                    if (i + 1 < tokens.size()) { add_incdir(tokens[++i], base_dir); }
+                    continue;
+                }
+                if (t.starts_with("-I") && t.size() > 2) {
+                    matched = true;
+                    add_incdir(t.substr(2), base_dir);
+                    continue;
+                }
+            }
+            return matched;
+        };
+
+        for (auto &path_item : path_list) {
+            auto path = picker::trim(path_item.first);
+            const auto &fs_path = path_item.second;
             if (path.starts_with("#")) { continue; }                      // skip comment line
             path = picker::trim(path.substr(0, path.find_first_of("#"))); // remove comment part
             if (path.empty()) { continue; }                               // skip empty line
-            if (picker::contains(source_file, path)) { continue; }        // skip source file
+            if (parse_incdir_flags(path, fs_path)) { continue; }
+            if (picker::contains(source_file, path)) { continue; } // skip source file
 
             if (check_file_type(path, allow_file_types)) { // file
                 auto target_file = path;
@@ -89,6 +141,24 @@ namespace picker { namespace codegen {
                 PK_FATAL("Unsupported file type: %s\n", path.c_str());
             }
         }
+    }
+
+    void append_incdirs_to_vflag(const std::string &simulator, const std::vector<std::string> &incdirs,
+                                 std::string &vflag)
+    {
+        if (incdirs.empty()) { return; }
+        std::string extra;
+        for (const auto &dir : incdirs) {
+            if (!extra.empty()) { extra += " "; }
+            if (simulator == "verilator") {
+                extra += "-I" + dir;
+            } else if (simulator == "vcs") {
+                extra += "+incdir+" + dir;
+            }
+        }
+        if (extra.empty()) { return; }
+        if (!vflag.empty()) { vflag += " "; }
+        vflag += extra;
     }
 
     void get_clock_period(std::string &vcs_clock_period_h, std::string &vcs_clock_period_l,
@@ -198,6 +268,9 @@ namespace picker { namespace codegen {
             ret = gen_sv_param(data, sv_module_result, internal_pin, signal_tree, wave_file_name, simulator,
                                opts.rw_type);
         }
+        std::vector<std::string> incdirs;
+        gen_filelist(files, ifilelists, ofilelist, incdirs);
+        append_incdirs_to_vflag(simulator, incdirs, vflag);
         gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag, env, data);
 
         // Set clock period
@@ -206,9 +279,6 @@ namespace picker { namespace codegen {
 
         // Get coverage metrics
         gen_coverage_metrics(simulator, opts, vflag, data);
-
-        // Render lib filelist
-        gen_filelist(files, ifilelists, ofilelist);
 
         // Render expins info
         auto expins = nlohmann::json::array();
