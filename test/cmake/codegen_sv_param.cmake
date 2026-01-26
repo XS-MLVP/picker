@@ -1,0 +1,3 @@
+
+add_executable(test_codegen_sv_param test_codegen_sv_param.cpp)
+target_link_libraries(test_codegen_sv_param codegen_)

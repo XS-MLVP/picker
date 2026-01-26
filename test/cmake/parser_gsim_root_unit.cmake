@@ -1,0 +1,3 @@
+
+add_executable(test_parser_gsim_root_unit test_parser_gsim_root_unit.cpp)
+target_link_libraries(test_parser_gsim_root_unit parser test_common)

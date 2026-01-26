@@ -1,0 +1,3 @@
+
+add_executable(test_parser_sv_collect_unit test_parser_sv_collect_unit.cpp)
+target_link_libraries(test_parser_sv_collect_unit parser test_common)

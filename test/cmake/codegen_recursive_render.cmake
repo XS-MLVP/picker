@@ -1,0 +1,3 @@
+
+add_executable(test_codegen_recursive_render test_codegen_recursive_render.cpp)
+target_link_libraries(test_codegen_recursive_render codegen_ test_common)

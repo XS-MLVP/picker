@@ -1,0 +1,3 @@
+
+add_executable(test_parser_map_unit test_parser_map_unit.cpp)
+target_link_libraries(test_parser_map_unit parser test_common)
