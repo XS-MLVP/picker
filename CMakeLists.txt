@@ -17,6 +17,9 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 else()
     set(is_top_level_project FALSE)
 endif()
+if(is_top_level_project)
+    enable_testing()
+endif()
 
 # options
 option(CPPAST_BUILD_TEST "whether or not to build the tests" OFF)
