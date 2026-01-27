@@ -26,6 +26,8 @@ public:
     // Initialize
     DutBase();
     virtual ~DutBase() = default;
+    // Re-init state after fork in child (no-op by default)
+    virtual void atClone() {}
 
     // Simulate N cycles
     virtual int Step(uint64_t cycle, bool dump) = 0;
@@ -118,6 +120,7 @@ public:
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
+    void atClone();
 };
 extern "C" {
 DutVerilatorBase *dlcreates(int argc, char **argv);
@@ -217,6 +220,9 @@ public:
 
     // Clean up and dump result
     int Finish();
+
+    // Re-init state after fork in child (Verilator only; no-op for others)
+    void atClone();
 
     // Get DPI handle for XData
     uint64_t GetDPIHandle(char *name, int towards);

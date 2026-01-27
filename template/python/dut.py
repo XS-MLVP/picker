@@ -162,6 +162,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def RefreshComb(self):
         self.dut.RefreshComb()
 
+    def AtClone(self):
+        """Re-init simulator state in child after fork."""
+        return self.dut.atClone()
+
     ################################
     #      End of User APIs        #
     ################################

@@ -30,6 +30,12 @@ UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(std::initializer_list<const
 UT{{__TOP_MODULE_NAME__}}::~UT{{__TOP_MODULE_NAME__}}()
 {
     delete this->dut;
+    for (auto const& [key, val] : this->signal_map) {
+        delete val;
+    }
+    this->signal_map.clear();
+    delete this->xcfg;
+    this->xcfg = nullptr;
     // Finished {{__TOP_MODULE_NAME__}}
 }
 

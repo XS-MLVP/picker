@@ -237,6 +237,10 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) RefreshComb(){
     self.Dut.RefreshComb()
 }
 
+func (self *UT_{{__TOP_MODULE_NAME__}}) AtClone(){
+    self.Dut.atClone()
+}
+
 /*******************************/
 /**    End of User APIs        */
 /*******************************/

@@ -217,6 +217,10 @@ function DUT{{__TOP_MODULE_NAME__}}:RefreshComb()
     self.dut:RefreshComb()
 end
 
+function DUT{{__TOP_MODULE_NAME__}}:AtClone()
+    self.dut:atClone()
+end
+
 local function contains(a, x)
     return string.find(a, x) ~= nil
 end
