@@ -107,6 +107,9 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     def RefreshComb() = {
         this.dut.RefreshComb()
     }
+    def AtClone(): Unit = {
+        this.dut.atClone()
+    }
     def CheckPoint(check_point: String) = {
         this.dut.CheckPoint(check_point)
     }

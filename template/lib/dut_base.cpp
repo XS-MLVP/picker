@@ -384,7 +384,9 @@ void DutVerilatorBase::FlushWaveform()
 {
 #if defined(VL_TRACE)
     V{{__TOP_MODULE_NAME__}} *topp = (V{{__TOP_MODULE_NAME__}} *)(this->top);
-    topp->rootp->vlSymsp->__Vm_dumperp->flush();
+    if (topp->rootp->vlSymsp->__Vm_dumperp) {
+        topp->rootp->vlSymsp->__Vm_dumperp->flush();
+    }
 #else
     std::cerr << "Verilator waveform is not enabled";
     exit(-1);
@@ -478,6 +480,15 @@ uint64_t DutVerilatorBase::NativeSignalAddr(const char *name){
     XWarning("NativeSignalAddr: Pin %s not found", name);
     return 0;
 };
+
+void DutVerilatorBase::atClone()
+{
+    if (!this->top) {
+        return;
+    }
+    V{{__TOP_MODULE_NAME__}} *topp = (V{{__TOP_MODULE_NAME__}} *)(this->top);
+    topp->atClone();
+}
 
 DutVerilatorBase *dlcreates(int argc, char **argv)
 {
@@ -906,6 +917,9 @@ int DutUnifiedBase::Finish()
         this->main_ns_flag = false;
     }
     for (int i = 0; i < this->argc; i++) { free(this->argv[i]); }
+    free(this->argv);
+    this->argv = nullptr;
+
     return 0;
 }
 void DutUnifiedBase::SetCoverage(const std::string filename)
@@ -919,6 +933,12 @@ void DutUnifiedBase::SetCoverage(const char *filename)
 int DutUnifiedBase::GetCovMetrics()
 {
     return DutUnifiedBase::coverage_metrics;
+}
+void DutUnifiedBase::atClone()
+{
+    if (this->dut) {
+        this->dut->atClone();
+    }
 }
 void DutUnifiedBase::SetWaveform(const char *filename)
 {

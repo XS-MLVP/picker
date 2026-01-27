@@ -165,6 +165,10 @@ public:
     {
         this->dut->RefreshComb();
     }
+    void AtClone()
+    {
+        this->dut->atClone();
+    }
     /*******************************/
     /**    End of User APIs        */
     /*******************************/

@@ -266,8 +266,10 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public void RefreshComb(){
         this.dut.RefreshComb();
     }
+    public void AtClone() {
+        this.dut.atClone();
+    }
     /*************************************************/
     /*               End of User APIs                */
     /*************************************************/
 }
-
