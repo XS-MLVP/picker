@@ -7,6 +7,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=C.UTF-8 \
     TZ=Europe/Paris
 
+# Use bash for RUN so pipefail works reliably.
+SHELL ["/bin/bash", "-c"]
+
 # Base deps in one layer; set timezone cleanly
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
