@@ -73,10 +73,10 @@ RUN git clone https://github.com/verilator/verilator -b ${VERILATOR_VERSION} --d
 RUN swig -version && cmake --version && verilator --version && java --version && python3 --version
 
 # Install Verible (pinned)
-ARG VERIBLE_VERSION=v0.0-3979-g786edf03
+ARG VERIBLE_VERSION=v0.0-4051-g9fdb4057
 RUN set -euo pipefail; \
     ARCH="$(uname -m)"; \
-    case "$ARCH" in aarch64) V_ARCH=aarch64 ;; x86_64) V_ARCH=x86_64 ;; *) V_ARCH=x86_64 ;; esac; \
+    case "$ARCH" in aarch64) V_ARCH=arm64 ;; x86_64) V_ARCH=x86_64 ;; *) V_ARCH=x86_64 ;; esac; \
     cd /tmp && \
     wget -q https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-${V_ARCH}.tar.gz && \
     tar -xzf verible-${VERIBLE_VERSION}-linux-static-${V_ARCH}.tar.gz -C /usr/local/ --strip-components=1 && \
