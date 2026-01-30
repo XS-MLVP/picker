@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
-VERIBLE_VERSION=${VERIBLE_VERSION:-v0.0-4007-g98bdb38a}
+VERIBLE_VERSION=${VERIBLE_VERSION:-v0.0-4051-g9fdb4057}
 VERIBLE_ARCH=$(uname -m)
 if [[ "${VERIBLE_ARCH}" != "x86_64" ]]; then
   VERIBLE_ARCH=${VERIBLE_ARCH/aarch64/arm64}
