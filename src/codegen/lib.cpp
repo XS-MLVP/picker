@@ -44,6 +44,18 @@ namespace picker { namespace codegen {
         std::vector<std::pair<std::string, std::string>> path_list;
         const std::vector<std::string> allow_file_types = {".sv", ".v", ".cpp", ".c", ".cc", ".cxx", ".so", ".a", ".o"};
         std::unordered_set<std::string> incdir_set;
+        auto resolve_input_path = [](const std::string &path, const std::string &base_dir) {
+            auto resolved = std::filesystem::path(path);
+            if (!base_dir.empty() && !resolved.is_absolute()) { resolved = std::filesystem::path(base_dir) / resolved; }
+            return resolved.lexically_normal().string();
+        };
+
+        std::unordered_set<std::string> source_file_set;
+        for (const auto &file : source_file) {
+            auto normalized = std::filesystem::absolute(resolve_input_path(file, "")).lexically_normal().string();
+            source_file_set.insert(normalized);
+        }
+
         for (auto ifilelist : ifilelists) {
             if (check_file_type(ifilelist, {".txt", ".f"})) { // file
                 std::ifstream ifs(ifilelist);
@@ -60,12 +72,9 @@ namespace picker { namespace codegen {
         auto add_incdir = [&](std::string dir, const std::string &base_dir) {
             dir = picker::trim(dir);
             if (dir.empty()) { return; }
-            if (!std::filesystem::exists(dir) && !dir.starts_with("/") && !base_dir.empty()) {
-                PK_ERROR("Cannot find include dir: %s, try search in path: %s", dir.c_str(), base_dir.c_str());
-                dir = (std::filesystem::path(base_dir) / dir).string();
-            }
-            if (!std::filesystem::exists(dir)) { PK_FATAL("Include dir not found: %s\n", dir.c_str()); }
-            dir = std::filesystem::absolute(dir).string();
+            auto resolved_dir = resolve_input_path(dir, base_dir);
+            if (!std::filesystem::exists(resolved_dir)) { PK_FATAL("Include dir not found: %s\n", dir.c_str()); }
+            dir = std::filesystem::absolute(resolved_dir).lexically_normal().string();
             if (incdir_set.insert(dir).second) { incdirs.push_back(dir); }
         };
 
@@ -112,25 +121,19 @@ namespace picker { namespace codegen {
             path = picker::trim(path.substr(0, path.find_first_of("#"))); // remove comment part
             if (path.empty()) { continue; }                               // skip empty line
             if (parse_incdir_flags(path, fs_path)) { continue; }
-            if (picker::contains(source_file, path)) { continue; } // skip source file
 
             if (check_file_type(path, allow_file_types)) { // file
                 auto target_file = path;
-                if (!std::filesystem::exists(path) && !path.starts_with("/") && !fs_path.empty()) {
-                    PK_ERROR("Cannot find file: %s, try search in path: %s", path.c_str(), fs_path.c_str());
-                    path = (std::filesystem::path(fs_path) / path).string();
-                }
-                if (!std::filesystem::exists(path)) PK_FATAL("File not found: %s\n", target_file.c_str());
-                path = std::filesystem::absolute(path).string();
+                auto resolved_file = resolve_input_path(path, fs_path);
+                if (!std::filesystem::exists(resolved_file)) PK_FATAL("File not found: %s\n", target_file.c_str());
+                path = std::filesystem::absolute(resolved_file).lexically_normal().string();
+                if (source_file_set.count(path) != 0) { continue; } // skip source file
                 ofilelist += path + "\n";
             } else if (path.ends_with("/")) { // directory
                 auto target_dir = path;
-                if (!std::filesystem::exists(path) && !path.starts_with("/") && !fs_path.empty()) {
-                    PK_ERROR("Cannot find directory: %s, try search in path: %s", path.c_str(), fs_path.c_str());
-                    path = (std::filesystem::path(fs_path) / path).string();
-                }
-                if (!std::filesystem::exists(path)) PK_FATAL("Directory not found: %s\n", target_dir.c_str());
-                std::filesystem::recursive_directory_iterator iter(path);
+                auto resolved_dir = resolve_input_path(path, fs_path);
+                if (!std::filesystem::exists(resolved_dir)) PK_FATAL("Directory not found: %s\n", target_dir.c_str());
+                std::filesystem::recursive_directory_iterator iter(resolved_dir);
                 for (const auto &entry : iter) {
                     if (entry.is_regular_file()) {
                         std::string filename = entry.path().filename().string();
