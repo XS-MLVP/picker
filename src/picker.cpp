@@ -419,27 +419,19 @@ int main(int argc, char **argv)
 
         } else {
             // Transaction Mode: parse SV transaction classes
-            std::vector<std::string> all_files = pack_opts.files;
-            picker::parser::collect_verilog_from_filelists(pack_opts.filelist, all_files);
+            picker::parser::parse_sv_transactions(pack_opts, transactions);
 
-            if (all_files.empty()) {
-                PK_FATAL("No transaction files specified. Use 'file' argument or -f/--filelist option.");
-            }
+            PK_MESSAGE("Mode: %s Transaction%s", transactions.size() == 1 ? "Single" : "Multi",
+                       transactions.size() > 1 ? ("s (" + std::to_string(transactions.size()) + " files)").c_str() : "");
 
-            PK_MESSAGE("Mode: %s Transaction%s", all_files.size() == 1 ? "Single" : "Multi",
-                       all_files.size() > 1 ? ("s (" + std::to_string(all_files.size()) + " files)").c_str() : "");
-
-            for (size_t i = 0; i < all_files.size(); i++) {
-                auto transaction = picker::parser::parse_sv(all_files[i], "");
-
-                // Apply rename if specified
+            for (size_t i = 0; i < transactions.size(); i++) {
+                auto &transaction = transactions[i];
                 std::string filename = (i < pack_opts.rename.size()) ? pack_opts.rename[i]
-                                      : std::filesystem::path(all_files[i]).stem().string();
+                                      : std::filesystem::path(transaction.filepath).stem().string();
                 if (i < pack_opts.rename.size()) {
                     transaction.name = pack_opts.rename[i];
                 }
 
-                transactions.push_back(transaction);
                 filenames.push_back(filename);
             }
         }

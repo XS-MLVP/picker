@@ -7,7 +7,6 @@ Overview
 Prerequisites
 - Built picker binary at `./build/bin/picker` (or installed `picker` in PATH).
 - Verilator (>=4.218), CMake (>=3.11), a C++ compiler, Python3.
-- Verible `verible-verilog-syntax` in PATH for export examples.
 
 Usage
 - Run all: `make -C test all`
@@ -15,6 +14,12 @@ Usage
 - Individual:
   - `make -C test export_python`
   - `make -C test export_vpi_python`
+  - `make -C test export_filelist`
+  - `make -C test export_complex_port`
+  - `make -C test pack_transaction`
+  - `make -C test pack_from_rtl`
+  - `make -C test pack_unsupported_type`
+  - `make -C test pack_multiple_classes`
   - `make -C test pack_python`
 
 Notes

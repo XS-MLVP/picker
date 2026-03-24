@@ -3,6 +3,8 @@ include_directories(../../include/codegen)
 include_directories(../../include/parser)
 set(source_file 
      sv.cpp
+     slang_sv.cpp
+     slang_uvm.cpp
      internalcfg.cpp
      uvm.cpp
      verilator_root.cpp
@@ -12,3 +14,4 @@ set(source_file
 )
 
 add_library(parser ${source_file})
+target_link_libraries(parser PUBLIC slang::slang)

@@ -35,10 +35,9 @@ Picker 目前支持的 RTL 仿真器：
 2.  [gcc](https://gcc.gnu.org/) ( 需要支持 c++20, 版本至少为 10, **建议 11 及以上版本** )
 3.  [python3](https://www.python.org/downloads/) ( >=3.8 )
 4.  [verilator](https://verilator.org/guide/latest/install.html#git-quick-install) ( >=5.020 )
-5.  [verible-verilog-format](https://github.com/chipsalliance/verible) ( >=0.0-3428-gcfcbb82b )
-6.  [swig](http://www.swig.org/) ( >=**4.2.0**, 多语言支持 )
+5.  [swig](http://www.swig.org/) ( >=**4.2.0**, 多语言支持 )
 
-> 请注意，请确保`verible-verilog-format`等工具的路径已经添加到环境变量`$PATH`中，可以直接命令行调用。
+> `picker export`、`picker pack` 和 `picker pack --from-rtl` 现在都使用 `slang` 作为 Verilog / SystemVerilog 前端，常规解析和打包流程不再依赖 Verible。
 
 ### 下载源码
 
@@ -47,6 +46,8 @@ git clone https://github.com/XS-MLVP/picker.git --depth=1
 cd picker
 make init
 ```
+
+`make init` 会自动拉取 `dependence/` 下的 git 依赖，包括 `xcomm`、`slang` 和 `fmt`。
 
 ### 构建并安装
 

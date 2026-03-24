@@ -16,10 +16,6 @@
 >
 > 以下说明均基于已正确配置 Homebrew 的环境。
 
-### 配置 Verible
-
-请确保已经正确配置了 [Verible](https://github.com/chipsalliance/verible) 的环境变量。
-
 ### 安装依赖项
 
 ```bash

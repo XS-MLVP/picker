@@ -1,11 +1,11 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: all preflight smoke export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg clean
+.PHONY: all preflight smoke export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes clean
 
 SCRIPT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/scripts
 
-all: preflight smoke export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg pack_python
+all: preflight smoke export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes pack_python
 
 # Ensure picker is built with python and java support before running tests
 preflight:
@@ -64,6 +64,24 @@ gsim_smoke: preflight
 
 export_cachecfg: preflight
 	bash "$(SCRIPT_DIR)/test_export_cachecfg_memdirect.sh"
+
+export_filelist: preflight
+	bash "$(SCRIPT_DIR)/test_export_filelist.sh"
+
+export_complex_port: preflight
+	bash "$(SCRIPT_DIR)/test_export_unsupported_complex_port.sh"
+
+pack_transaction: preflight
+	bash "$(SCRIPT_DIR)/test_pack_transaction.sh"
+
+pack_from_rtl: preflight
+	bash "$(SCRIPT_DIR)/test_pack_from_rtl.sh"
+
+pack_unsupported_type: preflight
+	bash "$(SCRIPT_DIR)/test_pack_unsupported_complex_type.sh"
+
+pack_multiple_classes: preflight
+	bash "$(SCRIPT_DIR)/test_pack_multiple_classes.sh"
 
 clean:
 	rm -rf picker_out_* pack_example

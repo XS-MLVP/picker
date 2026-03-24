@@ -72,16 +72,6 @@ RUN git clone https://github.com/verilator/verilator -b ${VERILATOR_VERSION} --d
 # Verify toolchain
 RUN swig -version && cmake --version && verilator --version && java --version && python3 --version
 
-# Install Verible (pinned)
-ARG VERIBLE_VERSION=v0.0-4051-g9fdb4057
-RUN set -euo pipefail; \
-    ARCH="$(uname -m)"; \
-    case "$ARCH" in aarch64) V_ARCH=arm64 ;; x86_64) V_ARCH=x86_64 ;; *) V_ARCH=x86_64 ;; esac; \
-    cd /tmp && \
-    wget -q https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-${V_ARCH}.tar.gz && \
-    tar -xzf verible-${VERIBLE_VERSION}-linux-static-${V_ARCH}.tar.gz -C /usr/local/ --strip-components=1 && \
-    rm -f verible-${VERIBLE_VERSION}-linux-static-${V_ARCH}.tar.gz
-
 # Build and install Picker from local source (copied into image)
 ENV BUILD_XSPCOMM_SWIG=python,java
 WORKDIR /workspace

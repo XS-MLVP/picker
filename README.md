@@ -35,10 +35,9 @@ Currently supported RTL simulators by picker:
 2. [GCC](https://gcc.gnu.org/) (needs to support C++20, at least version 10, **recommended version 11 or above**)
 3. [Python3](https://www.python.org/downloads/) (>=3.8)
 4. [Verilator](https://verilator.org/guide/latest/install.html#git-quick-install) (>=5.020)
-5. [Verible Verilog Format](https://github.com/chipsalliance/verible) (>=0.0-3428-gcfcbb82b)
-6. [SWIG](http://www.swig.org/) (>=**4.2.0**, multi-language support)
+5. [SWIG](http://www.swig.org/) (>=**4.2.0**, multi-language support)
 
-> Please ensure that the path to tools like `verible-verilog-format` is added to the environment variable `$PATH` for direct command-line invocation.
+> `picker export`, `picker pack`, and `picker pack --from-rtl` now use `slang` as the SystemVerilog / Verilog frontend. Verible is no longer required for normal parser or packaging flows.
 
 ### Source Code Download
 
@@ -47,6 +46,8 @@ git clone https://github.com/XS-MLVP/picker.git --depth=1
 cd picker
 make init
 ```
+
+`make init` fetches the git-based dependencies under `dependence/`, including `xcomm`, `slang`, and `fmt`.
 
 ### Build and Install
 

@@ -35,6 +35,29 @@ if ("$ENV{NO_BUILD_XSPCOMM}" STREQUAL "")
 add_subdirectory(dependence/xcomm)
 endif()
 
+# Verilog/SystemVerilog frontend
+set(FETCHCONTENT_FULLY_DISCONNECTED ON CACHE BOOL "" FORCE)
+set(CMAKE_DISABLE_FIND_PACKAGE_fmt ON CACHE BOOL "" FORCE)
+
+if(EXISTS "${PROJECT_SOURCE_DIR}/dependence/fmt/CMakeLists.txt")
+    set(FETCHCONTENT_SOURCE_DIR_FMT "${PROJECT_SOURCE_DIR}/dependence/fmt" CACHE PATH "" FORCE)
+else()
+    message(FATAL_ERROR "dependence/fmt is missing. Run 'make init' first to fetch fmt.")
+endif()
+
+if(EXISTS "${PROJECT_SOURCE_DIR}/dependence/slang/CMakeLists.txt")
+    set(SLANG_INCLUDE_TOOLS OFF CACHE BOOL "" FORCE)
+    set(SLANG_INCLUDE_TESTS OFF CACHE BOOL "" FORCE)
+    set(SLANG_INCLUDE_DOCS OFF CACHE BOOL "" FORCE)
+    set(SLANG_INCLUDE_PYLIB OFF CACHE BOOL "" FORCE)
+    set(SLANG_INCLUDE_PYTHON_DOCS OFF CACHE BOOL "" FORCE)
+    set(SLANG_INCLUDE_INSTALL OFF CACHE BOOL "" FORCE)
+    set(SLANG_USE_MIMALLOC OFF CACHE BOOL "" FORCE)
+    add_subdirectory(dependence/slang)
+else()
+    message(FATAL_ERROR "dependence/slang is missing. Run 'make init' first to fetch slang and fmt.")
+endif()
+
 # third
 # add_subdirectory(third/type_safe)
 # add_subdirectory(third/cppast)

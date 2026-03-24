@@ -1,205 +1,30 @@
 #include "picker.hpp"
 #include "parser/sv.hpp"
+#include "parser/slang_uvm.hpp"
 #include "parser/uvm.hpp"
-#include "parser/exprtk.hpp"
-#include <climits>
-#include <unordered_map>
-#include <fstream>
 
 namespace picker { namespace parser {
 
-    /// Mapping from SystemVerilog basic types to (bit_count, byte_count)
-    static const std::unordered_map<std::string, std::pair<int, int>> SV_TYPE_MAP = {
-        {"byte",     {8,  1}},
-        {"shortint", {16, 2}},
-        {"int",      {32, 4}},
-        {"longint",  {64, 8}}
-    };
-
-    /// Parse array declaration and extract bit width
-    void handle_array(
-        size_t& j,
-        const nlohmann::json& module_token,
-        uvm_parameter& parameter,
-        const std::string& macro_path)
-    {
-        if (j + 2 >= module_token.size()) {
-            PK_FATAL("Unexpected end of tokens while parsing array declaration");
-        }
-
-        std::string msb_str = module_token[j + 2][VeribleJson::TEXT].get<std::string>();
-
-        // Check if it's a number (starts with digit)
-        if (std::isdigit(msb_str[0])) {
-            try {
-                int msb_value = std::stoi(msb_str);
-                parameter.bit_count = msb_value + 1;
-                parameter.byte_count = bits_to_bytes(parameter.bit_count);
-                parameter.is_macro = 0;
-                parameter.macro_name = "";
-            } catch (const std::exception& e) {
-                PK_FATAL("Failed to parse array bound '%s': %s", msb_str.c_str(), e.what());
-            }
-        } else if (msb_str[0] == '`' || std::isalpha(msb_str[0]) || msb_str[0] == '_') {
-            parameter.is_macro = 1;
-            parameter.macro_name = msb_str;
-            if (!macro_path.empty()) {
-                PK_DEBUG("Array bound uses macro: %s (resolution not yet implemented)", msb_str.c_str());
-            }
-        } else {
-            PK_FATAL("Unexpected array bound token: %s", msb_str.c_str());
-        }
-
-        // Skip to closing bracket ']'
-        while (j + 1 < module_token.size() && module_token[j + 1][VeribleJson::TAG] != "]") {
-            ++j;
-        }
-
-        if (j + 1 >= module_token.size()) {
-            PK_FATAL("Missing closing bracket ']' in array declaration");
-        }
-
-        if (j + 2 >= module_token.size()) {
-            PK_FATAL("Missing parameter name after array declaration");
-        }
-
-        j += 2;  // Skip ']' and get parameter name
-        parameter.name = module_token[j][VeribleJson::TEXT].get<std::string>();
-    }
-
-    /// Parse class definition (name and members) from token stream
-    static std::pair<std::string, std::vector<uvm_parameter>> parse_class_definition(
-        const nlohmann::json& tokens,
-        const std::string& filepath,
-        const std::string& macro_path)
-    {
-        std::string class_name;
-        std::vector<uvm_parameter> parameters;
-
-        for (size_t j = 0; j < tokens.size(); j++) {
-            const std::string& tag = tokens[j][VeribleJson::TAG].get_ref<const std::string&>();
-
-            // Find class name
-            if (tag == "class") {
-                if (j + 1 >= tokens.size()) {
-                    PK_FATAL("Class keyword found but no class name follows in %s", filepath.c_str());
-                }
-                class_name = tokens[j + 1][VeribleJson::TEXT].get<std::string>();
-                continue;
-            }
-
-            // Support both 'rand type' and direct 'type' declarations
-            bool has_rand = (tag == "rand");
-
-            if (has_rand || tag == "bit" || tag == "logic" ||
-                tag == "byte" || tag == "int" ||
-                tag == "shortint" || tag == "longint") {
-
-                // Use default constructor
-                uvm_parameter parameter;
-
-                std::string data_type; 
-                if (has_rand) {
-                     // Ensure bounds before accessing j+1
-                     if (j + 1 >= tokens.size()) {
-                         PK_FATAL("Unexpected end after 'rand'");
-                     }
-                     data_type = tokens[++j][VeribleJson::TAG].get<std::string>();
-                } else {
-                     data_type = tag;
-                }
-
-                // Handle basic types (int, shortint, longint, byte)
-                auto it = SV_TYPE_MAP.find(data_type);
-                if (it != SV_TYPE_MAP.end()) {
-                    parameter.bit_count  = it->second.first;
-                    parameter.byte_count = it->second.second;
-                }
-
-                // Parse array dimensions if present
-                if (j + 1 < tokens.size() && tokens[j + 1][VeribleJson::TAG] == "[") {
-                    handle_array(j, tokens, parameter, macro_path);
-                } else {
-                    // No array, just a simple variable
-                    if (j + 1 >= tokens.size()) {
-                        PK_FATAL("Missing parameter name after type declaration");
-                    }
-                    parameter.name = tokens[++j][VeribleJson::TEXT].get<std::string>();
-                }
-
-                parameters.push_back(parameter);
-            }
-        }
-
-        if (class_name.empty()) {
-            PK_FATAL("No class definition found in %s", filepath.c_str());
-        }
-
-        return {class_name, parameters};
-    }
-
-    /// Parse SystemVerilog transaction class file (runs verible and parses result)
     uvm_transaction_define parse_sv(
         const std::string& filepath,
         const std::string& macro_path)
     {
-        namespace fs = std::filesystem;
+        (void)macro_path;
 
-        // Generate JSON using verible (reusing export's approach with /tmp/)
-        std::string filename = fs::path(filepath).stem().string();
-        std::string json_path = "/tmp/" + filename + "_" + std::string(lib_random_hash)
-                              + picker::get_node_uuid() + ".json";
+        picker::pack_opts opts {};
+        opts.files.push_back(filepath);
 
-        std::string command =
-            std::string(appimage::is_running_as_appimage() ? appimage::get_temporary_path() + "/usr/bin/" : "")
-            + "verible-verilog-syntax --export_json --printtokens "
-            + fs::absolute(filepath).string() + " > " + json_path;
-
-        PK_DEBUG("Running verible command: %s", command.c_str());
-
-        if (std::system(command.c_str()) != 0) {
-            PK_FATAL("Failed to parse %s with verible-verilog-syntax. "
-                     "Ensure verible-verilog-syntax is installed and the file is valid SystemVerilog.",
-                     filename.c_str());
+        std::vector<uvm_transaction_define> transactions;
+        parse_sv_transactions(opts, transactions);
+        if (transactions.size() != 1) {
+            PK_FATAL("Expected exactly one transaction in %s", filepath.c_str());
         }
+        return transactions.front();
+    }
 
-        PK_MESSAGE("Parsed %s.sv successfully", filename.c_str());
-
-        // Read and parse JSON
-        auto json_result = read_file(json_path);
-        nlohmann::json module_json;
-        try {
-            module_json = nlohmann::json::parse(json_result);
-        } catch (const std::exception& e) {
-            std::remove(json_path.c_str());  // Cleanup on error
-            PK_FATAL("Failed to parse JSON from verible output: %s", e.what());
-        }
-
-        // Cleanup temp file
-        std::remove(json_path.c_str());
-
-        uvm_transaction_define transaction;
-
-        // Convert filepath to absolute path to match JSON keys from verible-verilog-syntax
-        std::string abs_filepath = fs::absolute(filepath).string();
-
-        if (!module_json.contains(abs_filepath)) {
-            PK_FATAL("JSON output does not contain key for file: %s", abs_filepath.c_str());
-        }
-
-        auto module_token = module_json[abs_filepath][VeribleJson::TOKENS];
-
-        // Set basic metadata
-        transaction.filepath = filepath;
-        transaction.version  = version();
-        transaction.data_now = fmtnow();
-
-        // Extract class name and members
-        auto [class_name, parameters] = parse_class_definition(module_token, filepath, macro_path);
-        transaction.name = class_name;
-        transaction.parameters = parameters;
-
-        return transaction;
+    void parse_sv_transactions(const pack_opts& opts, std::vector<uvm_transaction_define>& transactions)
+    {
+        parse_sv_transactions_with_slang(opts, transactions);
     }
 
 

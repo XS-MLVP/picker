@@ -6,13 +6,6 @@ SHELL := /bin/bash
 
 export NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
 export BUILD_XSPCOMM_SWIG ?= python
-verible_arch := $(shell uname -m)
-ifneq ($(verible_arch),x86_64)
-	verible_arch := $(shell echo $(verible_arch) | sed 's/aarch64/arm64/')
-endif
-VERIBLE_VERSION ?= v0.0-4007-g98bdb38a
-VERIBLE_TGZ := verible-$(VERIBLE_VERSION)-linux-static-$(verible_arch).tar.gz
-VERIBLE_URL := https://github.com/chipsalliance/verible/releases/download/$(VERIBLE_VERSION)/$(VERIBLE_TGZ)
 
 # Default target should not destroy previous builds
 all: init build
@@ -43,11 +36,6 @@ appimage: init
 	fi
 # Install into AppDir
 	cd build && $(MAKE) install DESTDIR=`pwd`/../AppDir
-# Integrate verible
-	wget "$(VERIBLE_URL)" \
-		-O build/verible.tar.gz
-	tar -xzf build/verible.tar.gz -C build/
-	mv build/verible-${VERIBLE_VERSION}/bin/verible-verilog-syntax AppDir/usr/bin/verible-verilog-syntax
 # Pack Final AppImage
 	linuxdeploy --appdir AppDir/ --output appimage  --desktop-file src/appimage/picker.desktop --icon-file src/appimage/logo256.png
 

@@ -16,10 +16,6 @@ Therefore, we strongly recommend using Picker in a Linux environment for more co
 >
 > The instructions below assume you have Homebrew properly configured.
 
-### Configuring Verible
-
-Make sure that the environment variables for [Verible](https://github.com/chipsalliance/verible) are correctly set.
-
 ### Installing Dependencies
 
 ```bash

@@ -1,0 +1,2 @@
+add_executable(test_parser_slang_sv_unit test_parser_slang_sv_unit.cpp)
+target_link_libraries(test_parser_slang_sv_unit parser test_common)
