@@ -37,7 +37,7 @@ namespace {
     void test_single_transaction_supports_grouped_fields_and_integer_types()
     {
         namespace fs = std::filesystem;
-        const fs::path base = fs::temp_directory_path() / "picker_test_slang_uvm_single";
+        const fs::path base = fs::temp_directory_path() / "picker_test_uvm_single";
         fs::remove_all(base);
         fs::create_directories(base);
 
@@ -80,7 +80,7 @@ namespace {
     void test_filelist_relative_include_define_and_multi_transaction()
     {
         namespace fs = std::filesystem;
-        const fs::path base = fs::temp_directory_path() / "picker_test_slang_uvm_filelist";
+        const fs::path base = fs::temp_directory_path() / "picker_test_uvm_filelist";
         fs::remove_all(base);
         fs::create_directories(base / "list");
         fs::create_directories(base / "rtl" / "inc");

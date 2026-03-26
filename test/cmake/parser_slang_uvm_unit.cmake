@@ -1,2 +1,0 @@
-add_executable(test_parser_slang_uvm_unit test_parser_slang_uvm_unit.cpp)
-target_link_libraries(test_parser_slang_uvm_unit parser test_common)

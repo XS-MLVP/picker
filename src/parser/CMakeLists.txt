@@ -3,8 +3,6 @@ include_directories(../../include/codegen)
 include_directories(../../include/parser)
 set(source_file 
      sv.cpp
-     slang_sv.cpp
-     slang_uvm.cpp
      internalcfg.cpp
      uvm.cpp
      verilator_root.cpp

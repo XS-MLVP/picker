@@ -36,7 +36,7 @@ namespace {
     void test_filelist_include_define_and_math()
     {
         namespace fs = std::filesystem;
-        const fs::path base = fs::temp_directory_path() / "picker_test_slang_sv_filelist";
+        const fs::path base = fs::temp_directory_path() / "picker_test_sv_filelist";
         fs::remove_all(base);
         fs::create_directories(base / "list");
         fs::create_directories(base / "rtl" / "inc");
@@ -98,7 +98,7 @@ namespace {
     void test_default_module_is_last_declared()
     {
         namespace fs = std::filesystem;
-        const fs::path base = fs::temp_directory_path() / "picker_test_slang_sv_default_top";
+        const fs::path base = fs::temp_directory_path() / "picker_test_sv_default_top";
         fs::remove_all(base);
         fs::create_directories(base);
 
