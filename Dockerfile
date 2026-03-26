@@ -20,10 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     vim \
+    time \
     software-properties-common \
-    python3 \
-    python3-pip \
-    python3-dev \
     libpcre3-dev \
     libpcre2-dev \
     pkg-config \
@@ -42,6 +40,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     help2man && \
     ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && \
     dpkg-reconfigure -f noninteractive tzdata && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && apt-get install -y --no-install-recommends nodejs python3.11 python3.11-dev python3.11-venv && \
+    python3.11 -m ensurepip --upgrade && \
+    python3.11 -m pip install --upgrade pip && \
+    ln -sf /usr/bin/python3.11 /usr/local/bin/python3 && \
+    ln -sf /usr/local/bin/pip3.11 /usr/local/bin/pip3 && \
+    npm install -g npm@10 && \
     rm -rf /var/lib/apt/lists/*
 
 # SWIG
@@ -94,6 +102,5 @@ RUN useradd -m -s /bin/bash user && \
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && \
     chown -R user:user /workspace
 
-USER user
 SHELL ["/bin/bash", "-c"]
 WORKDIR /workspace
