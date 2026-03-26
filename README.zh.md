@@ -37,8 +37,6 @@ Picker 目前支持的 RTL 仿真器：
 4.  [verilator](https://verilator.org/guide/latest/install.html#git-quick-install) ( >=5.020 )
 5.  [swig](http://www.swig.org/) ( >=**4.2.0**, 多语言支持 )
 
-> `picker export`、`picker pack` 和 `picker pack --from-rtl` 现在都使用 `slang` 作为 Verilog / SystemVerilog 前端，常规解析和打包流程不再依赖 Verible。
-
 ### 下载源码
 
 ```bash
@@ -56,13 +54,36 @@ cd picker
 make
 # 可通过 make BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua 开启其他语言支持。
 # 各语言需要自己的开发环境，需要自行配置，例如javac等
+# 安装到默认前缀 (/usr/local)
 sudo -E make install
+
+# 或安装到自定义前缀，例如：
+# make install ARGS="-DCMAKE_INSTALL_PREFIX=$HOME/picker"
 ```
 
-> 默认的安装的目标路径是 `/usr/local`， 二进制文件被置于 `/usr/local/bin`，模板文件被置于 `/usr/local/share/picker`。
-> 如果需要修改安装目录，可以通过指定 ARGS 给 cmake 传递参数，例如`make ARGS="-DCMAKE_INSTALL_PREFIX=your_install_dir"`
-> 安装时会自动安装 `xspcomm`基础库（[https://github.com/XS-MLVP/xcomm](https://github.com/XS-MLVP/xcomm)），该基础库是用于封装 `RTL` 模块的基础类型，位于 `/usr/local/lib/libxspcomm.so`。 **可能需要手动设置编译时的链接目录参数(-L)**  
-> 如果开启了 Java 等语言支持，还会安装 `xspcomm` 对应的多语言软件包。
+#### 安装前缀
+
+默认安装前缀是 `/usr/local`。
+
+如果你想安装到其他位置，请在执行 `install` 时传入 `ARGS`：
+
+```bash
+make install ARGS="-DCMAKE_INSTALL_PREFIX=$HOME/picker"
+```
+
+安装产物会跟随你设置的前缀放到这些目录下：
+
+- `<prefix>/bin/picker`
+- `<prefix>/share/picker`
+- `<prefix>/lib/libxspcomm.so`
+
+如果你是在 macOS 上安装，并希望参考安装到用户目录下的完整示例，可以查看 [doc/install-macos.zh.md](doc/install-macos.zh.md)。
+
+只有目标目录需要管理员权限时，才需要使用 `sudo -E make install`。如果安装到 `$HOME/picker` 这类当前用户可写目录，通常不需要 `sudo`。
+
+安装时还会自动安装 `xspcomm` 基础库（[https://github.com/XS-MLVP/xcomm](https://github.com/XS-MLVP/xcomm)），该基础库用于封装 `RTL` 模块的基础类型。如果你需要手动链接它，可能还需要补充对应的库搜索路径，例如 `-L<prefix>/lib`。
+
+如果开启了 Java 等语言支持，还会在同一个前缀下安装 `xspcomm` 对应的多语言软件包。
 
 **picker 也可以编译为 wheel 文件，通过 pip 安装**
 

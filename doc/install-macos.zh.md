@@ -44,10 +44,16 @@ make init
 make install ARGS="-DCMAKE_INSTALL_PREFIX=$HOME/Applications/Picker" 
 ```
 
+安装完成后，picker 相关文件会位于：
+
+- `$HOME/Applications/Picker/bin`
+- `$HOME/Applications/Picker/share/picker`
+- `$HOME/Applications/Picker/lib`
+
 之后配置好环境变量:
 
 ```shell
-export PATH="$HOME/Applications/Picker:$PATH"
+export PATH="$HOME/Applications/Picker/bin:$PATH"
 ```
 
 最后，执行 `picker --check` 检查是否完成安装。
