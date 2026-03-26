@@ -513,8 +513,8 @@ endclass
             return transaction;
         }
 
-        void parse_sv_transactions(const picker::pack_opts &opts,
-                                              std::vector<picker::uvm_transaction_define> &transactions)
+        void parse_sv_transactions_impl(const picker::pack_opts &opts,
+                                        std::vector<picker::uvm_transaction_define> &transactions)
         {
             auto targets = collect_transaction_target_files(opts);
             if (targets.empty()) {
@@ -555,7 +555,7 @@ endclass
         opts.files.push_back(filepath);
 
         std::vector<uvm_transaction_define> transactions;
-        parse_sv_transactions(opts, transactions);
+        parse_sv_transactions_impl(opts, transactions);
         if (transactions.size() != 1) {
             PK_FATAL("Expected exactly one transaction in %s", filepath.c_str());
         }
@@ -564,7 +564,7 @@ endclass
 
     void parse_sv_transactions(const pack_opts& opts, std::vector<uvm_transaction_define>& transactions)
     {
-        parse_sv_transactions(opts, transactions);
+        parse_sv_transactions_impl(opts, transactions);
     }
 
 
