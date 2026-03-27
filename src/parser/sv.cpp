@@ -1,34 +1,367 @@
 #include "picker.hpp"
 #include "parser/sv.hpp"
-#include "parser/exprtk.hpp"
 
-#include <unordered_set>
+#include "slang/ast/Compilation.h"
+#include "slang/ast/SemanticFacts.h"
+#include "slang/ast/symbols/CompilationUnitSymbols.h"
+#include "slang/ast/symbols/InstanceSymbols.h"
+#include "slang/ast/symbols/PortSymbols.h"
+#include "slang/ast/types/AllTypes.h"
+#include "slang/diagnostics/DiagnosticEngine.h"
+#include "slang/diagnostics/Diagnostics.h"
+#include "slang/driver/Driver.h"
+#include "slang/syntax/SyntaxVisitor.h"
+#include "slang/text/SourceManager.h"
 
-#define token_res(i)                                                                                                   \
-    (std::string(module_token[i]["tag"])).size() > 1 ? (std::string)module_token[i]["text"] :                          \
-                                                       (std::string)module_token[i]["tag"]
-
-#define param_res(var) parameter_var.count(var) ? parameter_var[var] : var
+#include <algorithm>
+#include <fstream>
+#include <sstream>
+#include <unordered_map>
 
 namespace picker { namespace parser {
 
-    // Helper: check if a path is a Verilog/SystemVerilog source file
-    static inline bool is_verilog_src(const std::string &p){
-        return p.ends_with(".sv") || p.ends_with(".v");
-    }
+    namespace {
 
-    // Helper: trim comments and whitespace from a line taken from filelist
-    static inline std::string strip_comment_and_trim(const std::string &line){
-        auto s = picker::trim(line);
-        if (s.starts_with("#")) return std::string("");
-        auto pos = s.find('#');
-        if (pos != std::string::npos) s = picker::trim(s.substr(0, pos));
-        return s;
-    }
+        using slang::Diagnostic;
+        using slang::DiagnosticEngine;
+        using slang::Diagnostics;
+        using slang::SourceManager;
+        using slang::ast::ArgumentDirection;
+        using slang::ast::Compilation;
+        using slang::ast::InstanceSymbol;
+        using slang::ast::PackedArrayType;
+        using slang::ast::PortSymbol;
+        using slang::ast::SymbolKind;
+        using slang::ast::Type;
+        using slang::driver::Driver;
+        using slang::syntax::ModuleDeclarationSyntax;
+        using slang::syntax::SyntaxVisitor;
+
+        bool is_verilog_src(const std::string &path)
+        {
+            return path.ends_with(".sv") || path.ends_with(".v");
+        }
+
+        std::string normalize_path(const std::filesystem::path &path)
+        {
+            std::error_code ec;
+            auto normalized = std::filesystem::weakly_canonical(path, ec);
+            if (!ec) { return normalized.lexically_normal().string(); }
+            return std::filesystem::absolute(path).lexically_normal().string();
+        }
+
+        std::string strip_comment_and_trim(const std::string &line)
+        {
+            auto s = picker::trim(line);
+            if (s.starts_with("#")) { return ""; }
+            auto pos = s.find('#');
+            if (pos != std::string::npos) { s = picker::trim(s.substr(0, pos)); }
+            return s;
+        }
+
+        bool diagnostics_have_errors(const std::span<const Diagnostic> diags)
+        {
+            for (const auto &diag : diags) {
+                if (diag.isError()) { return true; }
+            }
+            return false;
+        }
+
+        void fatal_if_errors(const SourceManager &source_manager, const std::span<const Diagnostic> diags,
+                             const std::string &context)
+        {
+            if (!diagnostics_have_errors(diags)) { return; }
+            auto rendered = DiagnosticEngine::reportAll(source_manager, diags);
+            PK_FATAL("Failed to %s with slang:\n%s", context.c_str(), rendered.c_str());
+        }
+
+        void collect_tree_diagnostics(const Driver &driver)
+        {
+            Diagnostics diags;
+            for (const auto &tree : driver.syntaxTrees) { diags.append_range(tree->diagnostics()); }
+            fatal_if_errors(driver.sourceManager, diags, "parse RTL sources");
+        }
+
+        void append_sorted_recursive_verilog_files(const std::filesystem::path &dir,
+                                                   std::vector<std::string> &out)
+        {
+            std::vector<std::string> files;
+            for (const auto &entry : std::filesystem::recursive_directory_iterator(dir)) {
+                if (!entry.is_regular_file()) { continue; }
+                auto path = entry.path().string();
+                if (is_verilog_src(path)) { files.push_back(normalize_path(entry.path())); }
+            }
+            std::sort(files.begin(), files.end());
+            out.insert(out.end(), files.begin(), files.end());
+        }
+
+        void append_direct_filelist_entry(const std::string &entry, std::vector<std::string> &out)
+        {
+            auto path = strip_comment_and_trim(entry);
+            if (path.empty()) { return; }
+
+            std::filesystem::path fs_path(path);
+            if (!std::filesystem::exists(fs_path)) {
+                return;
+            }
+
+            if (std::filesystem::is_directory(fs_path)) {
+                append_sorted_recursive_verilog_files(fs_path, out);
+                return;
+            }
+
+            if (std::filesystem::is_regular_file(fs_path) && is_verilog_src(path)) {
+                out.push_back(normalize_path(fs_path));
+            }
+        }
+
+        void append_filelists_to_driver_args(const std::vector<std::string> &filelists, std::vector<std::string> &args)
+        {
+            std::vector<std::string> direct_files;
+            for (const auto &filelist : filelists) {
+                if (filelist.ends_with(".txt") || filelist.ends_with(".f")) {
+                    args.push_back("-F");
+                    args.push_back(normalize_path(filelist));
+                    continue;
+                }
+
+                std::stringstream ss(filelist);
+                std::string token;
+                while (std::getline(ss, token, ',')) { append_direct_filelist_entry(token, direct_files); }
+            }
+
+            for (const auto &file : direct_files) { args.push_back(file); }
+        }
+
+        void append_explicit_files_to_driver_args(const std::vector<std::string> &files, std::vector<std::string> &args)
+        {
+            for (const auto &file : files) { args.push_back(normalize_path(file)); }
+        }
+
+        std::vector<const char *> build_argv(const std::vector<std::string> &args)
+        {
+            std::vector<const char *> argv;
+            argv.reserve(args.size());
+            for (const auto &arg : args) { argv.push_back(arg.c_str()); }
+            return argv;
+        }
+
+        struct ModuleCollector : SyntaxVisitor<ModuleCollector> {
+            const SourceManager &source_manager;
+            const std::string target_file;
+            std::vector<std::string> names;
+
+            ModuleCollector(const SourceManager &source_manager, std::string target_file)
+                : source_manager(source_manager), target_file(std::move(target_file))
+            {}
+
+            void handle(const ModuleDeclarationSyntax &node)
+            {
+                auto loc = source_manager.getFullyOriginalLoc(node.header->name.location());
+                auto full_path = source_manager.getFullPath(loc.buffer());
+                if (!full_path.empty() && normalize_path(full_path) == target_file) {
+                    names.push_back(std::string(node.header->name.valueText()));
+                }
+                visitDefault(node);
+            }
+        };
+
+        std::string infer_last_module_name(const Driver &driver, const std::string &source_file)
+        {
+            ModuleCollector collector(driver.sourceManager, normalize_path(source_file));
+            for (const auto &tree : driver.syntaxTrees) { tree->root().visit(collector); }
+
+            if (collector.names.empty()) {
+                PK_FATAL("No module declarations found in input file: %s", source_file.c_str());
+            }
+            return collector.names.back();
+        }
+
+        std::string port_direction_to_logic_pin_type(ArgumentDirection direction, const std::string &module_name,
+                                                     const std::string &port_name)
+        {
+            switch (direction) {
+            case ArgumentDirection::In:
+                return "input";
+            case ArgumentDirection::Out:
+                return "output";
+            case ArgumentDirection::InOut:
+                return "inout";
+            case ArgumentDirection::Ref:
+                PK_FATAL("Module %s port %s uses unsupported direction 'ref'",
+                         module_name.c_str(), port_name.c_str());
+            default:
+                PK_FATAL("Module %s port %s uses unsupported direction", module_name.c_str(), port_name.c_str());
+            }
+        }
+
+        bool is_supported_flat_port_type(const Type &type)
+        {
+            const auto &canonical = type.getCanonicalType();
+            if (canonical.kind == SymbolKind::ScalarType) { return true; }
+
+            if (canonical.kind != SymbolKind::PackedArrayType) { return false; }
+
+            const auto &packed = canonical.as<PackedArrayType>();
+            return packed.elementType.getCanonicalType().kind == SymbolKind::ScalarType;
+        }
+
+        std::pair<int, int> extract_port_range(const Type &type)
+        {
+            const auto &canonical = type.getCanonicalType();
+            if (canonical.kind == SymbolKind::ScalarType) { return {-1, 0}; }
+
+            const auto &packed = canonical.as<PackedArrayType>();
+            return {packed.range.left, packed.range.right};
+        }
+
+        void append_simple_port(std::vector<picker::sv_signal_define> &pins, const PortSymbol &port,
+                                const std::string &module_name)
+        {
+            auto pin_type = port_direction_to_logic_pin_type(port.direction, module_name, std::string(port.name));
+            const auto &type = port.getType();
+            if (!is_supported_flat_port_type(type)) {
+                PK_FATAL("Module %s port %s uses unsupported type '%s'. "
+                         "picker export currently supports only scalar and single-dimension packed bit/logic ports.",
+                         module_name.c_str(), std::string(port.name).c_str(), type.toString().c_str());
+            }
+
+            auto [high_bit, low_bit] = extract_port_range(type);
+            pins.push_back({std::string(port.name), pin_type, high_bit, low_bit});
+        }
+
+        picker::sv_module_define convert_instance_to_module_define(const InstanceSymbol &instance, int module_nums)
+        {
+            picker::sv_module_define result;
+            result.module_name = std::string(instance.name);
+            result.module_nums = module_nums;
+
+            for (const auto *port_symbol : instance.body.getPortList()) {
+                switch (port_symbol->kind) {
+                case SymbolKind::Port:
+                    append_simple_port(result.pins, port_symbol->as<PortSymbol>(), result.module_name);
+                    break;
+                case SymbolKind::MultiPort:
+                    PK_FATAL("Module %s uses unsupported multi-port declaration at port '%s'",
+                             result.module_name.c_str(), std::string(port_symbol->name).c_str());
+                case SymbolKind::InterfacePort:
+                    PK_FATAL("Module %s uses unsupported interface port '%s'",
+                             result.module_name.c_str(), std::string(port_symbol->name).c_str());
+                default:
+                    PK_FATAL("Module %s contains unsupported port symbol kind for '%s'",
+                             result.module_name.c_str(), std::string(port_symbol->name).c_str());
+                }
+            }
+
+            return result;
+        }
+
+        void prepare_driver(Driver &driver, const picker::export_opts &opts, const bool use_filelists)
+        {
+            driver.addStandardArgs();
+
+            std::vector<std::string> args = {"picker-slang"};
+            append_explicit_files_to_driver_args(opts.file, args);
+            if (use_filelists) { append_filelists_to_driver_args(opts.filelists, args); }
+
+            auto argv = build_argv(args);
+            if (!driver.parseCommandLine((int)argv.size(), argv.data())) {
+                PK_FATAL("Failed to parse slang command line for RTL inputs");
+            }
+            if (!driver.processOptions()) {
+                PK_FATAL("Failed to process slang options for RTL inputs");
+            }
+            if (!driver.parseAllSources()) {
+                PK_FATAL("Failed to load RTL inputs for slang parsing");
+            }
+
+            collect_tree_diagnostics(driver);
+        }
+
+        std::map<std::string, int> parse_mname_and_numbers(std::vector<std::string> &name_and_nums)
+        {
+            // eg: MouduleA,1,ModuleB,3,MouldeC,ModuleE,ModuleF
+            std::string m_name = "";
+            int num            = 1;
+            std::map<std::string, int> ret;
+            for (auto v : name_and_nums) {
+                v   = picker::trim(v);
+                num = 1;
+                if (picker::str_start_with_digit(v)) {
+                    num = std::stoi(v);
+                    if (!m_name.empty()) {
+                        ret[m_name] = num;
+                        m_name      = "";
+                    } else {
+                        PK_MESSAGE("Ignore num: %d, no matched Module find", num)
+                    }
+                } else {
+                    vassert(!v.empty(), "Find empty Module name in --sname arg");
+                    if (!m_name.empty()) { ret[m_name] = num; }
+                    m_name = v;
+                }
+            }
+            if (!m_name.empty()) ret[m_name] = 1;
+            return ret;
+        }
+
+        int parse_sv(const picker::export_opts &opts, const std::map<std::string, int> &requested_module_counts,
+                                std::vector<std::string> &resolved_module_names,
+                                std::vector<picker::sv_module_define> &sv_module_result)
+        {
+            const bool has_explicit_requests = !requested_module_counts.empty();
+            if (!has_explicit_requests && opts.file.size() != 1) {
+                PK_FATAL("When module name not given (--sname), can only parse one .v/.sv file (%d find!)",
+                         (int)opts.file.size());
+            }
+
+            Driver driver;
+            prepare_driver(driver, opts, has_explicit_requests);
+            if (has_explicit_requests) {
+                for (const auto &[module_name, _] : requested_module_counts) {
+                    resolved_module_names.push_back(module_name);
+                }
+            } else {
+                resolved_module_names = {infer_last_module_name(driver, opts.file.front())};
+            }
+
+            driver.options.topModules = resolved_module_names;
+
+            std::unique_ptr<Compilation> compilation;
+            try {
+                compilation = driver.createCompilation();
+                (void)compilation->getRoot();
+            } catch (const std::exception &e) {
+                PK_FATAL("Failed to elaborate RTL with slang: %s", e.what());
+            }
+
+            auto diags = compilation->getAllDiagnostics();
+            fatal_if_errors(driver.sourceManager, diags, "elaborate RTL design");
+
+            std::unordered_map<std::string, const InstanceSymbol *> top_instances;
+            for (const auto *instance : compilation->getRoot().topInstances) {
+                top_instances.emplace(std::string(instance->name), instance);
+            }
+
+            for (const auto &module_name : resolved_module_names) {
+                auto iter = top_instances.find(module_name);
+                if (iter == top_instances.end()) {
+                    PK_FATAL("Module: %s not find in input file", module_name.c_str());
+                }
+
+                const auto *instance = iter->second;
+                const int module_nums = has_explicit_requests ? requested_module_counts.at(module_name) : 1;
+                sv_module_result.push_back(convert_instance_to_module_define(*instance, module_nums));
+            }
+
+            return 0;
+        }
+
+    } // namespace
 
     // Collect .v/.sv files from --fs/--filelist options for module search
     void collect_verilog_from_filelists(const std::vector<std::string> &filelists,
-                                               std::vector<std::string> &out)
+                                        std::vector<std::string> &out)
     {
         namespace fs = std::filesystem;
         std::vector<std::string> entries;
@@ -84,235 +417,19 @@ namespace picker { namespace parser {
         }
     }
 
-    std::vector<picker::sv_signal_define> sv_pin(nlohmann::json &module_token, std::string &src_module_name)
-    {
-        PK_MESSAGE("want module: %s", src_module_name.c_str());
-
-        // 解析module_token，将解析好的pin_name\pin_length\pin_type都push进pin数组并返回。
-        std::map<std::string, std::string> parameter_var;
-        std::vector<picker::sv_signal_define> pin;
-        for (int j = 0; j < module_token.size(); j++)
-            if (module_token[j]["tag"] == "module" && module_token[j + 1]["text"] == src_module_name) {
-                std::string pin_type, pin_high, pin_low;
-                for (int i = j + 2; i < module_token.size(); i++) {
-                    PK_DEBUG("%s", module_token[i]["tag"].dump().c_str());
-                    // Check if is parameter
-                    if (module_token[i]["tag"] == "parameter") {
-                        pin_type = "parameter";
-                        continue;
-                    }
-                    // Record pin type
-                    if (module_token[i]["tag"] == "input" || module_token[i]["tag"] == "output"
-                        || module_token[i]["tag"] == "inout") {
-                        pin_type = module_token[i]["tag"];
-                        pin_high.clear();
-                        pin_low.clear();
-                        // Skip logic, wire, reg type. We export pins with logic type, these types are not needed yet.
-                        i++;
-                        if (module_token[i]["tag"] == "logic" || module_token[i]["tag"] == "wire"
-                            || module_token[i]["tag"] == "reg") {
-                            i++;
-                        }
-                        // Parse pin length
-                        if (module_token[i]["tag"] == "[") {
-                            while (module_token[++i]["tag"] != ":") pin_high += param_res(token_res(i));
-                            while (module_token[++i]["tag"] != "]") pin_low += param_res(token_res(i));
-                        } else {
-                            i--;
-                            pin_high = "-1";
-                        }
-
-                        continue;
-                    }
-
-                    if (pin_type == "parameter") {
-                        if (module_token[i]["tag"] == "SymbolIdentifier") {
-                            std::string parameter_name = module_token[i++]["text"];
-                            std::string parameter_value;
-                            while (module_token[++i]["tag"] != "," && module_token[i]["tag"] != ")") {
-                                parameter_value += param_res(token_res(i));
-                            }
-                            parameter_var[parameter_name] = parameter_value;
-                            PK_DEBUG("parameter_name: %s, parameter_value: %s", parameter_name.c_str(),
-                                     parameter_value.c_str());
-                        }
-                        continue;
-                    }
-
-                    // lambda function to parse and calc pin length wich exprtk
-                    exprtk::parser<double> parser;
-                    exprtk::expression<double> expression;
-                    auto calc_pin_length = [&](const std::string &exp) {
-                        if (parser.compile(exp, expression)) {
-                            PK_DEBUG("pin length expression: %s as %f", exp.c_str(), expression.value());
-                            return expression.value();
-                        } else {
-                            PK_FATAL("Failed to parse pin length expression: %s .\n", exp.c_str());
-                        }
-                    };
-
-                    // If is pin
-                    sv_signal_define tmp_pin;
-                    tmp_pin.logic_pin_type = pin_type;
-
-                    if (module_token[i]["tag"] == "SymbolIdentifier") { // Noraml pin
-                        tmp_pin.logic_pin = module_token[i]["text"];
-                        if (pin_high != "-1") {
-                            tmp_pin.logic_pin_hb = calc_pin_length(pin_high);
-                            tmp_pin.logic_pin_lb = calc_pin_length(pin_low);
-                        } else {
-                            tmp_pin.logic_pin_hb = -1;
-                        }
-                        pin.push_back(tmp_pin);
-                    } else if (module_token[i]["tag"] == ")") { // Escaped pin
-                        goto module_out;
-                    }
-                }
-            module_out:
-                return pin;
-            }
-        pin.clear();
-        return pin;
-    }
-
-    std::map<std::string, int> parse_mname_and_numbers(std::vector<std::string> &name_and_nums)
-    {
-        // eg: MouduleA,1,ModuleB,3,MouldeC,ModuleE,ModuleF
-        std::string m_name = "";
-        int num            = 1;
-        std::map<std::string, int> ret;
-        for (auto v : name_and_nums) {
-            v   = picker::trim(v);
-            num = 1;
-            if (picker::str_start_with_digit(v)) {
-                num = std::stoi(v);
-                if (!m_name.empty()) {
-                    ret[m_name] = num;
-                    m_name      = "";
-                } else {
-                    PK_MESSAGE("Ignore num: %d, no matched Module find", num)
-                }
-            } else {
-                vassert(!v.empty(), "Find empty Module name in --sname arg");
-                if (!m_name.empty()) { ret[m_name] = num; }
-                m_name = v;
-            }
-        }
-        if (!m_name.empty()) ret[m_name] = 1;
-        return ret;
-    }
-
-    // Quick text-based prefilter to reduce heavy syntax parsing invocations
-    static bool file_may_contain_any_module(const std::string &filepath, const std::vector<std::string> &m_names)
-    {
-        std::ifstream ifs(filepath);
-        if (!ifs.is_open()) return false;
-        std::string line;
-        while (std::getline(ifs, line)) {
-            if (line.find("module") == std::string::npos) continue;
-            for (const auto &m : m_names) {
-                // Look for pattern: word-boundary 'module' + spaces + name + non-identifier boundary
-                auto pos = line.find("module "+m);
-                if (pos == std::string::npos) continue;
-                // Check preceding boundary
-                bool ok_prev = (pos == 0) || !std::isalnum(static_cast<unsigned char>(line[pos-1])) && line[pos-1] != '_';
-                // After 'module ' + m
-                size_t endpos = pos + std::string("module ").size() + m.size();
-                bool ok_next = (endpos >= line.size()) || (!std::isalnum(static_cast<unsigned char>(line[endpos])) && line[endpos] != '_');
-                if (ok_prev && ok_next) return true;
-            }
-        }
-        return false;
-    }
-
-    std::map<std::string, nlohmann::json> match_module_with_file(std::vector<std::string> files,
-                                                                 std::vector<std::string> m_names)
-    {
-        std::map<std::string, nlohmann::json> ret;
-        for (auto f : files) {
-            // If module list specified, quickly skip files that obviously do not contain any of them
-            if (!m_names.empty()) {
-                try {
-                    if (!file_may_contain_any_module(f, m_names)) continue;
-                } catch (...) {
-                    // On any error in quick pass, fall back to full check to be safe
-                }
-            }
-            std::string fpath = "/tmp/" + std::filesystem::path(f).filename().string() + std::string(lib_random_hash)
-                                + picker::get_node_uuid() + ".json";
-            std::string syntax_cmd =
-                std::string(appimage::is_running_as_appimage() ? appimage::get_temporary_path() + "/usr/bin/" : "")
-                + "verible-verilog-syntax --export_json --printtokens " + f + "> " + fpath;
-            exec(syntax_cmd.c_str());
-            auto mjson = nlohmann::json::parse(read_file(fpath));
-            std::vector<std::string> module_list;
-            auto module_token = mjson[f]["tokens"];
-            for (int i = 0; i < module_token.size(); i++) {
-                if (module_token[i]["tag"] == "module") module_list.push_back(module_token[i + 1]["text"]);
-            }
-            if (m_names.empty()) {
-                ret[module_list.back()] = module_token;
-                return ret;
-            }
-            for (auto m : m_names) {
-                if (picker::contains(module_list, m)) {
-                    PK_MESSAGE("find module: %s in file: %s", m.c_str(), f.c_str())
-                    ret[m] = module_token;
-                    // todo: can be optimized, only collect matched module tokens instead of all tokens in this file
-                }
-            }
-            PK_DEBUG("rm -f %s", fpath.c_str());
-            exec(("rm -f " + fpath).c_str());
-            if (ret.size() == m_names.size()) break; // All found
-        }
-        for (auto m : m_names) { vassert(ret.count(m), "Module: " + m + " not find in input file"); }
-        return ret;
-    }
-
     int sv(picker::export_opts &opts, std::vector<picker::sv_module_define> &sv_module_result)
     {
-        std::string dst_module_name = opts.target_module_name;
         std::vector<std::string> m_names;
-        std::map<std::string, nlohmann::json> m_json;
         std::map<std::string, int> m_nums;
 
         if (opts.source_module_name_list.empty()) {
-            if (opts.file.size() != 1)
-                PK_FATAL("When module name not given (--sname),"
-                         " can only parse one .v/.sv file (%d find!)",
-                         (int)opts.file.size())
-            m_json  = match_module_with_file(opts.file, opts.source_module_name_list);
-            m_names = picker::key_as_vector(m_json);
-            for (auto &v : m_names) { m_nums[v] = 1; }
+            parse_sv(opts, m_nums, m_names, sv_module_result);
         } else {
-            // When top module is given, search it within both `file` and expanded `--fs/--filelist` entries
             m_nums  = parse_mname_and_numbers(opts.source_module_name_list);
-            m_names = picker::key_as_vector(m_nums);
-
-            std::vector<std::string> search_files = opts.file; // always include explicit files
-            std::vector<std::string> extra_files;
-            collect_verilog_from_filelists(opts.filelists, extra_files);
-
-            // De-duplicate while preserving order
-            std::unordered_set<std::string> seen;
-            for (auto &f : search_files) seen.insert(std::filesystem::absolute(f).string());
-            for (auto &f : extra_files) {
-                auto af = std::filesystem::absolute(f).string();
-                if (seen.insert(af).second) search_files.push_back(af);
-            }
-
-            m_json = match_module_with_file(search_files, m_names);
+            parse_sv(opts, m_nums, m_names, sv_module_result);
         }
 
         auto target_name = picker::join_str_vec(m_names, "_");
-        for (auto &v : m_json) {
-            picker::sv_module_define sv_module;
-            sv_module.module_name = v.first;
-            sv_module.module_nums = m_nums[sv_module.module_name];
-            sv_module.pins        = sv_pin(v.second, sv_module.module_name);
-            sv_module_result.push_back(sv_module);
-        }
-
         opts.target_module_name = opts.target_module_name.size() == 0 ? target_name : opts.target_module_name;
         if (opts.target_dir.size() == 0 || opts.target_dir.back() == '/') {
             opts.target_dir += opts.target_module_name;

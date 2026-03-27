@@ -35,10 +35,7 @@ Currently supported RTL simulators by picker:
 2. [GCC](https://gcc.gnu.org/) (needs to support C++20, at least version 10, **recommended version 11 or above**)
 3. [Python3](https://www.python.org/downloads/) (>=3.8)
 4. [Verilator](https://verilator.org/guide/latest/install.html#git-quick-install) (>=5.020)
-5. [Verible Verilog Format](https://github.com/chipsalliance/verible) (>=0.0-3428-gcfcbb82b)
-6. [SWIG](http://www.swig.org/) (>=**4.2.0**, multi-language support)
-
-> Please ensure that the path to tools like `verible-verilog-format` is added to the environment variable `$PATH` for direct command-line invocation.
+5. [SWIG](http://www.swig.org/) (>=**4.2.0**, multi-language support)
 
 ### Source Code Download
 
@@ -47,6 +44,8 @@ git clone https://github.com/XS-MLVP/picker.git --depth=1
 cd picker
 make init
 ```
+
+`make init` fetches the git-based dependencies under `dependence/`, including `xcomm`, `slang`, and `fmt`.
 
 ### Build and Install
 
@@ -57,13 +56,36 @@ make
 #   using `make BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua`.
 # Each language requires its own development environment,
 #   which needs to be configured separately, such as `javac` for Java.
+# Install to the default prefix (/usr/local)
 sudo -E make install
+
+# Or install to a custom prefix, for example:
+# make install ARGS="-DCMAKE_INSTALL_PREFIX=$HOME/picker"
 ```
 
-> The default installation path is `/usr/local`, with binary files placed in `/usr/local/bin` and template files in `/usr/local/share/picker`.
-> If you need to change the installation directory, you can pass arguments to cmake by specifying ARGS, for example: `make ARGS="-DCMAKE_INSTALL_PREFIX=your_install_dir"`
-> The installation will automatically install the `xspcomm` base library (https://github.com/XS-MLVP/xcomm), which is used to encapsulate the basic types of `RTL` modules, located at `/usr/local/lib/libxspcomm.so`. **You may need to manually set the link directory parameters (-L) during compilation.**  
-> If support for languages such as Java is enabled, the corresponding `xspcomm` multi-language packages will also be installed.
+#### Install Prefix
+
+The default installation prefix is `/usr/local`.
+
+To install picker somewhere else, pass `ARGS` to the `install` target:
+
+```bash
+make install ARGS="-DCMAKE_INSTALL_PREFIX=$HOME/picker"
+```
+
+Installed files follow the selected prefix:
+
+- `<prefix>/bin/picker`
+- `<prefix>/share/picker`
+- `<prefix>/lib/libxspcomm.so`
+
+If you are installing on macOS and want a complete example that uses a user-owned prefix, see [doc/install-macos.en.md](doc/install-macos.en.md).
+
+Use `sudo -E make install` only when the target prefix requires elevated permissions. If you install under a user-owned directory such as `$HOME/picker`, `sudo` is usually unnecessary.
+
+The installation will also install the `xspcomm` base library (https://github.com/XS-MLVP/xcomm), which is used to encapsulate the basic types of `RTL` modules. If you compile against it manually, you may need to add the corresponding library search path, such as `-L<prefix>/lib`.
+
+If support for languages such as Java is enabled, the corresponding `xspcomm` multi-language packages are installed under the same prefix.
 
 **picker can also be compiled into a wheel file and installed via pip**
 

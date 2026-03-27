@@ -4,7 +4,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
-require_cmd verible-verilog-syntax
 require_cmd cmake
 require_cmd python3
 
@@ -31,4 +30,3 @@ blue "[export-cachecfg] Building generated project"
 make -C "${OUTDIR}" EXAMPLE=ON -j"$(nproc 2>/dev/null || echo 2)"
 
 green "[export-cachecfg] OK"
-

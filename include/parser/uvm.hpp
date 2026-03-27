@@ -25,20 +25,16 @@ namespace picker { namespace parser {
         constexpr const char* FROM_RTL = "from_rtl";
     }
 
-    // Verible JSON output keys
-    namespace VeribleJson {
-        constexpr const char* TAG = "tag";
-        constexpr const char* TEXT = "text";
-        constexpr const char* TOKENS = "tokens";
-    }
-
     // Convert bit count to byte count
     inline int bits_to_bytes(int bits) {
         return (bits + 7) / 8;
     }
 
-    // Parse SV transaction class using Verible
+    // Parse a single SV transaction class.
     uvm_transaction_define parse_sv(const std::string& filepath, const std::string& macro_path);
+
+    // Parse one or more SV transaction classes using the current pack inputs.
+    void parse_sv_transactions(const pack_opts& opts, std::vector<uvm_transaction_define>& transactions);
 
     // RTL to UVM Transaction conversion
     uvm_transaction_define parse_rtl_file(

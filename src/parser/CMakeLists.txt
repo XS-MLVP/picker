@@ -12,3 +12,4 @@ set(source_file
 )
 
 add_library(parser ${source_file})
+target_link_libraries(parser PUBLIC slang::slang)

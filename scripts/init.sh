@@ -3,27 +3,52 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
-VERIBLE_VERSION=${VERIBLE_VERSION:-v0.0-4051-g9fdb4057}
-VERIBLE_ARCH=$(uname -m)
-if [[ "${VERIBLE_ARCH}" != "x86_64" ]]; then
-  VERIBLE_ARCH=${VERIBLE_ARCH/aarch64/arm64}
+SLANG_DIR="${SLANG_DIR:-${ROOT_DIR}/dependence/slang}"
+SLANG_REPO="${SLANG_REPO:-https://github.com/MikePopoloski/slang.git}"
+SLANG_TAG="${SLANG_TAG:-v10.0}"
+
+FMT_DIR="${FMT_DIR:-${ROOT_DIR}/dependence/fmt}"
+FMT_REPO="${FMT_REPO:-https://github.com/fmtlib/fmt.git}"
+FMT_TAG="${FMT_TAG:-12.1.0}"
+
+XCOMM_DIR="${XCOMM_DIR:-${ROOT_DIR}/dependence/xcomm}"
+XCOMM_REPO="${XCOMM_REPO:-https://github.com/XS-MLVP/xcomm.git}"
+XCOMM_REPO_FALLBACK="${XCOMM_REPO_FALLBACK:-https://gitlink.org.cn/XS-MLVP/xcomm.git}"
+
+if [[ ! -d "${FMT_DIR}/.git" ]]; then
+  mkdir -p "${FMT_DIR}"
+  git -C "${FMT_DIR}" init -q
+  git -C "${FMT_DIR}" remote add origin "${FMT_REPO}"
+  git -C "${FMT_DIR}" fetch --depth=1 origin "refs/tags/${FMT_TAG}:refs/tags/${FMT_TAG}"
+  git -c advice.detachedHead=false -C "${FMT_DIR}" checkout --detach "${FMT_TAG}"
+  echo "[fmt] fetched release tag ${FMT_TAG} from ${FMT_REPO}"
+elif [[ -n "${FMT_SKIP_ALIGN:-}" ]]; then
+  echo "[fmt] FMT_SKIP_ALIGN is set, skipping automatic tag alignment."
+elif [[ -n "$(git -C "${FMT_DIR}" status --porcelain)" ]]; then
+  echo "[fmt] Local changes detected in ${FMT_DIR}, skipping automatic tag alignment."
+elif ! git -C "${FMT_DIR}" fetch --depth=1 origin "refs/tags/${FMT_TAG}:refs/tags/${FMT_TAG}"; then
+  echo "[fmt] Fetch failed, skipping automatic tag alignment."
+else
+  echo "[fmt] Checking out release tag '${FMT_TAG}'"
+  git -c advice.detachedHead=false -C "${FMT_DIR}" checkout --detach "${FMT_TAG}"
 fi
-VERIBLE_TGZ="verible-${VERIBLE_VERSION}-linux-static-${VERIBLE_ARCH}.tar.gz"
-VERIBLE_URL="https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/${VERIBLE_TGZ}"
 
-XCOMM_DIR="${ROOT_DIR}/dependence/xcomm"
-XCOMM_REPO="https://github.com/XS-MLVP/xcomm.git"
-XCOMM_REPO_FALLBACK="https://gitlink.org.cn/XS-MLVP/xcomm.git"
-
-if ! command -v verible-verilog-syntax >/dev/null 2>&1; then
-  echo "verible-verilog-syntax could not be found, please install verible first"
-  echo "you can install verible by following command:"
-  echo "\t$ wget \"${VERIBLE_URL}\""
-  echo "\t$ tar -xzf ${VERIBLE_TGZ}"
-  echo "\t$ mv verible-${VERIBLE_VERSION}/bin/verible-verilog-syntax /usr/local/bin/"
-  echo "or you can install in user local directory, remember to add ~/.local/bin to your PATH"
-  echo "\t$ mv verible-${VERIBLE_VERSION}/bin/verible-verilog-syntax ~/.local/bin/"
-  exit 1
+if [[ ! -d "${SLANG_DIR}/.git" ]]; then
+  mkdir -p "${SLANG_DIR}"
+  git -C "${SLANG_DIR}" init -q
+  git -C "${SLANG_DIR}" remote add origin "${SLANG_REPO}"
+  git -C "${SLANG_DIR}" fetch --depth=1 origin "refs/tags/${SLANG_TAG}:refs/tags/${SLANG_TAG}"
+  git -c advice.detachedHead=false -C "${SLANG_DIR}" checkout --detach "${SLANG_TAG}"
+  echo "[slang] fetched release tag ${SLANG_TAG} from ${SLANG_REPO}"
+elif [[ -n "${SLANG_SKIP_ALIGN:-}" ]]; then
+  echo "[slang] SLANG_SKIP_ALIGN is set, skipping automatic tag alignment."
+elif [[ -n "$(git -C "${SLANG_DIR}" status --porcelain)" ]]; then
+  echo "[slang] Local changes detected in ${SLANG_DIR}, skipping automatic tag alignment."
+elif ! git -C "${SLANG_DIR}" fetch --depth=1 origin "refs/tags/${SLANG_TAG}:refs/tags/${SLANG_TAG}"; then
+  echo "[slang] Fetch failed, skipping automatic tag alignment."
+else
+  echo "[slang] Checking out release tag '${SLANG_TAG}'"
+  git -c advice.detachedHead=false -C "${SLANG_DIR}" checkout --detach "${SLANG_TAG}"
 fi
 
 if [[ ! -d "${XCOMM_DIR}/.git" ]]; then
@@ -31,7 +56,7 @@ if [[ ! -d "${XCOMM_DIR}/.git" ]]; then
   if git clone --depth=1 "${XCOMM_REPO}" "${XCOMM_DIR}"; then
     echo "[xcomm] cloned from github"
   else
-    echo "[xcomm] github clone failed; falling back to gitlink.org.cn"
+    echo "[xcomm] github clone failed; falling back to ${XCOMM_REPO_FALLBACK}"
     rm -rf "${XCOMM_DIR}"
     git clone --depth=1 "${XCOMM_REPO_FALLBACK}" "${XCOMM_DIR}"
   fi

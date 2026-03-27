@@ -4,7 +4,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
-require_cmd verible-verilog-syntax
 require_cmd cmake
 require_cmd java
 require_cmd javac
@@ -32,4 +31,3 @@ blue "[export-java] Building generated Java project"
 make -C "${OUTDIR}" EXAMPLE=ON -j"$(nproc)"
 
 green "[export-java] OK"
-

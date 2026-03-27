@@ -1,0 +1,7 @@
++incdir+.
+config.v
+e203_defines.v
+e203_ifu_ift2icb.v
+sirv_gnrl_bufs.v
+sirv_gnrl_dffs.v
+sirv_gnrl_xchecker.v
