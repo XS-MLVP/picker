@@ -16,7 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tzdata \
     build-essential \
     git \
-    sudo \
     wget \
     curl \
     vim \
@@ -42,14 +41,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dpkg-reconfigure -f noninteractive tzdata && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    add-apt-repository ppa:deadsnakes/ppa -y && \
-    apt-get update && apt-get install -y --no-install-recommends nodejs python3.11 python3.11-dev python3.11-venv && \
+ENV NVM_DIR=/usr/local/nvm
+ENV NODE_VERSION=20.12.2
+
+RUN mkdir -p $NVM_DIR && \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
+    . $NVM_DIR/nvm.sh && \
+    nvm install $NODE_VERSION && \
+    nvm alias default $NODE_VERSION && \
+    nvm use default && \
+    npm install -g npm@10 && \
+    chmod -R 777 $NVM_DIR && \
+    echo 'export NVM_DIR="/usr/local/nvm"' >> /etc/bash.bashrc && \
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
+
+ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+RUN add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && apt-get install -y --no-install-recommends python3.11 python3.11-dev python3.11-venv && \
     python3.11 -m ensurepip --upgrade && \
     python3.11 -m pip install --upgrade pip && \
     ln -sf /usr/bin/python3.11 /usr/local/bin/python3 && \
     ln -sf /usr/local/bin/pip3.11 /usr/local/bin/pip3 && \
-    npm install -g npm@10 && \
     rm -rf /var/lib/apt/lists/*
 
 # SWIG
@@ -86,11 +99,7 @@ WORKDIR /workspace
 COPY . /workspace/picker
 RUN cd /workspace/picker && make && make install && make clean
 
-# Create a non-root user for interactive use
-RUN useradd -m -s /bin/bash user && \
-    adduser user sudo && \
-    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && \
-    chown -R user:user /workspace
+
 
 SHELL ["/bin/bash", "-c"]
 WORKDIR /workspace
