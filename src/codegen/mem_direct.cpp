@@ -7,7 +7,7 @@ namespace picker { namespace codegen {
 
     static const std::string yaml_varible_info =
         "    cpp_variableInfo {{var_hash}} = {\"{{var_name}}\", \"{{var_type}}\", {{var_width}}, {{var_array_size}}, (uint64_t)&(base.{{var_raw_name}}) - (uint64_t)&base };\n"
-        "    {{var_hash}}.write_yaml();\n";
+        "    all_vars.push_back({{var_hash}});\n";
 
     std::string replace_dot(const std::string &varName)
     {

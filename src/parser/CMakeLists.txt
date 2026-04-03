@@ -6,6 +6,7 @@ set(source_file
      internalcfg.cpp
      uvm.cpp
      verilator_root.cpp
+     verilator_trace.cpp
      firrtl.cpp
      gsim_root.cpp
      parser_map.cpp

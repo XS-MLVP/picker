@@ -20,6 +20,7 @@ rm -rf "${OUTDIR}"
   --sname Cache \
   --tname CacheCFG \
   --fs "${ROOT_DIR}/example/CacheSignalCFG/Cache.txt" \
+  -w cache.vcd \
   --tdir  "${ROOT_DIR}/picker_out/" \
   --lang python \
   --sim verilator
