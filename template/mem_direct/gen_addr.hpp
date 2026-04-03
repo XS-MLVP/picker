@@ -1,9 +1,14 @@
 #pragma once
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <map>
+#include <ostream>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 {% if __SIMULATOR__ == "verilator" %}
 #include "V{{__TOP_MODULE_NAME__}}.h"
@@ -22,29 +27,47 @@ extern std::map<std::string, int> size_map;
 struct cpp_variableInfo {
     std::string name;
     std::string type;
-    int width      = 0;
-    int array_size = 0;
+    int width       = 0;
+    int array_size  = 0;
     uint64_t offset = 0;
 
-    void write_yaml()
+    int mem_bytes() const
     {
-        printf("  - name: %s\n", name.c_str());
-        printf("    type: %s\n", type.c_str());
-        if (size_map.find(type) == size_map.end())
+        if (size_map.find(type) == size_map.end()) {
         {% if __SIMULATOR__ == "verilator" %}
-            // type is "VlWide<???>", res as ??? * 4
-            printf("    mem_bytes: %d\n", stoi(type.substr(7, type.size() - 8)) * 4);
+            if (type.rfind("VlWide<", 0) == 0) {
+                return stoi(type.substr(7, type.size() - 8)) * 4;
+            }
         {% endif %}
         {% if __SIMULATOR__ == "gsim" %}
-            // type is "uint32_t", res as 4
-            printf("    mem_bytes: -1 # Error: type size not find\n");
+            return -1;
         {% endif %}
-        else
-            printf("    mem_bytes: %d\n", size_map[type]);
-        printf("    rtl_width: %d\n", width);
-        if (array_size > 0) { printf("    array_size: %d\n", array_size); }
-        printf("    offset: %ld\n", offset);
+        }
+        return size_map[type];
+    }
+
+    void write_yaml(std::ostream &out) const
+    {
+        out << "  - name: " << name << "\n";
+        out << "    type: " << type << "\n";
+        out << "    mem_bytes: " << mem_bytes() << "\n";
+        out << "    rtl_width: " << width << "\n";
+        if (array_size > 0) { out << "    array_size: " << array_size << "\n"; }
+        out << "    offset: " << offset << "\n";
     }
 };
+
+struct raw_signal_info {
+    std::string name;
+    std::string kind;
+    std::string type;
+    uint32_t rtl_width = 0;
+    std::string source;
+    std::string expr;
+    std::string value;
+    std::vector<std::string> deps;
+};
+
+extern std::vector<cpp_variableInfo> all_vars;
 
 void init_type_size();

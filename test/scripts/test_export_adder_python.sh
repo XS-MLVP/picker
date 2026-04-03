@@ -10,19 +10,19 @@ PICKER_BIN="$(resolve_picker)"
 ROOT_DIR="${ROOT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 
 blue "[export-python] Exporting Adder.v to Python project"
-rm -rf "${ROOT_DIR}/picker_out_adder"
+rm -rf "${ROOT_DIR}/picker_out/Adder"
 "${PICKER_BIN}" export \
   "${ROOT_DIR}/example/Adder/Adder.v" \
   --autobuild false \
   --sdir "${ROOT_DIR}/template" \
   --sname Adder \
-  --tdir  "${ROOT_DIR}/picker_out_adder/Adder" \
+  --tdir  "${ROOT_DIR}/picker_out/Adder" \
   --lang python \
   --sim verilator
 
-cp "${ROOT_DIR}/example/Adder/example.py" "${ROOT_DIR}/picker_out_adder/Adder/python/"
+cp "${ROOT_DIR}/example/Adder/example.py" "${ROOT_DIR}/picker_out/Adder/python/"
 
 blue "[export-python] Building generated project"
-make -C "${ROOT_DIR}/picker_out_adder/Adder" EXAMPLE=ON -j"$(nproc)"
+make -C "${ROOT_DIR}/picker_out/Adder" EXAMPLE=ON -j"$(nproc)"
 
 green "[export-python] OK"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm -rf picker_out/
+rm -rf picker_out/MultiClock
 ./build/bin/picker export example/MultiClock/multi_clock.v --autobuild false -w mc.fst --tdir picker_out/MultiClock --sdir template $@
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then

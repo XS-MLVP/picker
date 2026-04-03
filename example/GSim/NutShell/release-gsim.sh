@@ -8,25 +8,25 @@ then
     exit
 fi
 
-rm -rf picker_out_GSIM/
+rm -rf picker_out/GSim
 if [ ! -f example/GSim/NutShell/SimTop-nutshell.fir ]; then
     tar -xf example/GSim/NutShell/SimTop-nutshell.tar.bz2 -C example/GSim/NutShell/
 fi
-./build/bin/picker export example/GSim/NutShell/SimTop-nutshell.fir --rw mem_direct --autobuild false --sim gsim --tdir picker_out_GSIM/NutShell $@
+./build/bin/picker export example/GSim/NutShell/SimTop-nutshell.fir --rw mem_direct --autobuild false --sim gsim --tdir picker_out/GSim/NutShell $@
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
-    cp example/GSim/NutShell/example.py picker_out_GSIM/NutShell/python/
-    cp example/GSim/NutShell/microbench-NutShell.bin picker_out_GSIM/NutShell/
+    cp example/GSim/NutShell/example.py picker_out/GSim/NutShell/python/
+    cp example/GSim/NutShell/microbench-NutShell.bin picker_out/GSim/NutShell/
 elif [[ $@ == *"java"* ]]; then
-    cp example/GSim/NutShell/example.java picker_out_GSIM/NutShell/java/
+    cp example/GSim/NutShell/example.java picker_out/GSim/NutShell/java/
 elif [[ $@ == *"scala"* ]]; then
-    cp example/GSim/NutShell/example.scala picker_out_GSIM/NutShell/scala/
+    cp example/GSim/NutShell/example.scala picker_out/GSim/NutShell/scala/
 elif [[ $@ == *"golang"* ]]; then
-    cp example/GSim/NutShell/example.go picker_out_GSIM/NutShell/golang/
+    cp example/GSim/NutShell/example.go picker_out/GSim/NutShell/golang/
 elif [[ $@ == *"lua"* ]]; then
-    cp example/GSim/NutShell/example.lua picker_out_GSIM/NutShell/lua/
+    cp example/GSim/NutShell/example.lua picker_out/GSim/NutShell/lua/
 elif [[ $@ == *"cpp"* ]]; then
-    cp example/GSim/NutShell/example.cpp picker_out_GSIM/NutShell/cpp/
+    cp example/GSim/NutShell/example.cpp picker_out/GSim/NutShell/cpp/
 else
     echo "No example file copied, use default config."
 fi
@@ -38,4 +38,4 @@ if [ -z $CC ] && [ -z $CXX ]; then
 else
     echo "Using CC=$CC and CXX=$CXX"
 fi
-cd picker_out_GSIM/NutShell && make EXAMPLE=ON
+cd picker_out/GSim/NutShell && make EXAMPLE=ON

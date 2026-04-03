@@ -53,7 +53,7 @@ log/
 logs/
 temp/
 picker_out*
-dependence/xcomm
+dependence/
 AppDir/
 app_image_build/
 
@@ -63,6 +63,3 @@ test_io.txt
 pack_example/
 Testing
 
-# Local verible installs/archives
-verible-*/
-verible-*.tar.gz

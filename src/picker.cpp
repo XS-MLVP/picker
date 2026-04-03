@@ -18,6 +18,7 @@
 #include "parser/internalcfg.hpp"
 #include "parser/sv.hpp"
 #include "parser/uvm.hpp"
+#include "parser/verilator_trace.hpp"
 
 picker::main_opts main_opts;
 picker::export_opts export_opts;
@@ -373,6 +374,22 @@ int main(int argc, char **argv)
 
             picker::codegen::render_md_addr_generator(vars, export_opts);
             picker::parser::outputYAML(vars, export_opts.target_dir + "/vars.yaml"); 
+            auto trace_files = picker::parser::verilator::findTraceFiles(source_file);
+            if (trace_files.empty()) {
+                PK_MESSAGE("Trace files not found near %s, skipping trace-derived signal map", source_file.c_str());
+            } else {
+                PK_MESSAGE("Parsing %zu trace file(s)", trace_files.size());
+                auto trace_result = picker::parser::verilator::processTraceFiles(trace_files, vars);
+                if (trace_result.signals.empty()) {
+                    PK_FATAL("Trace files were found, but no usable signal mappings could be built "
+                             "(decl=%zu, value=%zu, matched_slots=%zu). "
+                             "This likely means trace was generated in an unsupported Verilator format/version.",
+                             trace_result.decl_count, trace_result.value_count, trace_result.matched_slot_count);
+                }
+                picker::parser::outputSignalYAML(
+                    trace_result.signals,
+                    export_opts.target_dir + "/" + export_opts.source_module_name_list[0] + "_signal_map.raw.yaml");
+            }
             exit(0);
         }
 

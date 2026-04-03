@@ -84,4 +84,4 @@ pack_multiple_classes: preflight
 	bash "$(SCRIPT_DIR)/test_pack_multiple_classes.sh"
 
 clean:
-	rm -rf picker_out_* pack_example
+	rm -rf picker_out picker_out_* pack_example

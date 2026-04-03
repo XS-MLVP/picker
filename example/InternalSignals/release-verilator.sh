@@ -3,7 +3,7 @@
 # This script is used to release the XDummyCache library.
 
 # run cache codegen
-rm -rf ./picker_out 
+rm -rf ./picker_out/InternalSignals
 ./build/bin/picker export example/InternalSignals/vpi.v --autobuild false --sdir ./template --vpi --sname vpi --tdir ./picker_out/InternalSignals --sim verilator $@
 
 if [ $? -ne 0 ]; then
@@ -27,4 +27,3 @@ else
 fi
 
 cd picker_out/InternalSignals && make EXAMPLE=ON
-
