@@ -54,10 +54,7 @@ void UT{{__TOP_MODULE_NAME__}}::init()
     // add {{__TOP_MODULE_NAME__}} ports
 {{__XPORT_ADD__}}
 
-    xfunction<int, bool> stepfunc = [&](bool d) -> int {
-        return this->dut->simStep(d);
-    };
-    this->xclock.ReInit(stepfunc, {}, {});
+    this->xclock.ReInit(this->dut->pxcStep, this->dut->pSelf, {}, {});
     this->xclock.Add(this->xport);
     this->xcfg = new XSignalCFG(this->dut->GetXSignalCFGPath(), this->dut->GetXSignalCFGBasePtr());
 
