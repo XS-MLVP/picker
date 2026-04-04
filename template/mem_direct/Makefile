@@ -21,7 +21,7 @@ CXXFLAGS += -I ${V_ROOT}/include -I ${V_ROOT}/include/vltstd/ \
 		-I ../build/DPI${TOP_NAME} \
 		-L../build  ${CFLAGS}
 LDFLAGS += $(WHOLE_ARCHIVE_LDFLAGS) -Wl,-undefined,dynamic_lookup
-LDLIBS += -lpthread -lz
+LDLIBS += -lpthread -lz -L/usr/local/lib -lxspcomm
 {% endif %}
 
 {% if __SIMULATOR__ == "gsim" %}
