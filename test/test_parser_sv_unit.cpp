@@ -162,6 +162,40 @@ namespace {
         fs::remove_all(base);
     }
 
+    void test_filelist_dependencies_are_used_without_explicit_module_name()
+    {
+        namespace fs = std::filesystem;
+        const fs::path base = fs::temp_directory_path() / "picker_test_sv_filelist_default_top";
+        fs::remove_all(base);
+        fs::create_directories(base);
+
+        write_text(base / "defs.v",
+                   "`define IMPLICIT_TOP_W 6\n");
+        write_text(base / "implicit_top.v",
+                   "module ImplicitTop(input logic [`IMPLICIT_TOP_W-1:0] data);\n"
+                   "endmodule\n");
+        write_text(base / "filelist.f",
+                   "defs.v\n");
+
+        picker::export_opts opts {};
+        opts.file = {(base / "implicit_top.v").string()};
+        opts.filelists = {(base / "filelist.f").string()};
+
+        std::vector<picker::sv_module_define> modules;
+        picker::parser::sv(opts, modules);
+
+        assert(modules.size() == 1);
+        assert(modules.front().module_name == "ImplicitTop");
+        assert(opts.target_module_name == "ImplicitTop");
+
+        const auto &pin_data = find_pin(modules.front(), "data");
+        assert(pin_data.logic_pin_type == "input");
+        assert(pin_data.logic_pin_hb == 5);
+        assert(pin_data.logic_pin_lb == 0);
+
+        fs::remove_all(base);
+    }
+
     void test_filelist_order_wins_when_explicit_file_is_duplicate()
     {
         namespace fs = std::filesystem;
@@ -237,6 +271,7 @@ int main()
     test_filelist_include_define_and_math();
     test_default_module_is_last_declared();
     test_filelist_macro_defines_are_shared_across_sources();
+    test_filelist_dependencies_are_used_without_explicit_module_name();
     test_filelist_order_wins_when_explicit_file_is_duplicate();
     test_missing_child_modules_do_not_block_top_port_extraction();
     return 0;

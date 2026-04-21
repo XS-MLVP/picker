@@ -17,7 +17,6 @@
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace picker { namespace parser {
 
@@ -116,43 +115,18 @@ namespace picker { namespace parser {
             }
         }
 
-        void add_unique_source_arg(const std::string &file, std::vector<std::string> &args,
-                                   std::unordered_set<std::string> &seen_sources)
+        void append_source_arg(const std::string &file, std::vector<std::string> &args)
         {
-            auto normalized = normalize_path(file);
-            if (seen_sources.insert(normalized).second) { args.push_back(normalized); }
+            args.push_back(normalize_path(file));
         }
 
-        void collect_filelist_source_paths(const std::filesystem::path &filelist_path,
-                                           std::unordered_set<std::string> &sources)
-        {
-            std::ifstream stream(filelist_path);
-            if (!stream.is_open()) { return; }
-
-            const auto base_dir = std::filesystem::absolute(filelist_path).parent_path();
-            std::string line;
-            while (std::getline(stream, line)) {
-                auto entry = strip_comment_and_trim(line);
-                if (entry.empty()) { continue; }
-
-                auto path = std::filesystem::path(entry);
-                if (path.is_relative()) { path = base_dir / path; }
-                if (std::filesystem::is_regular_file(path) && is_verilog_src(path.string())) {
-                    sources.insert(normalize_path(path));
-                }
-            }
-        }
-
-        void append_filelists_to_driver_args(const std::vector<std::string> &filelists, std::vector<std::string> &args,
-                                             std::unordered_set<std::string> &seen_sources)
+        void append_filelists_to_driver_args(const std::vector<std::string> &filelists, std::vector<std::string> &args)
         {
             std::vector<std::string> direct_files;
             for (const auto &filelist : filelists) {
                 if (filelist.ends_with(".txt") || filelist.ends_with(".f")) {
                     args.push_back("-F");
-                    const auto normalized_filelist = normalize_path(filelist);
-                    args.push_back(normalized_filelist);
-                    collect_filelist_source_paths(normalized_filelist, seen_sources);
+                    args.push_back(normalize_path(filelist));
                     continue;
                 }
 
@@ -161,13 +135,12 @@ namespace picker { namespace parser {
                 while (std::getline(ss, token, ',')) { append_direct_filelist_entry(token, direct_files); }
             }
 
-            for (const auto &file : direct_files) { add_unique_source_arg(file, args, seen_sources); }
+            for (const auto &file : direct_files) { append_source_arg(file, args); }
         }
 
-        void append_explicit_files_to_driver_args(const std::vector<std::string> &files, std::vector<std::string> &args,
-                                                  std::unordered_set<std::string> &seen_sources)
+        void append_explicit_files_to_driver_args(const std::vector<std::string> &files, std::vector<std::string> &args)
         {
-            for (const auto &file : files) { add_unique_source_arg(file, args, seen_sources); }
+            for (const auto &file : files) { append_source_arg(file, args); }
         }
 
         std::vector<const char *> build_argv(const std::vector<std::string> &args)
@@ -298,9 +271,8 @@ namespace picker { namespace parser {
                 args.push_back("vcs");
             }
 
-            std::unordered_set<std::string> seen_sources;
-            if (use_filelists) { append_filelists_to_driver_args(opts.filelists, args, seen_sources); }
-            append_explicit_files_to_driver_args(opts.file, args, seen_sources);
+            if (use_filelists) { append_filelists_to_driver_args(opts.filelists, args); }
+            append_explicit_files_to_driver_args(opts.file, args);
 
             auto argv = build_argv(args);
             if (!driver.parseCommandLine((int)argv.size(), argv.data())) {
@@ -354,7 +326,7 @@ namespace picker { namespace parser {
             }
 
             Driver driver;
-            prepare_driver(driver, opts, has_explicit_requests);
+            prepare_driver(driver, opts, !opts.filelists.empty());
             if (has_explicit_requests) {
                 for (const auto &[module_name, _] : requested_module_counts) {
                     resolved_module_names.push_back(module_name);
