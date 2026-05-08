@@ -38,6 +38,7 @@ endif()
 
 include(verilator)
 include(vcs)
+include(uvs)
 include(gsim)
 
 # Add CUSTOM_INCLUDE_FILES as target

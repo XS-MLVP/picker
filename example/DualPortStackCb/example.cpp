@@ -142,6 +142,9 @@ int main()
 {
     UTdual_port_stack dut;
     dut.InitClock("clk");
+    dut.rst = 1;
+    dut.Step(1);
+    dut.rst = 0;
     testStack(&dut);
     dut.Finish();
     return 0;

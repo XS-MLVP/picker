@@ -160,6 +160,16 @@ namespace picker { namespace codegen {
                                    "  end",
                                    data);
                 }
+            } else if (simulator == "uvs") {
+                if (wave_file_name.length() > 0) {
+                    if (wave_file_name.ends_with(".usdb") == false) PK_FATAL("USDB trace file must be .usdb format.\n");
+                    sv_dump_wave =
+                        env.render("  initial begin\n"
+                                   "    $usdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
+                                   "    $usdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
+                                   "  end",
+                                   data);
+                }
             } else {
                 PK_FATAL("Unsupported simulator: %s\n", simulator.c_str());
             }

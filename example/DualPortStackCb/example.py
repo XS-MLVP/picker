@@ -120,5 +120,8 @@ def test_stack(stack):
 if __name__ == "__main__":
     dut = DUTdual_port_stack()
     dut.InitClock("clk")
+    dut.rst.value = 1
+    dut.Step(1)
+    dut.rst.value = 0
     test_stack(dut)
     dut.Finish()
