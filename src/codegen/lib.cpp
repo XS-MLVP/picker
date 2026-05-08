@@ -157,6 +157,8 @@ namespace picker { namespace codegen {
                 extra += "-I" + dir;
             } else if (simulator == "vcs") {
                 extra += "+incdir+" + dir;
+            } else if (simulator == "uvs") {
+                extra += "-include " + dir;
             }
         }
         if (extra.empty()) { return; }

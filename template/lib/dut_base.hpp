@@ -7,7 +7,7 @@
 #include <iostream>
 #include <initializer_list>
 
-#if defined(USE_VERILATOR) || defined(USE_VCS)
+#if defined(USE_VERILATOR) || defined(USE_VCS) || defined(USE_UVS)
 #include <svdpi.h>
 #endif
 
@@ -164,6 +164,42 @@ public:
 
 #endif
 
+#if defined(USE_UVS)
+extern "C" {
+int UvsMain(int argc, char **argv);
+void UvsInit();
+void UvsRunUntil(uint64_t);
+void UvsRun(uint64_t);
+void finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+}
+
+class DutUvsBase : public DutBase
+{
+protected:
+    uint64_t cycle_hl;
+    uint64_t uvs_clock_period[3];
+
+public:
+    std::string sv_scope = "{{__TOP_MODULE_NAME__}}_top";
+    void init(int, char **);
+    DutUvsBase(int argc, char **argv);
+    [[deprecated("VCS does not support no-args constructor")]] DutUvsBase();
+    ~DutUvsBase();
+    int Step(uint64_t cycle, bool dump);
+    int Finish();
+    void SetWaveform(const char *filename);
+    void FlushWaveform();
+    bool ResumeWaveformDump();
+    bool PauseWaveformDump();
+    void WaveformEnable(bool enable);
+    void SetCoverage(const char *filename);
+    int CheckPoint(const char *filename);
+    int Restore(const char *filename);
+    uint64_t NativeSignalAddr(const char *name);
+};
+
+#endif
+
 char *locateLibPath();
 
 class DutUnifiedBase
@@ -189,6 +225,8 @@ protected:
     DutVerilatorBase *dut;
 #elif defined(USE_VCS)
     DutVcsBase *dut;
+#elif defined(USE_UVS)
+    DutUvsBase *dut;
 #elif defined(USE_GSIM)
     DutGSimBase *dut;
 #endif

@@ -18,6 +18,7 @@ namespace picker{namespace parser {
 
     std::map<std::string, std::function<int(picker::export_opts &opts, std::vector<picker::sv_module_define> &external_pin)>> inputParser = {
         {"vcs", picker::parser::sv},
+        {"uvs", picker::parser::sv},
         {"verilator", picker::parser::sv},
         {"gsim", picker::parser::firrtl}
     };

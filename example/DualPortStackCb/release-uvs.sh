@@ -1,0 +1,29 @@
+#!/bin/bash
+
+rm -rf picker_out_dps/
+
+./build/bin/picker export example/DualPortStackCb/dual_port_stack.v --sim uvs --autobuild false -w DualPortStackCb.usdb $@ --tdir picker_out_dps
+# if python in $@, then it will generate python binding
+if [[ $@ == *"python"* ]]; then
+    if [[ "$async" != "" ]]; then
+        cp example/DualPortStackCb/example_async.py picker_out_dps/python/example.py
+    else
+        cp example/DualPortStackCb/example.py picker_out_dps/python/
+    fi
+elif [[ $@ == *"java"* ]]; then
+    cp example/DualPortStackCb/example.java picker_out_dps/java/
+elif [[ $@ == *"scala"* ]]; then
+    cp example/DualPortStackCb/example.scala picker_out_dps/scala/
+elif [[ $@ == *"golang"* ]]; then
+    cp example/DualPortStackCb/example.go picker_out_dps/golang/
+else
+    cp example/DualPortStackCb/example.cpp picker_out_dps/cpp/
+fi
+
+cd picker_out_dps && make EXAMPLE=ON VERBOSE=ON CFLAGS=-g
+
+if [[ $@ == *"python"* ]]; then
+    echo "'cannot allocate memory in static TLS block'error for UVS is expected, please ignore it"
+    LD_PRELOAD=./UT_dual_port_stack/libUTdual_port_stack.so python3 example.py
+fi
+

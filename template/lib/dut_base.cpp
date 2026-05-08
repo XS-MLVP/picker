@@ -125,6 +125,108 @@ uint64_t DutVcsBase::NativeSignalAddr(const char *name){
 
 #endif
 
+#if defined(USE_UVS)
+
+DutUvsBase::DutUvsBase()
+{
+    // XXFatal("UVS does not support no-args constructor");
+    exit(-1);
+}
+
+DutUvsBase::DutUvsBase(int argc, char **argv)
+{
+    // save argc and argv for debug
+    this->argc = argc;
+    this->argv = argv;
+    this->init(argc, argv);
+};
+
+void DutUvsBase::init(int argc, char **argv)
+{
+    // initialize context
+    UvsMain(argc, argv);
+
+    // set cycle to 0
+    UvsInit();
+    svSetScope(svGetScopeFromName(this->sv_scope.c_str()));
+
+    // set cycle pointer to 0
+    this->cycle               = 0;
+    this->cycle_hl            = 0;
+    this->uvs_clock_period[0] = {{__VCS_CLOCK_PERIOD_HIGH__}};
+    this->uvs_clock_period[1] = {{__VCS_CLOCK_PERIOD_LOW__}};
+    this->uvs_clock_period[2] = {{__VCS_CLOCK_PERIOD_LOW__}} + {{__VCS_CLOCK_PERIOD_HIGH__}};
+}
+
+DutUvsBase::~DutUvsBase() {};
+
+int DutUvsBase::Step(uint64_t ncycle, bool dump)
+{
+    if (!dump) {
+        // assert(ncycle == 0);
+        UvsRunUntil(cycle);
+        return 0;
+    }
+
+    // set cycle pointer
+    cycle_hl += ncycle;
+    if (likely(ncycle == 1))
+        cycle += uvs_clock_period[cycle_hl & 1];
+    else
+        cycle += (ncycle >> 1) * uvs_clock_period[2] + (ncycle & 1) * uvs_clock_period[cycle_hl & 1];
+
+    // run simulation
+    UvsRunUntil(cycle);
+    return 0;
+};
+
+int DutUvsBase::Finish()
+{
+    // Finish VCS context
+    finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+    return 0;
+};
+
+void DutUvsBase::SetWaveform(const char *filename)
+{
+    XInfo("UVS waveform is not supported");
+};
+void DutUvsBase::SetCoverage(const char *filename)
+{
+    XInfo("UVS coverage is not supported");
+};
+void DutUvsBase::FlushWaveform()
+{
+    XInfo("UVS waveform is not supported");
+};
+bool DutUvsBase::ResumeWaveformDump()
+{
+    XInfo("UVS waveform is not supported");
+    return true;
+};
+bool DutUvsBase::PauseWaveformDump()
+{
+    XInfo("UVS waveform is not supported");
+    return true;
+};
+void DutUvsBase::WaveformEnable(bool enable)
+{
+    XInfo("UVS waveform is not supported");
+};
+int DutUvsBase::CheckPoint(const char *filename)
+{
+    XFatal("UVS checkpoint is not supported");
+};
+int DutUvsBase::Restore(const char *filename)
+{
+    XFatal("UVS restore is not supported");
+};
+uint64_t DutUvsBase::NativeSignalAddr(const char *name){
+    XFatal("UVS NativeSignalAddr is not supported");
+    return 0;
+};
+
+#endif // USE_UVS
 
 #if defined(USE_GSIM)
 DutGSimBase::~DutGSimBase()
@@ -647,6 +749,8 @@ void DutUnifiedBase::init(int argc, const char **argv)
         this->dut = new DutVerilatorBase(this->argc, this->argv);
 #elif defined(USE_VCS)
         this->dut = new DutVcsBase(this->argc, this->argv);
+#elif defined(USE_UVS)
+        this->dut = new DutUvsBase(this->argc, this->argv);
 #elif defined(USE_GSIM)
         this->dut = new DutGSimBase(this->argc, this->argv);
 #endif
@@ -655,7 +759,7 @@ void DutUnifiedBase::init(int argc, const char **argv)
         return;
     }
 
-#ifndef USE_VCS
+#if !defined(USE_VCS) && !defined(USE_UVS)
     // get dynamic library path from argv
     if (this->argc == 0) { XFatal("Shared DPI Library Path is required for Simulator"); }
 
