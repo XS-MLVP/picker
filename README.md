@@ -26,6 +26,7 @@ Currently supported RTL simulators by picker:
 1. Verilator
 1. Synopsys VCS
 1. [GSIM](https://github.com/OpenXiangShan/gsim)
+1. [UniVista Simulator (UVS)](https://www.univista-isg.com/site/product_detail/441)
 
 ## How to Use
 
@@ -92,7 +93,7 @@ If support for languages such as Java is enabled, the corresponding `xspcomm` mu
 To package picker into a wheel installation package, use the following command:
 
 ```bash
-pip install pipx # install dependency
+pip install pipx==1.10.0 # install dependency
 make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua make wheel
 ```
 

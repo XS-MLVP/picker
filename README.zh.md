@@ -26,6 +26,7 @@ Picker 目前支持的 RTL 仿真器：
 1. Verilator
 1. Synopsys VCS
 1. [GSIM](https://github.com/OpenXiangShan/gsim)
+1. [UniVista Simulator (UVS)](https://www.univista-isg.com/site/product_detail/441)
 
 # 使用方法
 
@@ -90,7 +91,7 @@ make install ARGS="-DCMAKE_INSTALL_PREFIX=$HOME/picker"
 通过以下命令把 picker 打包成 wheel 安装包：
 
 ```bash
-pip install pipx # 安装依赖
+pip install pipx==1.10.0 # 安装依赖
 make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua make wheel
 ```
 
