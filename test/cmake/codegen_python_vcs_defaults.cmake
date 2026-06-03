@@ -1,0 +1,3 @@
+add_executable(test_codegen_python_vcs_defaults test_codegen_python_vcs_defaults.cpp)
+target_compile_definitions(test_codegen_python_vcs_defaults PRIVATE PICKER_PROJECT_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(test_codegen_python_vcs_defaults codegen_)

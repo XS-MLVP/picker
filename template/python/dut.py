@@ -15,6 +15,11 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     # initialize
     def __init__(self, *args, **kwargs):
+        {% if __SIMULATOR__ == "vcs" %}
+        # Avoid VCS save/restore re-exec behavior; picker does not support it here.
+        if "-no_save" not in args:
+            args = args + ("-no_save",)
+        {% endif %}
         self.dut = DutUnifiedBase(*args)
         self.xclock = xsp.XClock(self.dut.pxcStep, self.dut.pSelf)
         self.xport  = xsp.XPort()
