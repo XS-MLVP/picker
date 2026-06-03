@@ -9,6 +9,7 @@
 #include <map>
 #include <functional>
 #include <filesystem>
+#include <sys/personality.h>
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -728,6 +729,17 @@ void DutUnifiedBase::init(int argc, const char **argv)
         memset(this->argv[i], 0, tsize);
         strcpy(this->argv[i], argv[i]);
     }
+
+    // disable ASLR to avoid VCS doing later
+#if defined(USE_VCS)
+    // as described in issue #86, VCS will otherwise try to relaunch the process with ASLR disabled
+    // in newer versions, a malformed argv will cause the relaunch to fail
+    XInfo("Disabling ASLR for better compatibility with VCS");
+    int rc, old_personality = personality(0xffffffff);
+    if (old_personality != -1 && (old_personality & ADDR_NO_RANDOMIZE) == 0)
+        rc = personality(old_personality | ADDR_NO_RANDOMIZE);
+    if (rc == -1 || old_personality == -1) { XWarning("Failed to disable ASLR. If you encounter problems, try to disable ASLR manually."); }
+#endif
 
     // find whether the shared library path is provided
     // share library suffix
