@@ -239,6 +239,7 @@ picker export path/a.v,path/b.v --sname A,2,B,3 --tname C
 环境变量：
 
 - `DUMPVARS_OPTION`: 设置`$dumpvars`的 option 参数。例如`DUMPVARS_OPTION="+mda" picker ....` 开启 vcs 中数组波形的支持。
+- `GLIBC_TUNABLES`: 在 glibc Linux 上导入 VCS 生成的 Python DUT 包时需要设置。请在启动 Python 前设置 `GLIBC_TUNABLES=glibc.rtld.optional_static_tls=65536`，例如 `GLIBC_TUNABLES=glibc.rtld.optional_static_tls=65536 python example.py`。如果同一个 Python 进程会加载多个 VCS DUT 包，可以适当增大该值。
 
 ##### pack:
 

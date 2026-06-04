@@ -199,6 +199,7 @@ picker export path/a.v,path/b.v --sname A,2,B,3 --tname C
 Environment Variables:
 
 - `DUMPVARS_OPTION`: Sets the option parameter for `$dumpvars`. For example, `DUMPVARS_OPTION="+mda" picker ....` enables array waveform support in VCS.
+- `GLIBC_TUNABLES`: Required when importing Python DUT packages generated with VCS on glibc Linux. Set `GLIBC_TUNABLES=glibc.rtld.optional_static_tls=65536` before starting Python, for example `GLIBC_TUNABLES=glibc.rtld.optional_static_tls=65536 python example.py`. Increase the value if multiple VCS DUT packages are loaded in the same Python process.
 
 The `pack` subcommand is used to convert UVM `sequence_item` into other languages and then communicate through TLM (currently supports Python, other languages are under development).
 

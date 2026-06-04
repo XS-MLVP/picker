@@ -1,4 +1,37 @@
 #coding=utf8
+{% if __SIMULATOR__ == "vcs" %}
+import os
+import sys
+
+
+def _check_vcs_static_tls_capacity():
+    if sys.platform != "linux":
+        return
+
+    tunable_name = "glibc.rtld.optional_static_tls"
+    required_size = 65536
+
+    tunables = os.environ.get("GLIBC_TUNABLES", "")
+    for item in (item for item in tunables.split(":") if item):
+        if item.startswith(f"{tunable_name}="):
+            try:
+                if int(item.split("=", 1)[1]) >= required_size:
+                    return
+            except ValueError:
+                break
+
+    raise RuntimeError(
+        "VCS Python packages require glibc optional static TLS space. "
+        f"Please run Python with GLIBC_TUNABLES={tunable_name}={required_size}. "
+        "For example: "
+        f"GLIBC_TUNABLES={tunable_name}={required_size} python example.py. "
+        "Increase the GLIBC_TUNABLES value if multiple VCS DUT packages are "
+        "loaded in the same Python process."
+    )
+
+
+_check_vcs_static_tls_capacity()
+{% endif %}
 
 try:
     from . import xspcomm as xsp
