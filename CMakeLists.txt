@@ -58,9 +58,7 @@ else()
     message(FATAL_ERROR "dependence/slang is missing. Run 'make init' first to fetch slang and fmt.")
 endif()
 
-# third
-# add_subdirectory(third/type_safe)
-# add_subdirectory(third/cppast)
+# dependencies
 add_subdirectory(dependence/yaml-cpp)
 LINK_LIBRARIES(yaml-cpp)
 
