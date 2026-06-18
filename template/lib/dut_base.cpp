@@ -56,6 +56,9 @@ void DutVcsBase::init(int argc, char **argv)
     this->vcs_clock_period[0] = {{__VCS_CLOCK_PERIOD_HIGH__}};
     this->vcs_clock_period[1] = {{__VCS_CLOCK_PERIOD_LOW__}};
     this->vcs_clock_period[2] = {{__VCS_CLOCK_PERIOD_LOW__}} + {{__VCS_CLOCK_PERIOD_HIGH__}};
+{% if __COVERAGE__ == "ON" %}
+    vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+{% endif %}
 }
 
 DutVcsBase::~DutVcsBase() {};
@@ -83,6 +86,13 @@ int DutVcsBase::Step(uint64_t ncycle, bool dump)
 int DutVcsBase::Finish()
 {
     // Finish VCS context
+{% if __COVERAGE__ == "ON" %}
+    if (this->coverage_file_path.size() > 0)
+        vcs_coverage_save_{{__LIB_DPI_FUNC_NAME_HASH__}}(this->coverage_file_path.c_str());
+    else
+        vcs_coverage_save_{{__LIB_DPI_FUNC_NAME_HASH__}}("simv");
+    vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+{% endif %}
     finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
     return 0;
 };
@@ -96,7 +106,19 @@ void DutVcsBase::SetWaveform(const char *filename)
 };
 void DutVcsBase::SetCoverage(const char *filename)
 {
-    XInfo("VCS coverage is not supported");
+{% if __COVERAGE__ == "ON" %}
+    if (filename == nullptr || std::strlen(filename) == 0) {
+        XFatal("VCS coverage file path is empty");
+    }
+    auto coverage_name = std::filesystem::path(filename).stem().string();
+    if (coverage_name.empty()) {
+        XFatal("VCS coverage save name is empty");
+    }
+    this->coverage_file_path = coverage_name;
+    vcs_coverage_save_{{__LIB_DPI_FUNC_NAME_HASH__}}(this->coverage_file_path.c_str());
+{% else %}
+    XFatal("VCS coverage is not enabled");
+{% endif %}
 };
 void DutVcsBase::FlushWaveform()
 {
