@@ -134,6 +134,9 @@ int VcsMain(int argc, char **argv);
 void VcsInit();
 void VcsSimUntil(uint64_t *);
 void finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}(const char *filename);
+void vcs_fsdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(unsigned char enable);
 }
 #include "vc_hdrs.h"
 

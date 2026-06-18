@@ -89,7 +89,10 @@ int DutVcsBase::Finish()
 
 void DutVcsBase::SetWaveform(const char *filename)
 {
-    XInfo("VCS waveform is not supported");
+    if (filename == nullptr || !std::string(filename).ends_with(".fsdb")) {
+        XFatal("VCS trace file must be .fsdb format");
+    }
+    vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}(filename);
 };
 void DutVcsBase::SetCoverage(const char *filename)
 {
@@ -97,21 +100,21 @@ void DutVcsBase::SetCoverage(const char *filename)
 };
 void DutVcsBase::FlushWaveform()
 {
-    XInfo("VCS waveform is not supported");
+    vcs_fsdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 };
 bool DutVcsBase::ResumeWaveformDump()
 {
-    XInfo("VCS waveform is not supported");
+    vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(1);
     return true;
 };
 bool DutVcsBase::PauseWaveformDump()
 {
-    XInfo("VCS waveform is not supported");
+    vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(0);
     return true;
 };
 void DutVcsBase::WaveformEnable(bool enable)
 {
-    XInfo("VCS waveform is not supported");
+    vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(enable ? 1 : 0);
 };
 int DutVcsBase::CheckPoint(const char *filename)
 {

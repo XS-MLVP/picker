@@ -47,6 +47,9 @@ int main()
 
     const auto sv_wave = data["__SV_DUMP_WAVE__"].get<std::string>();
     assert(contains_line(sv_wave, "$fsdbDumpfile(\"dump.fsdb\")"));
+    assert(contains_line(sv_wave, "export \"DPI-C\" function vcs_fsdb_set_waveform_H"));
+    assert(contains_line(sv_wave, "$fsdbDumpflush"));
+    assert(contains_line(sv_wave, "$fsdbDumpoff"));
     assert(data["__TRACE__"].get<std::string>() == "fsdb");
 
     nlohmann::json data2;
