@@ -11,6 +11,10 @@ FMT_DIR="${FMT_DIR:-${ROOT_DIR}/dependence/fmt}"
 FMT_REPO="${FMT_REPO:-https://github.com/fmtlib/fmt.git}"
 FMT_TAG="${FMT_TAG:-12.1.0}"
 
+YAML_CPP_DIR="${YAML_CPP_DIR:-${ROOT_DIR}/dependence/yaml-cpp}"
+YAML_CPP_REPO="${YAML_CPP_REPO:-https://github.com/jbeder/yaml-cpp.git}"
+YAML_CPP_TAG="${YAML_CPP_TAG:-yaml-cpp-0.9.0}"
+
 XCOMM_DIR="${XCOMM_DIR:-${ROOT_DIR}/dependence/xcomm}"
 XCOMM_REPO="${XCOMM_REPO:-https://github.com/XS-MLVP/xcomm.git}"
 XCOMM_REPO_FALLBACK="${XCOMM_REPO_FALLBACK:-https://gitlink.org.cn/XS-MLVP/xcomm.git}"
@@ -49,6 +53,29 @@ elif ! git -C "${SLANG_DIR}" fetch --depth=1 origin "refs/tags/${SLANG_TAG}:refs
 else
   echo "[slang] Checking out release tag '${SLANG_TAG}'"
   git -c advice.detachedHead=false -C "${SLANG_DIR}" checkout --detach "${SLANG_TAG}"
+fi
+
+if [[ -d "${YAML_CPP_DIR}" && ! -d "${YAML_CPP_DIR}/.git" ]]; then
+  echo "[yaml-cpp] Removing non-git directory ${YAML_CPP_DIR} before clean fetch."
+  rm -rf "${YAML_CPP_DIR}"
+fi
+
+if [[ ! -d "${YAML_CPP_DIR}/.git" ]]; then
+  mkdir -p "${YAML_CPP_DIR}"
+  git -C "${YAML_CPP_DIR}" init -q
+  git -C "${YAML_CPP_DIR}" remote add origin "${YAML_CPP_REPO}"
+  git -C "${YAML_CPP_DIR}" fetch --depth=1 origin "refs/tags/${YAML_CPP_TAG}:refs/tags/${YAML_CPP_TAG}"
+  git -c advice.detachedHead=false -C "${YAML_CPP_DIR}" checkout --detach "${YAML_CPP_TAG}"
+  echo "[yaml-cpp] fetched release tag ${YAML_CPP_TAG} from ${YAML_CPP_REPO}"
+elif [[ -n "${YAML_CPP_SKIP_ALIGN:-}" ]]; then
+  echo "[yaml-cpp] YAML_CPP_SKIP_ALIGN is set, skipping automatic tag alignment."
+elif [[ -n "$(git -C "${YAML_CPP_DIR}" status --porcelain)" ]]; then
+  echo "[yaml-cpp] Local changes detected in ${YAML_CPP_DIR}, skipping automatic tag alignment."
+elif ! git -C "${YAML_CPP_DIR}" fetch --depth=1 origin "refs/tags/${YAML_CPP_TAG}:refs/tags/${YAML_CPP_TAG}"; then
+  echo "[yaml-cpp] Fetch failed, skipping automatic tag alignment."
+else
+  echo "[yaml-cpp] Checking out release tag '${YAML_CPP_TAG}'"
+  git -c advice.detachedHead=false -C "${YAML_CPP_DIR}" checkout --detach "${YAML_CPP_TAG}"
 fi
 
 if [[ ! -d "${XCOMM_DIR}/.git" ]]; then
