@@ -61,7 +61,7 @@ endif()
 # third
 # add_subdirectory(third/type_safe)
 # add_subdirectory(third/cppast)
-add_subdirectory(third/yaml-cpp)
+add_subdirectory(dependence/yaml-cpp)
 LINK_LIBRARIES(yaml-cpp)
 
 # source
