@@ -5,7 +5,7 @@ ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 SLANG_DIR="${SLANG_DIR:-${ROOT_DIR}/dependence/slang}"
 SLANG_REPO="${SLANG_REPO:-https://github.com/MikePopoloski/slang.git}"
-SLANG_TAG="${SLANG_TAG:-v10.0}"
+SLANG_TAG="${SLANG_TAG:-v11.0}"
 
 FMT_DIR="${FMT_DIR:-${ROOT_DIR}/dependence/fmt}"
 FMT_REPO="${FMT_REPO:-https://github.com/fmtlib/fmt.git}"
