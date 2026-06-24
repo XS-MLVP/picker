@@ -42,6 +42,7 @@ public:
     virtual void WaveformEnable(bool enable)       = 0;
     // Set coverage file path
     virtual void SetCoverage(const char *filename) = 0;
+    virtual void ResetCoverage() = 0;
     // Save Model Status with Simulator Capabilities
     virtual int CheckPoint(const char *filename) = 0;
     // Load Model Status with Simulator Capabilities
@@ -80,6 +81,7 @@ public:
     bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
+    void ResetCoverage();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -117,6 +119,7 @@ public:
     bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
+    void ResetCoverage();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -140,7 +143,7 @@ void vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(unsigned char enabl
 void vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 void vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 void vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}}();
-void vcs_coverage_save_{{__LIB_DPI_FUNC_NAME_HASH__}}(const char *filename);
+void vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(const char *filename);
 }
 #include "vc_hdrs.h"
 
@@ -165,6 +168,7 @@ public:
     bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
+    void ResetCoverage();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -201,6 +205,7 @@ public:
     bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
+    void ResetCoverage();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -313,6 +318,7 @@ public:
     // Set coverage file path
     void SetCoverage(const char *filename);
     void SetCoverage(const std::string filename);
+    void ResetCoverage();
 
     // Get the bitmask for collected coverage metrics. 0 means coverage is disabled
     static int GetCovMetrics();

@@ -88,9 +88,9 @@ int DutVcsBase::Finish()
     // Finish VCS context
 {% if __COVERAGE__ == "ON" %}
     if (this->coverage_file_path.size() > 0)
-        vcs_coverage_save_{{__LIB_DPI_FUNC_NAME_HASH__}}(this->coverage_file_path.c_str());
+        vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(this->coverage_file_path.c_str());
     else
-        vcs_coverage_save_{{__LIB_DPI_FUNC_NAME_HASH__}}("simv");
+        vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}("simv");
     vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 {% endif %}
     finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
@@ -110,12 +110,16 @@ void DutVcsBase::SetCoverage(const char *filename)
     if (filename == nullptr || std::strlen(filename) == 0) {
         XFatal("VCS coverage file path is empty");
     }
-    auto coverage_name = std::filesystem::path(filename).stem().string();
-    if (coverage_name.empty()) {
-        XFatal("VCS coverage save name is empty");
-    }
-    this->coverage_file_path = coverage_name;
-    vcs_coverage_save_{{__LIB_DPI_FUNC_NAME_HASH__}}(this->coverage_file_path.c_str());
+    this->coverage_file_path = filename;
+    vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(this->coverage_file_path.c_str());
+{% else %}
+    XFatal("VCS coverage is not enabled");
+{% endif %}
+};
+void DutVcsBase::ResetCoverage()
+{
+{% if __COVERAGE__ == "ON" %}
+    vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 {% else %}
     XFatal("VCS coverage is not enabled");
 {% endif %}
@@ -223,6 +227,10 @@ void DutUvsBase::SetCoverage(const char *filename)
 {
     XInfo("UVS coverage is not supported");
 };
+void DutUvsBase::ResetCoverage()
+{
+    XInfo("UVS coverage is not supported");
+};
 void DutUvsBase::FlushWaveform()
 {
     XInfo("UVS waveform is not supported");
@@ -327,6 +335,9 @@ void DutGSimBase::WaveformEnable(bool enable)
 }
 
 void DutGSimBase::SetCoverage(const char *filename)
+{
+}
+void DutGSimBase::ResetCoverage()
 {
 }
 
@@ -570,6 +581,11 @@ void DutVerilatorBase::SetCoverage(const char *filename)
     std::cerr << "Verilator coverage is not enabled";
     exit(-1);
 #endif
+};
+void DutVerilatorBase::ResetCoverage()
+{
+    std::cerr << "Verilator coverage reset is not supported";
+    exit(-1);
 };
 
 #if defined(VL_SAVEABLE)
@@ -1073,6 +1089,10 @@ void DutUnifiedBase::SetCoverage(const std::string filename)
 void DutUnifiedBase::SetCoverage(const char *filename)
 {
     return this->dut->SetCoverage(filename);
+}
+void DutUnifiedBase::ResetCoverage()
+{
+    return this->dut->ResetCoverage();
 }
 int DutUnifiedBase::GetCovMetrics()
 {

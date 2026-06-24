@@ -50,28 +50,24 @@ namespace picker { namespace codegen {
             "    else $fsdbDumpoff;\n"
             "  endfunction\n";
 
-        static const std::string vcs_coverage_control_sv_template =
-            "  export \"DPI-C\" function vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $coverage_control(`SV_COV_START, `SV_COV_ALL, `SV_COV_HIER, \"{{__TOP_MODULE_NAME__}}_top\");\n"
-            "  endfunction\n\n"
-            "  export \"DPI-C\" function vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $coverage_control(`SV_COV_STOP, `SV_COV_ALL, `SV_COV_HIER, \"{{__TOP_MODULE_NAME__}}_top\");\n"
-            "  endfunction\n\n"
-            "  export \"DPI-C\" function vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $coverage_control(`SV_COV_RESET, `SV_COV_ALL, `SV_COV_HIER, \"{{__TOP_MODULE_NAME__}}_top\");\n"
-            "  endfunction\n\n"
-            "  export \"DPI-C\" function vcs_coverage_save_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void vcs_coverage_save_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+        static const std::string vcs_coverage_sv_template =
+            "  export \"DPI-C\" task vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "  task vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    $cg_coverage_control(1);\n"
+            "  endtask\n\n"
+            "  export \"DPI-C\" task vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "  task vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    $cg_coverage_control(0);\n"
+            "  endtask\n\n"
+            "  export \"DPI-C\" task vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "  task vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    $coverage_reset();\n"
+            "  endtask\n\n"
+            "  export \"DPI-C\" task vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "  task vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
             "    input string name;\n"
-            "    int rc;\n"
-            "    rc = $coverage_save(`SV_COV_ALL, name);\n"
-            "    if (rc != `SV_COV_OK) begin\n"
-            "      $display(\"[%0t] $coverage_save failed, rc=%0d\", $time, rc);\n"
-            "    end\n"
-            "  endfunction\n";
+            "    $coverage_dump(name);\n"
+            "  endtask\n";
 
         /// @brief Export external pin for verilog render, contains pin connect,
         /// @param pin
@@ -194,7 +190,7 @@ namespace picker { namespace codegen {
                 }
             } else if (simulator == "vcs") {
                 sv_waveform_control = env.render(vcs_fsdb_control_sv_template, data)
-                                    + env.render(vcs_coverage_control_sv_template, data);
+                                    + env.render(vcs_coverage_sv_template, data);
                 if (wave_file_name.length() > 0) {
                     if (wave_file_name.ends_with(".fsdb") == false) PK_FATAL("VCS trace file must be .fsdb format.\n");
                     sv_dump_wave =

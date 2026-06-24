@@ -143,6 +143,10 @@ function DUT{{__TOP_MODULE_NAME__}}:SetCoverage(filename)
     self.dut:SetCoverage(filename)
 end
 
+function DUT{{__TOP_MODULE_NAME__}}:ResetCoverage()
+    self.dut:ResetCoverage()
+end
+
 function DUT{{__TOP_MODULE_NAME__}}:GetCovMetrics()
     return self.dut:GetCovMetrics()
 end

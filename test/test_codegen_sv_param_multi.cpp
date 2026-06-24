@@ -50,9 +50,12 @@ int main()
     assert(contains_line(sv_wave, "export \"DPI-C\" function vcs_fsdb_set_waveform_H"));
     assert(contains_line(sv_wave, "$fsdbDumpflush"));
     assert(contains_line(sv_wave, "$fsdbDumpoff"));
-    assert(contains_line(sv_wave, "export \"DPI-C\" function vcs_coverage_start_H"));
-    assert(contains_line(sv_wave, "$coverage_control(`SV_COV_START"));
-    assert(contains_line(sv_wave, "$coverage_save(`SV_COV_ALL, name)"));
+    assert(contains_line(sv_wave, "export \"DPI-C\" task vcs_coverage_start_H"));
+    assert(contains_line(sv_wave, "$cg_coverage_control(1)"));
+    assert(contains_line(sv_wave, "$cg_coverage_control(0)"));
+    assert(contains_line(sv_wave, "export \"DPI-C\" task vcs_coverage_dump_H"));
+    assert(contains_line(sv_wave, "$coverage_dump(name)"));
+    assert(contains_line(sv_wave, "$coverage_reset()"));
     assert(data["__TRACE__"].get<std::string>() == "fsdb");
 
     nlohmann::json data2;

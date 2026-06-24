@@ -97,6 +97,9 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def SetCoverage(self, filename: str):
         self.dut.SetCoverage(filename)
 
+    def ResetCoverage(self):
+        self.dut.ResetCoverage()
+
     def GetCovMetrics(self) -> int:
         """
         Get the bitmask for collected coverage metrics. 0 means coverage is disabled

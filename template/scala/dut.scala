@@ -86,6 +86,9 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     def SetCoverage(coverage_name: String) = {
         this.dut.SetCoverage(coverage_name)
     }
+    def ResetCoverage() = {
+        this.dut.ResetCoverage()
+    }
     def GetCovMetrics(): Int = {
         com.ut.{{__TOP_MODULE_NAME__}}.DutUnifiedBase.GetCovMetrics()
     }
