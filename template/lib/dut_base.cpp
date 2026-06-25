@@ -85,7 +85,9 @@ int DutVcsBase::Step(uint64_t ncycle, bool dump)
 
 int DutVcsBase::Finish()
 {
-    // Finish VCS context
+{% if __TRACE__ == "fsdb" %}
+    vcs_fsdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+{% endif %}
 {% if __COVERAGE__ == "ON" %}
     if (this->coverage_file_path.size() > 0)
         vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(this->coverage_file_path.c_str());
@@ -93,7 +95,6 @@ int DutVcsBase::Finish()
         vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}("simv");
     vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 {% endif %}
-    finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
     return 0;
 };
 
