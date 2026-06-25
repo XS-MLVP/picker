@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       BUILD_XSPCOMM_SWIG: python,java
-      VERILATOR_VERSION: v5.018
+      VERILATOR_VERSION: v5.030
     steps:
       - name: Checkout
         uses: actions/checkout@v4
