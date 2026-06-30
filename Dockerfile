@@ -43,32 +43,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 ENV NVM_DIR=/usr/local/nvm
-ENV NODE_VERSION=20.12.2
+COPY .build-config.yml /tmp/build-config.yml
 
 RUN mkdir -p $NVM_DIR && \
+    NODE_VERSION="$(sed -n 's/^  node:[[:space:]]*//p' /tmp/build-config.yml)" && \
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
     . $NVM_DIR/nvm.sh && \
     nvm install $NODE_VERSION && \
     nvm alias default $NODE_VERSION && \
     nvm use default && \
     npm install -g npm@10 && \
+    ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/node" /usr/local/bin/node && \
+    ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/npm" /usr/local/bin/npm && \
+    ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/npx" /usr/local/bin/npx && \
     chmod -R 777 $NVM_DIR && \
     echo 'export NVM_DIR="/usr/local/nvm"' >> /etc/bash.bashrc && \
     echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
 
-ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
-
 RUN add-apt-repository ppa:deadsnakes/ppa -y && \
-    apt-get update && apt-get install -y --no-install-recommends python3.11 python3.11-dev python3.11-venv && \
-    python3.11 -m ensurepip --upgrade && \
-    python3.11 -m pip install --upgrade pip && \
-    ln -sf /usr/bin/python3.11 /usr/local/bin/python3 && \
-    ln -sf /usr/local/bin/pip3.11 /usr/local/bin/pip3 && \
+    PYTHON_VERSION="$(sed -n 's/^  python:[[:space:]]*//p' /tmp/build-config.yml)" && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    python${PYTHON_VERSION} \
+    python${PYTHON_VERSION}-dev \
+    python${PYTHON_VERSION}-venv && \
+    python${PYTHON_VERSION} -m ensurepip --upgrade && \
+    python${PYTHON_VERSION} -m pip install --upgrade pip && \
+    ln -sf /usr/bin/python${PYTHON_VERSION} /usr/local/bin/python3 && \
+    ln -sf /usr/local/bin/pip${PYTHON_VERSION} /usr/local/bin/pip3 && \
     rm -rf /var/lib/apt/lists/*
 
 # SWIG
-ARG SWIG_VERSION=v4.2.1
-RUN git clone https://github.com/swig/swig.git -b ${SWIG_VERSION} --depth=1 /tmp/swig && \
+RUN SWIG_VERSION="$(sed -n 's/^  swig:[[:space:]]*//p' /tmp/build-config.yml)" && \
+    git clone https://github.com/swig/swig.git -b "${SWIG_VERSION}" --depth=1 /tmp/swig && \
     cd /tmp/swig && ./autogen.sh && \
     ./configure --prefix=/usr/local && \
     make -j"$(nproc)" && make install && \
@@ -82,14 +88,14 @@ RUN set -euo pipefail; \
     apt-get update && apt-get install -y --no-install-recommends cmake && \
     rm -rf /var/lib/apt/lists/*
 
-# Verilator (pinned)
-ARG VERILATOR_VERSION=v5.018
-RUN git clone https://github.com/verilator/verilator -b ${VERILATOR_VERSION} --depth=1 /tmp/verilator && \
+# Verilator (pinned from shared dependency version file)
+RUN VERILATOR_VERSION="$(sed -n 's/^  verilator:[[:space:]]*//p' /tmp/build-config.yml)" && \
+    git clone https://github.com/verilator/verilator -b "${VERILATOR_VERSION}" --depth=1 /tmp/verilator && \
     cd /tmp/verilator && autoconf && \
     ./configure --prefix=/usr/local && \
     make -j"$(nproc)" && \
     make install && \
-    rm -rf /tmp/verilator
+    rm -rf /tmp/verilator /tmp/build-config.yml
 
 # Verify toolchain
 RUN swig -version && cmake --version && verilator --version && java --version && python3 --version

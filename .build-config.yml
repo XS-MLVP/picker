@@ -1,0 +1,5 @@
+tools:
+  verilator: v5.030
+  swig: v4.2.1
+  node: 20.12.2
+  python: 3.11
