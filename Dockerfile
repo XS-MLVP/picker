@@ -45,21 +45,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV NVM_DIR=/usr/local/nvm
 COPY .build-config.yml /tmp/build-config.yml
 
-RUN mkdir -p $NVM_DIR && \
-    NODE_VERSION="$(sed -n 's/^  node:[[:space:]]*//p' /tmp/build-config.yml)" && \
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
-    . $NVM_DIR/nvm.sh && \
-    nvm install $NODE_VERSION && \
-    nvm alias default $NODE_VERSION && \
-    nvm use default && \
-    npm install -g npm@10 && \
-    ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/node" /usr/local/bin/node && \
-    ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/npm" /usr/local/bin/npm && \
-    ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/npx" /usr/local/bin/npx && \
-    chmod -R 777 $NVM_DIR && \
-    echo 'export NVM_DIR="/usr/local/nvm"' >> /etc/bash.bashrc && \
-    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
-
 RUN add-apt-repository ppa:deadsnakes/ppa -y && \
     PYTHON_VERSION="$(sed -n 's/^  python:[[:space:]]*//p' /tmp/build-config.yml)" && \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -106,7 +91,23 @@ WORKDIR /workspace
 COPY . /workspace/picker
 RUN cd /workspace/picker && make && make install && make clean
 
+RUN mkdir -p $NVM_DIR && \
+    NODE_VERSION="$(sed -n 's/^  node:[[:space:]]*//p' /tmp/build-config.yml)" && \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
+    . $NVM_DIR/nvm.sh && \
+    nvm install $NODE_VERSION && \
+    nvm alias default $NODE_VERSION && \
+    nvm use default && \
+    npm install -g npm@10 && \
+    ln -sfn "$NVM_DIR/versions/node/v${NODE_VERSION}" "$NVM_DIR/versions/node/current" && \
+    ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/node" /usr/local/bin/node && \
+    ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/npm" /usr/local/bin/npm && \
+    ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/npx" /usr/local/bin/npx && \
+    chmod -R 777 $NVM_DIR && \
+    echo 'export NVM_DIR="/usr/local/nvm"' >> /etc/bash.bashrc && \
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
 
+ENV PATH=$NVM_DIR/versions/node/current/bin:$PATH
 
 SHELL ["/bin/bash", "-c"]
 WORKDIR /workspace
