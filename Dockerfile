@@ -80,7 +80,7 @@ RUN VERILATOR_VERSION="$(sed -n 's/^  verilator:[[:space:]]*//p' /tmp/build-conf
     ./configure --prefix=/usr/local && \
     make -j"$(nproc)" && \
     make install && \
-    rm -rf /tmp/verilator /tmp/build-config.yml
+    rm -rf /tmp/verilator
 
 # Verify toolchain
 RUN swig -version && cmake --version && verilator --version && java --version && python3 --version
@@ -105,7 +105,8 @@ RUN mkdir -p $NVM_DIR && \
     ln -sf "$NVM_DIR/versions/node/v${NODE_VERSION}/bin/npx" /usr/local/bin/npx && \
     chmod -R 777 $NVM_DIR && \
     echo 'export NVM_DIR="/usr/local/nvm"' >> /etc/bash.bashrc && \
-    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc && \
+    rm -f /tmp/build-config.yml
 
 ENV PATH=$NVM_DIR/versions/node/current/bin:$PATH
 
