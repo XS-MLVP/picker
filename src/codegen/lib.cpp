@@ -232,11 +232,9 @@ namespace picker { namespace codegen {
                 if (i + 1 < tokens.size()) metrics |= vcs_coverage_metric_bit(tokens[++i]);
                 continue;
             }
-            if (token.starts_with("-cm=") || token.starts_with("-cm")) {
-                if (token.starts_with("-cm_") || token == "-cm_dir" || token == "-cm_name") continue;
+            if (token.starts_with("-cm=")) {
                 has_cm = true;
-                const auto pos = token.find('=');
-                if (pos != std::string::npos) metrics |= vcs_coverage_metric_bit(token.substr(pos + 1));
+                metrics |= vcs_coverage_metric_bit(token.substr(token.find('=') + 1));
                 continue;
             }
             if (has_cm) metrics |= vcs_coverage_metric_bit(token);
@@ -267,7 +265,7 @@ namespace picker { namespace codegen {
             metrics     = parse_vcs_coverage_metrics(vflag, has_cm);
             if (!has_cm) {
                 if (!vflag.empty()) vflag += " ";
-                vflag += "-cm+line+cond+fsm+tgl+branch+assert";
+                vflag += "-cm line+cond+fsm+tgl+branch+assert";
                 metrics = 0b111111;
             }
         }

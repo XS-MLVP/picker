@@ -17,7 +17,10 @@ class LSRF_16:
         self.state = ((self.state << 1) | new_bit ) & ((1 << 16) - 1)
 
 if __name__ == "__main__":
-    dut = DUTRandomGenerator()
+    dut = DUTRandomGenerator(
+        waveform_filename="RandomGenerator.fsdb",
+        coverage_filename="RandomGenerator",
+    )
     dut.InitClock("clk")
 
     seed = random.randint(0, 2**16 - 1)

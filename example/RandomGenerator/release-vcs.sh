@@ -1,7 +1,7 @@
 #!/bin/bash
 
 rm -rf picker_out_RandomGenerator/
-./build/bin/picker export example/RandomGenerator/RandomGenerator.v --autobuild false --sim vcs -w RandomGenerator.fsdb --sname RandomGenerator --tdir picker_out_RandomGenerator --sdir template $@
+./build/bin/picker export example/RandomGenerator/RandomGenerator.v --autobuild false --sim vcs -w RandomGenerator.fsdb --sname RandomGenerator --tdir picker_out_RandomGenerator --sdir template --coverage $@
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/RandomGenerator/example.py picker_out_RandomGenerator/python/

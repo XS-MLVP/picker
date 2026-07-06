@@ -1,7 +1,7 @@
 #!/bin/bash
 
 rm -rf picker_out_adder/
-./build/bin/picker export example/Adder/Adder.v --autobuild false --sim vcs -w Adder.fsdb --sname Adder --tdir picker_out_adder/ --sdir template $@
+./build/bin/picker export example/Adder/Adder.v --autobuild false --sim vcs -w Adder.fsdb --sname Adder --tdir picker_out_adder/ --sdir template --coverage $@
 # if python in $@, then it will generate python binding
 if [[ $@ == *"python"* ]]; then
     cp example/Adder/example.py picker_out_adder/
