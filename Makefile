@@ -1,8 +1,10 @@
-SHELL := /bin/bash
+SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 
 .PHONY: all init build install appimage test test_all test_vpi_all test_mem_direct_all \
         test_all_java test_all_scala clean wheel wheel_install tests smoke_tests unit_tests
+
+include example/example.mk
 
 export NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
 export BUILD_XSPCOMM_SWIG ?= python
@@ -45,44 +47,33 @@ test: build
 	./build/bin/picker exports -h
 
 test_all:
-	rm -rf picker_out_*
-	./example/Adder/release-verilator.sh --lang python
-	./example/RandomGenerator/release-verilator.sh --lang python
-	./example/AdderMultiInstance/release-verilator.sh --lang python
-	./example/Cache/release-verilator.sh --lang python
+	rm -rf output
+	@for example in $(EXAMPLE_TEST_ALL); do \
+		$(MAKE) test_$$example EXAMPLE_LANG=python ARGS="$(ARGS)" || exit $$?; \
+	done
 
 test_vpi_all:
-	bash example/InternalSignals/release-verilator.sh --lang cpp
-	bash example/InternalSignals/release-verilator.sh --lang golang
-	bash example/InternalSignals/release-verilator.sh --lang java
-	bash example/InternalSignals/release-verilator.sh --lang lua
-	bash example/InternalSignals/release-verilator.sh --lang python
-	bash example/InternalSignals/release-verilator.sh --lang scala
+	@for lang in cpp golang java lua python scala; do \
+		$(MAKE) test_InternalSignals EXAMPLE_LANG=$$lang ARGS="$(ARGS)" || exit $$?; \
+	done
 
 test_mem_direct_all:
-	bash example/CacheSignalCFG/release-verilator.sh --lang cpp
-	bash example/CacheSignalCFG/release-verilator.sh --lang golang
-	bash example/CacheSignalCFG/release-verilator.sh --lang java
-	bash example/CacheSignalCFG/release-verilator.sh --lang lua
-	bash example/CacheSignalCFG/release-verilator.sh --lang python
-	bash example/CacheSignalCFG/release-verilator.sh --lang scala
+	@for lang in cpp golang java lua python scala; do \
+		$(MAKE) test_CacheSignalCFG EXAMPLE_LANG=$$lang ARGS="$(ARGS)" || exit $$?; \
+	done
 
 test_all_java:
-	bash example/Adder/release-verilator.sh --lang java
-	bash example/RandomGenerator/release-verilator.sh --lang java
-	bash example/DualPortStackCb/release-verilator.sh --lang java
-	bash example/InternalSignals/release-verilator.sh --lang java
-	bash example/CacheSignalCFG/release-verilator.sh --lang java
+	@for example in $(EXAMPLE_TEST_ALL_JAVA); do \
+		$(MAKE) test_$$example EXAMPLE_LANG=java ARGS="$(ARGS)" || exit $$?; \
+	done
 
 test_all_scala:
-	bash example/Adder/release-verilator.sh --lang scala
-	bash example/RandomGenerator/release-verilator.sh --lang scala
-	bash example/DualPortStackCb/release-verilator.sh --lang scala
-	bash example/InternalSignals/release-verilator.sh --lang scala
-	bash example/CacheSignalCFG/release-verilator.sh --lang scala
+	@for example in $(EXAMPLE_TEST_ALL_SCALA); do \
+		$(MAKE) test_$$example EXAMPLE_LANG=scala ARGS="$(ARGS)" || exit $$?; \
+	done
 
 clean:
-	rm -rf temp build dist picker_out* app_image_build AppDir
+	rm -rf temp build dist output app_image_build AppDir picker_out* picker_e203_ifu_ift2icb
 
 wheel: init
 	cd dependence/xcomm && $(MAKE) wheel

@@ -53,6 +53,7 @@ log/
 logs/
 temp/
 picker_out*
+output/
 dependence/xcomm
 dependence/fmt/
 dependence/slang/

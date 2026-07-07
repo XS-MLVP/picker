@@ -34,6 +34,6 @@ clean:
 	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.dat build
 
 purge: clean
-	@mv ./* ../ || true
+	@find . -mindepth 1 -maxdepth 1 -not -name '*.vdb' -exec mv -t ../ {} + 2>/dev/null || true
 	@echo "purge complete"
 	@rm -rf $(CURRENT_DIR)

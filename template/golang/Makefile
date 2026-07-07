@@ -39,7 +39,7 @@ clean:
 	@rm -rf *.fst *.vcd *.fsdb *.log *.key *.a build
 
 purge: clean
-	@find . -mindepth 1 -maxdepth 1 -not -name golang -exec rm -rf {} +
-	@mv ./* ../ || true
+	@find . -mindepth 1 -maxdepth 1 \( -name golang -o -name "*.vdb" \) -prune -o -exec rm -rf {} +
+	@find . -mindepth 1 -maxdepth 1 -name golang -exec mv -t ../ {} + 2>/dev/null || true
 	@echo "purge complete"
 	@rm -rf $(CURRENT_DIR)
