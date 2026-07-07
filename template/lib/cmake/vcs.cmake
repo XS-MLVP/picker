@@ -77,18 +77,33 @@ if(SIMULATOR STREQUAL "vcs")
 		endif()
 	else()
 	# Using VCS compile
+
+	# ---------- Verdi PLI selection ----------
+	# The exported --verdi-mode value is rendered into this template.
+	# modern: use -debug_access+all for Verdi >= 2024.09.
+	# legacy: use the older novas.tab interface.
+{% if __VERDI_MODE__ == "modern" %}
+	message(STATUS "Verdi PLI: modern (-debug_access+all, from --verdi-mode modern)")
+	set(_VCS_VERDI_FLAGS "-debug_access+all")
+{% else %}
+	message(STATUS "Verdi PLI: legacy (-P novas.tab, default; use --verdi-mode modern for Verdi >= 2024.09)")
+	set(_VCS_VERDI_FLAGS "-P;${VERDI_HOME}/share/PLI/VCS/LINUX64/novas.tab;-P;pli.tab")
+{% endif %}
+	# pli.a is required in both modes to pull in the VCS runtime symbols.
+	set(_VCS_VERDI_LIBS "${VERDI_HOME}/share/PLI/VCS/LINUX64/pli.a")
+	# ---------------------------------------------------
+
 		execute_process(
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			COMMAND
 				vcs -e VcsMain -slave ${VCS_TRACE} -sverilog -lca -l compile.log
-				-top ${ModuleName}_top -full64 -timescale=1ns/1ps 
-				${ModuleName}_top.sv ${ModuleName}.v -f filelist.f 
+				-top ${ModuleName}_top -full64 -timescale=1ns/1ps
+				${ModuleName}_top.sv ${ModuleName}.v -f filelist.f
 				-o libDPI${ModuleName}.so +modelsave -LDFLAGS "-shared"
-				${SIMULATOR_FLAGS} 
+				${SIMULATOR_FLAGS}
 				${SIMULATOR_CFLAGS}
-				-P ${VERDI_HOME}/share/PLI/VCS/LINUX64/novas.tab
-				-P pli.tab
-				${VERDI_HOME}/share/PLI/VCS/LINUX64/pli.a)
+				${_VCS_VERDI_FLAGS}
+				${_VCS_VERDI_LIBS})
 	endif()
 
 	# Add VCS dependency library

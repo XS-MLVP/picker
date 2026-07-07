@@ -37,6 +37,7 @@ typedef struct export_opts {
     std::string frequency;
     std::string wave_file_name;
     bool coverage;
+    std::string verdi_mode;  // legacy: -P novas.tab, modern: -debug_access+all
     std::string vflag;
     std::string cflag;
     bool verbose;

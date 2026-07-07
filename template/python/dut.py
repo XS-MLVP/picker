@@ -10,6 +10,24 @@ if __package__ or "." in __name__:
 else:
     from libUT_{{__TOP_MODULE_NAME__}} import *
 
+{% if __SIMULATOR__ == "vcs" and __VERDI_MODE__ == "modern" %}
+# After import, promote libvcsnew.so to RTLD_GLOBAL for VCS 2024.09+.
+# At this point the library is already loaded through the dependency chain.
+# RTLD_NOLOAD|RTLD_GLOBAL only changes symbol visibility and does not reload it.
+import ctypes as _ctypes, os as _os
+_vcs_home = _os.environ.get("VCS_HOME", "")
+if _vcs_home:
+    _libvcsnew = _os.path.join(_vcs_home, "linux64/lib/libvcsnew.so")
+    if _os.path.exists(_libvcsnew):
+        _RTLD_NOLOAD = 0x4  # Do not reload; only update the symbol scope.
+        try:
+            _ctypes.CDLL(_libvcsnew, mode=_RTLD_NOLOAD | _ctypes.RTLD_GLOBAL)
+        except OSError:
+            pass
+del _ctypes, _os
+{% endif %}
+
+
 
 class DUT{{__TOP_MODULE_NAME__}}(object):
 

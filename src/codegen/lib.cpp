@@ -343,6 +343,7 @@ namespace picker { namespace codegen {
         data["__EXAMPLE__"]               = opts.example ? "ON" : "OFF";
         data["__CHECKPOINTS__"]           = opts.checkpoints ? "ON" : "OFF";
         data["__VPI__"]                   = opts.vpi ? "ON" : "OFF";
+        data["__VERDI_MODE__"]            = opts.verdi_mode;
         data["__RW_TYPE__"]               = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
         data["__TARGET_LANGUAGE__"]       = opts.language;
         data["__FILELIST__"]              = ofilelist;
