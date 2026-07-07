@@ -58,10 +58,12 @@ else()
     message(FATAL_ERROR "dependence/slang is missing. Run 'make init' first to fetch slang and fmt.")
 endif()
 
-# third
-# add_subdirectory(third/type_safe)
-# add_subdirectory(third/cppast)
-add_subdirectory(third/yaml-cpp)
+# YAML parser
+if(EXISTS "${PROJECT_SOURCE_DIR}/dependence/yaml-cpp/CMakeLists.txt")
+    add_subdirectory(dependence/yaml-cpp)
+else()
+    message(FATAL_ERROR "dependence/yaml-cpp is missing. Run 'make init' first to fetch yaml-cpp.")
+endif()
 LINK_LIBRARIES(yaml-cpp)
 
 # source

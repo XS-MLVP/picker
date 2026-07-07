@@ -47,6 +47,17 @@ int main()
 
     const auto sv_wave = data["__SV_DUMP_WAVE__"].get<std::string>();
     assert(contains_line(sv_wave, "$fsdbDumpfile(\"dump.fsdb\")"));
+    assert(contains_line(sv_wave, "export \"DPI-C\" function vcs_fsdb_set_waveform_H"));
+    assert(contains_line(sv_wave, "export \"DPI-C\" function vcs_fsdb_finish_waveform_H"));
+    assert(contains_line(sv_wave, "$fsdbDumpFinish"));
+    assert(contains_line(sv_wave, "$fsdbDumpflush"));
+    assert(contains_line(sv_wave, "$fsdbDumpoff"));
+    assert(contains_line(sv_wave, "export \"DPI-C\" task vcs_coverage_start_H"));
+    assert(contains_line(sv_wave, "$cg_coverage_control(1)"));
+    assert(contains_line(sv_wave, "$cg_coverage_control(0)"));
+    assert(contains_line(sv_wave, "export \"DPI-C\" task vcs_coverage_dump_H"));
+    assert(contains_line(sv_wave, "$coverage_dump(name)"));
+    assert(contains_line(sv_wave, "$coverage_reset()"));
     assert(data["__TRACE__"].get<std::string>() == "fsdb");
 
     nlohmann::json data2;

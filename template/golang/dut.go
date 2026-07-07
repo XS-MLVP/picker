@@ -229,6 +229,10 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) SetCoverage(filename string){
     self.Dut.SetCoverage(filename)
 }
 
+func (self *UT_{{__TOP_MODULE_NAME__}}) ResetCoverage(){
+    self.Dut.ResetCoverage()
+}
+
 func (self *UT_{{__TOP_MODULE_NAME__}}) GetCovMetrics() int {
     return DutUnifiedBaseGetCovMetrics()
 }

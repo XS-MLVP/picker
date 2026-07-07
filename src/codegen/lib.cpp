@@ -1,5 +1,6 @@
 #include <cstring>
 #include <unordered_set>
+#include <sstream>
 #include "codegen/lib.hpp"
 #include "picker.hpp"
 #include "codegen/sv.hpp"
@@ -200,6 +201,47 @@ namespace picker { namespace codegen {
         std::string verilaotr_coverage, vcs_coverage;
     }
 
+    int vcs_coverage_metric_bit(const std::string &metric)
+    {
+        if (metric == "line") return 1 << 0;
+        if (metric == "cond") return 1 << 1;
+        if (metric == "fsm") return 1 << 2;
+        if (metric == "tgl" || metric == "toggle") return 1 << 3;
+        if (metric == "branch") return 1 << 4;
+        if (metric == "assert" || metric == "assertion") return 1 << 5;
+        if (metric == "all") return 0b111111;
+        return 0;
+    }
+
+    int parse_vcs_coverage_metrics(const std::string &vflag, bool &has_cm)
+    {
+        std::string normalized = vflag;
+        for (auto &ch : normalized) {
+            if (ch == '"' || ch == '\'' || ch == ',' || ch == '+') ch = ' ';
+        }
+
+        std::vector<std::string> tokens;
+        std::stringstream ss(normalized);
+        for (std::string token; ss >> token;) tokens.push_back(token);
+
+        int metrics = 0;
+        for (size_t i = 0; i < tokens.size(); ++i) {
+            const auto &token = tokens[i];
+            if (token == "-cm") {
+                has_cm = true;
+                if (i + 1 < tokens.size()) metrics |= vcs_coverage_metric_bit(tokens[++i]);
+                continue;
+            }
+            if (token.starts_with("-cm=")) {
+                has_cm = true;
+                metrics |= vcs_coverage_metric_bit(token.substr(token.find('=') + 1));
+                continue;
+            }
+            if (has_cm) metrics |= vcs_coverage_metric_bit(token);
+        }
+        return metrics;
+    }
+
     void gen_coverage_metrics(std::string &simulator, picker::export_opts &opts, std::string &vflag,
                               nlohmann::json &data)
     {
@@ -218,9 +260,14 @@ namespace picker { namespace codegen {
         if (coverage && simulator == "verilator") {
             // Verilator doesn't support fsm coverage
             metrics = 0b111011;
-        } else if (simulator == "vcs") {
-            PK_MESSAGE("VCS not supported now");
-            // TODO: Parse the vflag for vcs
+        } else if (coverage && simulator == "vcs") {
+            bool has_cm = false;
+            metrics     = parse_vcs_coverage_metrics(vflag, has_cm);
+            if (!has_cm) {
+                if (!vflag.empty()) vflag += " ";
+                vflag += "-cm line+cond+fsm+tgl+branch+assert";
+                metrics = 0b111111;
+            }
         }
 
         data["__COVERAGE__"]         = coverage ? "ON" : "OFF";
@@ -276,14 +323,14 @@ namespace picker { namespace codegen {
         std::vector<std::string> incdirs;
         gen_filelist(files, ifilelists, ofilelist, incdirs);
         append_incdirs_to_vflag(simulator, incdirs, vflag);
+
+        // Get coverage metrics before rendering Makefile/CMake, because VCS coverage may add -cm flags.
+        gen_coverage_metrics(simulator, opts, vflag, data);
         gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag, env, data);
 
         // Set clock period
         printf("Frequency: %s\n", opts.frequency.c_str());
         get_clock_period(vcs_clock_period_h, vcs_clock_period_l, opts.frequency);
-
-        // Get coverage metrics
-        gen_coverage_metrics(simulator, opts, vflag, data);
 
         // Render expins info
         auto expins = nlohmann::json::array();
@@ -296,6 +343,7 @@ namespace picker { namespace codegen {
         data["__EXAMPLE__"]               = opts.example ? "ON" : "OFF";
         data["__CHECKPOINTS__"]           = opts.checkpoints ? "ON" : "OFF";
         data["__VPI__"]                   = opts.vpi ? "ON" : "OFF";
+        data["__VERDI_MODE__"]            = opts.verdi_mode;
         data["__RW_TYPE__"]               = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
         data["__TARGET_LANGUAGE__"]       = opts.language;
         data["__FILELIST__"]              = ofilelist;

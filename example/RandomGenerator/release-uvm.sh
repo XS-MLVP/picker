@@ -1,6 +1,9 @@
 #!/bin/bash
 
-rm -rf picker_out_rmg/
+OUT_ROOT="${OUT_ROOT:-output}"
+OUT_DIR="${OUT_ROOT}/RandomGenerator"
+
+rm -rf "$OUT_DIR"
 
 ./build/bin/picker pack --from-rtl example/RandomGenerator/RandomGenerator.v -d -e
 
@@ -11,6 +14,6 @@ cp example/RandomGenerator/example.py uvmpy/
 cp example/RandomGenerator/example-uvm.sv uvmpy/
 cp example/RandomGenerator/RandomGenerator.v uvmpy/
 
-mv uvmpy picker_out_rmg
+mv uvmpy "$OUT_DIR"
 
-cd picker_out_rmg && make
+cd "$OUT_DIR" && make

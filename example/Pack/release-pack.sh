@@ -2,7 +2,7 @@
 set -e
 
 ROOT=$(pwd)
-PACK_OUT="$ROOT/picker_out_pack"
+PACK_OUT="${OUT_ROOT:-$ROOT/output}/Pack"
 
 prepare() {
     rm -rf "$PACK_OUT"

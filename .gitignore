@@ -53,7 +53,11 @@ log/
 logs/
 temp/
 picker_out*
+output/
 dependence/xcomm
+dependence/fmt/
+dependence/slang/
+dependence/yaml-cpp/
 AppDir/
 app_image_build/
 
@@ -66,3 +70,4 @@ Testing
 # Local verible installs/archives
 verible-*/
 verible-*.tar.gz
+

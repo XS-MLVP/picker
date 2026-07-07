@@ -2,30 +2,33 @@
 
 # This script is used to release the XDummyCache library.
 
+OUT_ROOT="${OUT_ROOT:-output}"
+OUT_DIR="${OUT_ROOT}/CacheSignalCFG"
+
 # run cache codegen
-rm -rf picker_out/CacheCFG
+rm -rf "$OUT_DIR"
 # Use file list and explicit sname to locate top module in list
 ./build/bin/picker export --autobuild false --rw mem_direct \
     --sname Cache \
-    --tname CacheCFG \
+    --tname CacheSignalCFG \
     --fs example/CacheSignalCFG/Cache.txt \
-    -w cache.vcd --sim verilator --tdir ./picker_out/ $@
+    -w cache.vcd --sim verilator --tdir "${OUT_ROOT}/" "$@"
 
-if [[ $@ == *"python"* ]]; then
-    cp example/CacheSignalCFG/example.py picker_out/CacheCFG/python/
-elif [[ $@ == *"java"* ]]; then
-    cp example/CacheSignalCFG/example.java picker_out/CacheCFG/java/
-elif [[ $@ == *"scala"* ]]; then
-    cp example/CacheSignalCFG/example.scala picker_out/CacheCFG/scala/
-elif [[ $@ == *"golang"* ]]; then
-    cp example/CacheSignalCFG/example.go picker_out/CacheCFG/golang/
-elif [[ $@ == *"lua"* ]]; then
-    cp example/CacheSignalCFG/example.lua picker_out/CacheCFG/lua/
+if [[ $* == *"python"* ]]; then
+    cp example/CacheSignalCFG/example.py "$OUT_DIR/python/"
+elif [[ $* == *"java"* ]]; then
+    cp example/CacheSignalCFG/example.java "$OUT_DIR/java/"
+elif [[ $* == *"scala"* ]]; then
+    cp example/CacheSignalCFG/example.scala "$OUT_DIR/scala/"
+elif [[ $* == *"golang"* ]]; then
+    cp example/CacheSignalCFG/example.go "$OUT_DIR/golang/"
+elif [[ $* == *"lua"* ]]; then
+    cp example/CacheSignalCFG/example.lua "$OUT_DIR/lua/"
 else
-    cp example/CacheSignalCFG/example.cpp picker_out/CacheCFG/cpp/
+    cp example/CacheSignalCFG/example.cpp "$OUT_DIR/cpp/"
 fi
 
-cd picker_out/CacheCFG && make EXAMPLE=ON
+cd "$OUT_DIR" && make EXAMPLE=ON
 
 
 # --autobuild true: auto build and test

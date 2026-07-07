@@ -20,8 +20,8 @@ V_ROOT := $(shell verilator -V | grep ROOT | grep verilator | tail -n 1 | awk '{
 CXXFLAGS += -I ${V_ROOT}/include -I ${V_ROOT}/include/vltstd/ \
 		-I ../build/DPI${TOP_NAME} \
 		-L../build  ${CFLAGS}
-LDFLAGS += $(WHOLE_ARCHIVE_LDFLAGS) -Wl,-undefined,dynamic_lookup
-LDLIBS += -lpthread -lz
+LDFLAGS += $(WHOLE_ARCHIVE_LDFLAGS) -Wl,-undefined,dynamic_lookup -Wl,-rpath,{{__XSPCOMM_LIB__}}
+LDLIBS += -lpthread -lz -L{{__XSPCOMM_LIB__}} -lxspcomm
 {% endif %}
 
 {% if __SIMULATOR__ == "gsim" %}

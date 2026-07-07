@@ -42,6 +42,7 @@ public:
     virtual void WaveformEnable(bool enable)       = 0;
     // Set coverage file path
     virtual void SetCoverage(const char *filename) = 0;
+    virtual void ResetCoverage() = 0;
     // Save Model Status with Simulator Capabilities
     virtual int CheckPoint(const char *filename) = 0;
     // Load Model Status with Simulator Capabilities
@@ -80,6 +81,7 @@ public:
     bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
+    void ResetCoverage();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -117,6 +119,7 @@ public:
     bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
+    void ResetCoverage();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -134,6 +137,14 @@ int VcsMain(int argc, char **argv);
 void VcsInit();
 void VcsSimUntil(uint64_t *);
 void finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}(const char *filename);
+void vcs_fsdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void vcs_fsdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(unsigned char enable);
+void vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(const char *filename);
 }
 #include "vc_hdrs.h"
 
@@ -142,6 +153,7 @@ class DutVcsBase : public DutBase
 protected:
     uint64_t cycle_hl;
     uint64_t vcs_clock_period[3];
+    std::string coverage_file_path;
 
 public:
     std::string sv_scope = "{{__TOP_MODULE_NAME__}}_top";
@@ -157,6 +169,7 @@ public:
     bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
+    void ResetCoverage();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -193,6 +206,7 @@ public:
     bool PauseWaveformDump();
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
+    void ResetCoverage();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -305,6 +319,7 @@ public:
     // Set coverage file path
     void SetCoverage(const char *filename);
     void SetCoverage(const std::string filename);
+    void ResetCoverage();
 
     // Get the bitmask for collected coverage metrics. 0 means coverage is disabled
     static int GetCovMetrics();

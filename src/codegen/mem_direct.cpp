@@ -80,6 +80,7 @@ namespace picker { namespace codegen {
         if (varibles.size() == 0) { return; }
         inja::Environment env;
         nlohmann::json data;
+        std::string erro_message;
         std::vector<std::string> offset_array;
         std::string offset_funcs, offset_funcs_define;              // begin with "render_varible_info_0(base);\n"
         std::string src_dir = opts.source_dir; // "mem_direct" folder has been added in the upper level
@@ -106,6 +107,9 @@ namespace picker { namespace codegen {
         for (const auto &type : type_set) {
             cpp_type_set.push_back(type);
         }
+        auto cpplib_location = picker::get_xcomm_lib("lib", erro_message);
+        if (cpplib_location.empty()) { PK_FATAL("%s", erro_message.c_str()); }
+        data["__XSPCOMM_LIB__"] = cpplib_location;
         data["__yaml_varible_type_set__"] = cpp_type_set;
         data["__SIMULATOR__"] = opts.sim;
         recursive_render(dst_dir_tmp, dst_dir, data, env);

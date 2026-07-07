@@ -18,6 +18,65 @@
 
 int enable_xinfo = 0; // 0: disable, 1: enable, 2: debug
 
+#if defined(USE_VCS)
+
+// argv[0] is the .so path; VCS options start at index 1.
+static bool has_argv_option(int argc, char **argv, const char *opt)
+{
+    for (int i = 1; i < argc; ++i)
+        if (argv[i] && std::strcmp(argv[i], opt) == 0) return true;
+    return false;
+}
+
+static void append_argv_option(int &argc, char **argv, const std::string &val, int cap)
+{
+    if (argc >= cap) { XWarning("VCS argv overflow, option '%s' skipped", val.c_str()); return; }
+    char *p = (char *)malloc(val.size() + 1);
+    std::memcpy(p, val.c_str(), val.size() + 1);
+    argv[argc++] = p;
+}
+
+static constexpr int vcs_coverage_metrics_mask = {{__COVERAGE_METRICS__}};
+
+static std::string vcs_coverage_metric_string()
+{
+    static constexpr std::pair<int, const char *> kMetrics[] = {
+        {1 << 0, "line"}, {1 << 1, "cond"}, {1 << 2, "fsm"},
+        {1 << 3, "tgl"},  {1 << 4, "branch"}, {1 << 5, "assert"},
+    };
+    std::string s;
+    for (auto [bit, name] : kMetrics)
+        if (vcs_coverage_metrics_mask & bit) { if (!s.empty()) s += '+'; s += name; }
+    return s;
+}
+
+// Sanitize user-provided name into a valid VCS testdata name.
+// "foo.fsdb" -> "foo",  "./dir/" -> "{{__TOP_MODULE_NAME__}}"
+static std::string vcs_coverage_test_name(const std::string &val)
+{
+    std::string name = std::filesystem::path(val).stem().string();
+    if (name.empty() || name == ".") name = "{{__TOP_MODULE_NAME__}}";
+    for (char &c : name)
+        if (!std::isalnum((unsigned char)c) && c != '_' && c != '-') c = '_';
+    return name;
+}
+
+// Return the absolute directory containing this .so; falls back to CWD.
+static std::string vcs_so_dir()
+{
+    Dl_info info;
+    if (dladdr(reinterpret_cast<void *>(&vcs_so_dir), &info) && info.dli_fname) {
+        std::error_code ec;
+        auto abs = std::filesystem::absolute(info.dli_fname, ec);
+        if (!ec) return abs.parent_path().string();
+    }
+    std::error_code ec;
+    auto cwd = std::filesystem::current_path(ec);
+    return ec ? "." : cwd.string();
+}
+
+#endif
+
 DutBase::DutBase()
 {
     cycle = 0;
@@ -56,6 +115,9 @@ void DutVcsBase::init(int argc, char **argv)
     this->vcs_clock_period[0] = {{__VCS_CLOCK_PERIOD_HIGH__}};
     this->vcs_clock_period[1] = {{__VCS_CLOCK_PERIOD_LOW__}};
     this->vcs_clock_period[2] = {{__VCS_CLOCK_PERIOD_LOW__}} + {{__VCS_CLOCK_PERIOD_HIGH__}};
+{% if __COVERAGE__ == "ON" %}
+    vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+{% endif %}
 }
 
 DutVcsBase::~DutVcsBase() {};
@@ -82,36 +144,63 @@ int DutVcsBase::Step(uint64_t ncycle, bool dump)
 
 int DutVcsBase::Finish()
 {
-    // Finish VCS context
+{% if __TRACE__ == "fsdb" %}
+    vcs_fsdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+{% endif %}
+{% if __COVERAGE__ == "ON" %}
+    if (this->coverage_file_path.size() > 0)
+        vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(vcs_coverage_test_name(this->coverage_file_path).c_str());
+    else
+        vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}("{{__TOP_MODULE_NAME__}}");
+    vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+{% endif %}
     finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
     return 0;
 };
 
 void DutVcsBase::SetWaveform(const char *filename)
 {
-    XInfo("VCS waveform is not supported");
+    if (filename == nullptr || !std::string(filename).ends_with(".fsdb")) {
+        XFatal("VCS trace file must be .fsdb format");
+    }
+    vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}(filename);
 };
 void DutVcsBase::SetCoverage(const char *filename)
 {
-    XInfo("VCS coverage is not supported");
+{% if __COVERAGE__ == "ON" %}
+    if (filename == nullptr || std::strlen(filename) == 0) {
+        XFatal("VCS coverage file path is empty");
+    }
+    this->coverage_file_path = filename;
+{% else %}
+    XFatal("VCS coverage is not enabled");
+{% endif %}
+};
+void DutVcsBase::ResetCoverage()
+{
+{% if __COVERAGE__ == "ON" %}
+    vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+{% else %}
+    XFatal("VCS coverage is not enabled");
+{% endif %}
 };
 void DutVcsBase::FlushWaveform()
 {
-    XInfo("VCS waveform is not supported");
+    vcs_fsdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 };
 bool DutVcsBase::ResumeWaveformDump()
 {
-    XInfo("VCS waveform is not supported");
+    vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(1);
     return true;
 };
 bool DutVcsBase::PauseWaveformDump()
 {
-    XInfo("VCS waveform is not supported");
+    vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(0);
     return true;
 };
 void DutVcsBase::WaveformEnable(bool enable)
 {
-    XInfo("VCS waveform is not supported");
+    vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(enable ? 1 : 0);
 };
 int DutVcsBase::CheckPoint(const char *filename)
 {
@@ -195,6 +284,10 @@ void DutUvsBase::SetWaveform(const char *filename)
     XInfo("UVS waveform is not supported");
 };
 void DutUvsBase::SetCoverage(const char *filename)
+{
+    XInfo("UVS coverage is not supported");
+};
+void DutUvsBase::ResetCoverage()
 {
     XInfo("UVS coverage is not supported");
 };
@@ -302,6 +395,9 @@ void DutGSimBase::WaveformEnable(bool enable)
 }
 
 void DutGSimBase::SetCoverage(const char *filename)
+{
+}
+void DutGSimBase::ResetCoverage()
 {
 }
 
@@ -546,6 +642,11 @@ void DutVerilatorBase::SetCoverage(const char *filename)
     exit(-1);
 #endif
 };
+void DutVerilatorBase::ResetCoverage()
+{
+    std::cerr << "Verilator coverage reset is not supported";
+    exit(-1);
+};
 
 #if defined(VL_SAVEABLE)
 #include "verilated_save.h"
@@ -756,6 +857,26 @@ void DutUnifiedBase::init(int argc, const char **argv)
 #endif
         this->argc++;
     }
+
+#if defined(USE_VCS)
+    if (vcs_coverage_metrics_mask != 0) {
+        // argv was allocated with 128 extra slots; cap prevents silent overflow.
+        const int argv_cap = this->argc + 128;
+        const auto try_append = [&](const char *key, const std::string &val) {
+            if (!has_argv_option(this->argc, this->argv, key)) {
+                append_argv_option(this->argc, this->argv, key, argv_cap);
+                append_argv_option(this->argc, this->argv, val, argv_cap);
+            }
+        };
+        const std::string metrics = vcs_coverage_metric_string();
+        if (!metrics.empty()) try_append("-cm", metrics);
+        try_append("-cm_name", "{{__TOP_MODULE_NAME__}}");
+        // Anchor .vdb to the .so directory so coverage is written to the
+        // release dir regardless of where pytest/the test is invoked from.
+        try_append("-cm_dir",
+            (std::filesystem::path(vcs_so_dir()) / "{{__TOP_MODULE_NAME__}}.vdb").string());
+    }
+#endif
 
     // the main namespace instance doesn't need to load the shared library
     if (!main_ns_flag) {
@@ -1048,6 +1169,10 @@ void DutUnifiedBase::SetCoverage(const std::string filename)
 void DutUnifiedBase::SetCoverage(const char *filename)
 {
     return this->dut->SetCoverage(filename);
+}
+void DutUnifiedBase::ResetCoverage()
+{
+    return this->dut->ResetCoverage();
 }
 int DutUnifiedBase::GetCovMetrics()
 {

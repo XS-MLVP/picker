@@ -1,23 +1,25 @@
 #!/bin/bash
 
-rm -rf picker_out_dps/
+OUT_ROOT="${OUT_ROOT:-output}"
+OUT_DIR="${OUT_ROOT}/DualPortStackCb"
 
-./build/bin/picker export example/DualPortStackCb/dual_port_stack.v --autobuild false -w DualPortStackCb.fst $@ --tdir picker_out_dps
+rm -rf "$OUT_DIR"
+./build/bin/picker export example/DualPortStackCb/dual_port_stack.v --autobuild false -w DualPortStackCb.fst "$@" --tdir "$OUT_DIR"
 # if python in $@, then it will generate python binding
-if [[ $@ == *"python"* ]]; then
+if [[ $* == *"python"* ]]; then
     if [[ "$async" != "" ]]; then
-        cp example/DualPortStackCb/example_async.py picker_out_dps/python/example.py
+        cp example/DualPortStackCb/example_async.py "$OUT_DIR/python/example.py"
     else
-        cp example/DualPortStackCb/example.py picker_out_dps/python/
+        cp example/DualPortStackCb/example.py "$OUT_DIR/python/"
     fi
-elif [[ $@ == *"java"* ]]; then
-    cp example/DualPortStackCb/example.java picker_out_dps/java/
-elif [[ $@ == *"scala"* ]]; then
-    cp example/DualPortStackCb/example.scala picker_out_dps/scala/
-elif [[ $@ == *"golang"* ]]; then
-    cp example/DualPortStackCb/example.go picker_out_dps/golang/
+elif [[ $* == *"java"* ]]; then
+    cp example/DualPortStackCb/example.java "$OUT_DIR/java/"
+elif [[ $* == *"scala"* ]]; then
+    cp example/DualPortStackCb/example.scala "$OUT_DIR/scala/"
+elif [[ $* == *"golang"* ]]; then
+    cp example/DualPortStackCb/example.go "$OUT_DIR/golang/"
 else
-    cp example/DualPortStackCb/example.cpp picker_out_dps/cpp/
+    cp example/DualPortStackCb/example.cpp "$OUT_DIR/cpp/"
 fi
 
-cd picker_out_dps && make EXAMPLE=ON
+cd "$OUT_DIR" && make EXAMPLE=ON

@@ -10,6 +10,7 @@
 #include "slang/diagnostics/DiagnosticEngine.h"
 #include "slang/diagnostics/Diagnostics.h"
 #include "slang/driver/Driver.h"
+#include "slang/syntax/SyntaxTree.h"
 #include "slang/syntax/SyntaxVisitor.h"
 #include "slang/text/SourceManager.h"
 

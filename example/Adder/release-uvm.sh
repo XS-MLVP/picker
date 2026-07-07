@@ -1,6 +1,9 @@
 #!/bin/bash
 
-rm -rf picker_out_adder/
+OUT_ROOT="${OUT_ROOT:-output}"
+OUT_DIR="${OUT_ROOT}/Adder"
+
+rm -rf "$OUT_DIR"
 
 ./build/bin/picker pack --from-rtl example/Adder/Adder.v -n Adder -d -e
 
@@ -10,6 +13,6 @@ rm -rf uvmpy/example.py
 cp example/Adder/example.py uvmpy/
 cp example/Adder/example-uvm.sv uvmpy/
 
-mv uvmpy picker_out_adder
+mv uvmpy "$OUT_DIR"
 
-cd picker_out_adder && make
+cd "$OUT_DIR" && make

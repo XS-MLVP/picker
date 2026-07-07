@@ -140,6 +140,9 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public void SetCoverage(String coverage_name){
         this.dut.SetCoverage(coverage_name);
     }
+    public void ResetCoverage(){
+        this.dut.ResetCoverage();
+    }
     public int GetCovMetrics() {
         return this.dut.GetCovMetrics();
     }

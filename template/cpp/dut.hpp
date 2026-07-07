@@ -99,6 +99,10 @@ public:
     {
         this->dut->SetCoverage((const char *)filename.c_str());
     }
+    void ResetCoverage()
+    {
+        this->dut->ResetCoverage();
+    }
     int GetCovMetrics()
     {
         return this->dut->GetCovMetrics();

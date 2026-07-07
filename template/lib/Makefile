@@ -55,6 +55,9 @@ endif
 
 release: compile
 	@cp -r build/${TARGET} .
+	# Bring .vdb alongside the .so so the runtime -cm_dir (anchored to the .so
+	# directory by dut_base.cpp) finds the database and appends new testdata.
+	@cp -r build/${PROJECT}.vdb . 2>/dev/null || true
 	@cp build/_SRC/*.h ${TARGET}/ 2>/dev/null|| true
 	@cp build/_SRC/*.hpp ${TARGET}/ 2>/dev/null|| true
 	@cp *.hpp ${TARGET}/

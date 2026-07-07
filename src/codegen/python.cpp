@@ -146,6 +146,7 @@ namespace picker { namespace codegen {
         data["__USE_SIMULATOR__"]    = "USE_" + simulator;
         data["__COPY_XSPCOMM_LIB__"] = opts.cp_lib;
         data["__SIMULATOR__"]        = opts.sim;
+        data["__VERDI_MODE__"]       = opts.verdi_mode;
 
         // Render
         inja::Environment env;
