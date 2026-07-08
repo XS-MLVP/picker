@@ -68,6 +68,8 @@ int main()
     fs::create_directories(cwd_base / "inc_shadow");
 
     write_text(base / "rtl1.sv", "module m; endmodule\n");
+    write_text(base / "defs.vh", "`define DEF_W 8\n");
+    write_text(base / "macro.svh", "`include \"defs.vh\"\n");
     write_text(base / "sub" / "rtl2.v", "module n; endmodule\n");
     write_text(base / "sub2" / "ignore.txt", "noop\n");
     write_text(base / "sub2" / "rtl3.sv", "module p; endmodule\n");
@@ -153,6 +155,26 @@ int main()
     assert(incdirs3.front() == base.string());
     assert(contains_line(ofilelist3, (base / "rtl1.sv").string()));
     assert(!contains_line(ofilelist3, (cwd_base / "rtl1.sv").string()));
+
+    const fs::path filelist4 = base / "filelist4.f";
+    write_text(filelist4,
+               "defs.vh\n"
+               "macro.svh\n"
+               "rtl1.sv\n");
+
+    std::string ofilelist4;
+    std::vector<std::string> incdirs4;
+    stderr_output = capture_stderr([&]() {
+        picker::codegen::gen_filelist({}, {filelist4.string()}, ofilelist4, incdirs4);
+    });
+
+    assert(stderr_output.empty());
+    assert(contains_line(ofilelist4, (base / "rtl1.sv").string()));
+    assert(!contains_line(ofilelist4, (base / "defs.vh").string()));
+    assert(!contains_line(ofilelist4, (base / "macro.svh").string()));
+    std::set<std::string> incset4(incdirs4.begin(), incdirs4.end());
+    assert(incset4.size() == 1);
+    assert(incset4.count(base.string()) == 1);
 
     fs::remove_all(cwd_base);
     fs::remove_all(base);

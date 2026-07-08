@@ -43,7 +43,9 @@ namespace picker { namespace codegen {
                       std::string &ofilelist, std::vector<std::string> &incdirs)
     {
         std::vector<std::pair<std::string, std::string>> path_list;
-        const std::vector<std::string> allow_file_types = {".sv", ".v", ".cpp", ".c", ".cc", ".cxx", ".so", ".a", ".o"};
+        const std::vector<std::string> allow_file_types = {
+            ".sv", ".v", ".svh", ".vh", ".cpp", ".c", ".cc", ".cxx", ".so", ".a", ".o"};
+        const std::vector<std::string> header_file_types = {".svh", ".vh"};
         std::unordered_set<std::string> incdir_set;
         auto resolve_input_path = [](const std::string &path, const std::string &base_dir) {
             auto resolved = std::filesystem::path(path);
@@ -129,6 +131,10 @@ namespace picker { namespace codegen {
                 if (!std::filesystem::exists(resolved_file)) PK_FATAL("File not found: %s\n", target_file.c_str());
                 path = std::filesystem::absolute(resolved_file).lexically_normal().string();
                 if (source_file_set.count(path) != 0) { continue; } // skip source file
+                if (check_file_type(path, header_file_types)) {
+                    add_incdir(std::filesystem::path(path).parent_path().string(), "");
+                    continue;
+                }
                 ofilelist += path + "\n";
             } else if (path.ends_with("/")) { // directory
                 auto target_dir = path;
@@ -138,7 +144,14 @@ namespace picker { namespace codegen {
                 for (const auto &entry : iter) {
                     if (entry.is_regular_file()) {
                         std::string filename = entry.path().filename().string();
-                        if (check_file_type(filename, allow_file_types)) { ofilelist += entry.path().string() + "\n"; }
+                        if (check_file_type(filename, allow_file_types)) {
+                            const auto entry_path = entry.path().string();
+                            if (check_file_type(entry_path, header_file_types)) {
+                                add_incdir(entry.path().parent_path().string(), "");
+                                continue;
+                            }
+                            ofilelist += entry_path + "\n";
+                        }
                     }
                 }
             } else {

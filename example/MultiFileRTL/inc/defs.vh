@@ -1,0 +1,1 @@
+`define MULTI_FILE_RTL_W 8
