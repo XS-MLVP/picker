@@ -1,5 +1,6 @@
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
+.DEFAULT_GOAL := all
 
 .PHONY: all init build install appimage test test_all test_vpi_all test_mem_direct_all \
         test_all_java test_all_scala clean wheel wheel_install tests smoke_tests unit_tests
