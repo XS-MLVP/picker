@@ -73,6 +73,9 @@ int main()
     write_text(base / "sub" / "rtl2.v", "module n; endmodule\n");
     write_text(base / "sub2" / "ignore.txt", "noop\n");
     write_text(base / "sub2" / "rtl3.sv", "module p; endmodule\n");
+    write_text(base / "dependency.so", "shared library placeholder\n");
+    write_text(base / "dependency.a", "archive placeholder\n");
+    write_text(base / "dependency.o", "object placeholder\n");
     write_text(cwd_base / "rtl1.sv", "module wrong; endmodule\n");
 
     const fs::path filelist = base / "filelist.f";
@@ -160,7 +163,10 @@ int main()
     write_text(filelist4,
                "defs.vh\n"
                "macro.svh\n"
-               "rtl1.sv\n");
+               "rtl1.sv\n"
+               "dependency.so\n"
+               "dependency.a\n"
+               "dependency.o\n");
 
     std::string ofilelist4;
     std::vector<std::string> incdirs4;
@@ -172,6 +178,9 @@ int main()
     assert(contains_line(ofilelist4, (base / "rtl1.sv").string()));
     assert(!contains_line(ofilelist4, (base / "defs.vh").string()));
     assert(!contains_line(ofilelist4, (base / "macro.svh").string()));
+    assert(contains_line(ofilelist4, (base / "dependency.so").string()));
+    assert(contains_line(ofilelist4, (base / "dependency.a").string()));
+    assert(contains_line(ofilelist4, (base / "dependency.o").string()));
     std::set<std::string> incset4(incdirs4.begin(), incdirs4.end());
     assert(incset4.size() == 1);
     assert(incset4.count(base.string()) == 1);

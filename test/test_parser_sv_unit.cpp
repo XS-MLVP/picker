@@ -229,6 +229,40 @@ namespace {
         fs::remove_all(base);
     }
 
+    void test_filelist_ignores_linker_inputs()
+    {
+        namespace fs = std::filesystem;
+        const fs::path base = fs::temp_directory_path() / "picker_test_sv_filelist_linker_inputs";
+        fs::remove_all(base);
+        fs::create_directories(base);
+
+        write_text(base / "linker_top.sv",
+                   "module LinkerTop(input logic clk);\n"
+                   "endmodule\n");
+        write_text(base / "dependency.so", "not SystemVerilog\n");
+        write_text(base / "dependency.a", "not SystemVerilog\n");
+        write_text(base / "dependency.o", "not SystemVerilog\n");
+        write_text(base / "filelist.f",
+                   "linker_top.sv\n"
+                   "dependency.so\n"
+                   "dependency.a\n"
+                   "dependency.o\n");
+
+        picker::export_opts opts {};
+        opts.filelists = {(base / "filelist.f").string()};
+        opts.source_module_name_list = {"LinkerTop"};
+
+        std::vector<picker::sv_module_define> modules;
+        picker::parser::sv(opts, modules);
+
+        assert(modules.size() == 1);
+        assert(modules.front().module_name == "LinkerTop");
+        assert(modules.front().pins.size() == 1);
+        assert(modules.front().pins.front().logic_pin == "clk");
+
+        fs::remove_all(base);
+    }
+
     void test_missing_child_modules_do_not_block_top_port_extraction()
     {
         namespace fs = std::filesystem;
@@ -273,6 +307,7 @@ int main()
     test_filelist_macro_defines_are_shared_across_sources();
     test_filelist_dependencies_are_used_without_explicit_module_name();
     test_filelist_order_wins_when_explicit_file_is_duplicate();
+    test_filelist_ignores_linker_inputs();
     test_missing_child_modules_do_not_block_top_port_extraction();
     return 0;
 }
