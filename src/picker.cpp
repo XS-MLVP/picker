@@ -161,6 +161,10 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_flag("-e,--example", export_opts.example, "Build example project, default is OFF");
     app->add_option("--autobuild", export_opts.autobuild, "Auto build the generated project, default is true")
         ->default_val(true);
+    app->add_option("-j,--build-threads", export_opts.build_threads,
+                    "Maximum parallel build threads; 0 uses all available CPU cores")
+        ->default_val(0)
+        ->check(CLI::NonNegativeNumber);
 
     return 0;
 }

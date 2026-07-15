@@ -38,6 +38,7 @@ OUT_DIR="${TMP_DIR}/out/FileListTop"
 blue "[export-filelist] Exporting from a filelist with a minimal tool PATH"
 env PATH="/usr/bin:/bin" "${PICKER_BIN}" export \
   --autobuild false \
+  --build-threads 3 \
   --sdir "${ROOT_DIR}/template" \
   --sname FileListTop \
   --fs "${TMP_DIR}/list/design.f" \
@@ -48,5 +49,7 @@ env PATH="/usr/bin:/bin" "${PICKER_BIN}" export \
 test -d "${OUT_DIR}"
 test -f "${OUT_DIR}/CMakeLists.txt"
 test -d "${OUT_DIR}/python"
+grep -Fxq 'export NPROC := 3' "${OUT_DIR}/Makefile"
+grep -Fq 'NPROC ?=' "${OUT_DIR}/python/Makefile"
 
 green "[export-filelist] OK"

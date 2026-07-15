@@ -359,6 +359,9 @@ namespace picker { namespace codegen {
         data["__VERDI_MODE__"]            = opts.verdi_mode;
         data["__RW_TYPE__"]               = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
         data["__TARGET_LANGUAGE__"]       = opts.language;
+        data["__BUILD_THREADS__"] =
+            opts.build_threads > 0 ? std::to_string(opts.build_threads) :
+                                     "$(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)";
         data["__FILELIST__"]              = ofilelist;
         data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
         data["__GENERATOR_PICKER_PATH__"] =

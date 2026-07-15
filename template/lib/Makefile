@@ -13,7 +13,7 @@ export COVERAGE := {{__COVERAGE__}}
 export CHECKPOINTS := {{__CHECKPOINTS__}}
 export VPI := {{__VPI__}}
 export RW_TYPE := {{__RW_TYPE__}}
-NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
+export NPROC := {{__BUILD_THREADS__}}
 
 ifeq ($(SIMULATOR), verilator)
 MEM_DIRECT_TARGET_FILE := build/DPI{{__TOP_MODULE_NAME__}}/V{{__TOP_MODULE_NAME__}}___024root.h

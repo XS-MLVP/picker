@@ -43,6 +43,7 @@ typedef struct export_opts {
     bool verbose;
     bool example;
     bool autobuild;
+    int build_threads;
     bool cp_lib;
     SignalAccessType rw_type;
     std::vector<std::string> transaction;
