@@ -266,7 +266,8 @@ namespace picker { namespace parser {
         {
             driver.addStandardArgs();
 
-            std::vector<std::string> args = {"picker-slang", "--single-unit", "--ignore-unknown-modules"};
+            std::vector<std::string> args = {"picker-slang", "--single-unit", "--ignore-unknown-modules",
+                                             "--exclude-ext", "so,a,o"};
             if (opts.sim == "vcs") {
                 args.push_back("--compat");
                 args.push_back("vcs");

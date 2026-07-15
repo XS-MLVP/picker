@@ -186,6 +186,7 @@ Options:
   --verbose                   Verbose mode
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
+  -j,--build-threads INT [0]  Maximum parallel build threads; 0 uses all available CPU cores
 ```
 
 Static Multi-Module Support:

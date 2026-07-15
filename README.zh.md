@@ -181,6 +181,7 @@ Options:
   --verbose                   Verbose mode
   -e,--example                Build example project, default is OFF
   --autobuild BOOLEAN [1]     Auto build the generated project, default is true
+  -j,--build-threads INT [0]  最大并行构建线程数；0 表示使用所有可用 CPU 核心
 ```
 
 pack 子命令用于将 UVM 中的 sequence_item 转换为其他语言，然后通过 TLM 进行通信（目前支持 Python，其他语言在开发中）
@@ -227,6 +228,7 @@ Options:
 - `--verbose`: 可选。详细模式
 - `-e,--example`: 可选。构建示例项目，默认是 OFF
 - `--autobuild BOOLEAN [1]`: 可选。自动构建生成的项目，默认是 true
+- `-j,--build-threads INT [0]`: 可选。限制生成项目的最大并行构建线程数，0 表示使用所有可用 CPU 核心
 
 静态多模块支持：
 
