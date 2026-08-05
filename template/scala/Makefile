@@ -31,6 +31,5 @@ clean:
 
 purge: clean
 	@find . -mindepth 1 -maxdepth 1 \( -name "*.jar" -o -name "*.vdb" \) -prune -o -exec rm -rf {} +
-	@find . -mindepth 1 -maxdepth 1 -name "*.jar" -exec mv -t ../ {} + 2>/dev/null || true
-	@echo "purge complete"
-	@rm -rf $(CURRENT_DIR)
+	@find . -mindepth 1 -maxdepth 1 -name "*.jar" -exec sh -c 'for path in "$$@"; do mv "$$path" ../ || exit 1; done' sh {} +
+	@cd .. && rm -rf "$(CURRENT_DIR)" && echo "purge complete"

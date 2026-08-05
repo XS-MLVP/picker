@@ -32,6 +32,5 @@ clean:
 
 purge: clean
 	@rm -rf *.txt Makefile *.hpp *.cmake *.i __pycache__
-	@find . -mindepth 1 -maxdepth 1 -not -name '*.vdb' -exec mv -t ../ {} + 2>/dev/null || true
-	@echo "purge complete"
-	@rm -rf $(CURRENT_DIR)
+	@find . -mindepth 1 -maxdepth 1 -not -name '*.vdb' -exec sh -c 'for path in "$$@"; do mv "$$path" ../ || exit 1; done' sh {} +
+	@cd .. && rm -rf "$(CURRENT_DIR)" && echo "purge complete"

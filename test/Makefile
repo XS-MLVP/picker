@@ -1,11 +1,11 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: all preflight smoke export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes clean
+.PHONY: all preflight smoke template_purge export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes clean
 
 SCRIPT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/scripts
 
-all: preflight smoke export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes pack_python
+all: preflight smoke template_purge export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes pack_python
 
 # Ensure picker is built with python and java support before running tests
 preflight:
@@ -39,6 +39,9 @@ preflight:
 
 smoke: preflight
 	bash "$(SCRIPT_DIR)/test_cli.sh"
+
+template_purge:
+	bash "$(SCRIPT_DIR)/test_template_purge.sh"
 
 export_python: preflight
 	bash "$(SCRIPT_DIR)/test_export_adder_python.sh"
