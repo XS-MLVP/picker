@@ -12,7 +12,15 @@ dependencies = [
 [tool.scikit-build]
 wheel.install-dir = "picker"
 wheel.packages = ["src/python/picker"]
-sdist.include = [".git"]
+sdist.include = [
+    "/.git",
+    "/dependence/fmt",
+    "!/dependence/fmt/.git/",
+    "/dependence/slang",
+    "!/dependence/slang/.git/",
+    "/dependence/yaml-cpp",
+    "!/dependence/yaml-cpp/.git/",
+]
 
 [project.scripts]
 picker = "picker:cmd"
