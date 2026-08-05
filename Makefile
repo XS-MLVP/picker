@@ -77,9 +77,10 @@ clean:
 	rm -rf temp build dist output app_image_build AppDir picker_out* picker_e203_ifu_ift2icb
 
 wheel: init
-	cd dependence/xcomm && $(MAKE) wheel
-	NO_BUILD_XSPCOMM=1 pipx run build
-	mkdir -p dist && cp dependence/xcomm/dist/* ./dist
+	rm -rf dist dependence/xcomm/dist
+	cd dependence/xcomm && XSPCOMM_INSTALL_PREFIX=picker/ XSPCOMM_BUILD_WHEEL=1 pipx run build --wheel
+	NO_BUILD_XSPCOMM=1 pipx run build --wheel
+	mkdir -p dist && cp dependence/xcomm/dist/*.whl ./dist
 
 wheel_install: wheel
 	pip3 uninstall -y xspcomm picker || true
