@@ -50,7 +50,14 @@ namespace picker { namespace codegen {
         auto resolve_input_path = [](const std::string &path, const std::string &base_dir) {
             auto resolved = std::filesystem::path(path);
             if (!base_dir.empty() && !resolved.is_absolute()) { resolved = std::filesystem::path(base_dir) / resolved; }
-            return resolved.lexically_normal().string();
+            resolved = resolved.lexically_normal();
+            // lexically_normal() preserves a trailing separator for paths ending
+            // in "/.". Keep generated filelists stable by removing it, except
+            // when the resolved path is the filesystem root.
+            if (resolved != resolved.root_path() && resolved.filename().empty()) {
+                resolved = resolved.parent_path();
+            }
+            return resolved.string();
         };
 
         std::unordered_set<std::string> source_file_set;

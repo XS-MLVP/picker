@@ -281,7 +281,11 @@ namespace {
     {
         std::vector<std::string> refs;
         std::unordered_set<std::string> seen;
-        std::regex ref_regex(R"(vlSelfRef\.([A-Za-z_][A-Za-z0-9_]*(?:__DOT__[A-Za-z_][A-Za-z0-9_]*)*))");
+        // Verilator trace sources use vlSelfRef.member in newer releases and
+        // vlSelf->member in older releases (including 5.026). Accept both and
+        // normalize either form to the RTL-style dotted signal name.
+        std::regex ref_regex(
+            R"((?:vlSelfRef\.|vlSelf->)([A-Za-z_][A-Za-z0-9_]*(?:__DOT__[A-Za-z_][A-Za-z0-9_]*)*))");
         auto begin = std::sregex_iterator(expr.begin(), expr.end(), ref_regex);
         auto end = std::sregex_iterator();
         for (auto it = begin; it != end; ++it) {
@@ -297,7 +301,8 @@ namespace {
     std::string replace_member_refs_with_dots(const std::string &expr)
     {
         std::string out;
-        std::regex ref_regex(R"(vlSelfRef\.([A-Za-z_][A-Za-z0-9_]*(?:__DOT__[A-Za-z_][A-Za-z0-9_]*)*))");
+        std::regex ref_regex(
+            R"((?:vlSelfRef\.|vlSelf->)([A-Za-z_][A-Za-z0-9_]*(?:__DOT__[A-Za-z_][A-Za-z0-9_]*)*))");
         auto begin = std::sregex_iterator(expr.begin(), expr.end(), ref_regex);
         auto end = std::sregex_iterator();
         size_t last = 0;

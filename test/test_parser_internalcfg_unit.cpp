@@ -42,7 +42,7 @@ int main()
             found_b = true;
             assert(p.logic_pin_type == "output");
             assert(p.logic_pin_hb == -1);
-        } else if (p.logic_pin == "top.sub2.c") {
+        } else if (p.logic_pin == "top.sub2.key.c") {
             found_c = true;
             assert(p.logic_pin_type == "inout");
             assert(p.logic_pin_hb == 7);

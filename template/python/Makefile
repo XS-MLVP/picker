@@ -2,13 +2,15 @@ CURRENT_DIR := $(shell pwd)
 NPROC ?= $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
 .PHONY: all test compile clean purge copy_xspcomm
 
-all: test clean
+all:
+	@$(MAKE) test; result=$$?; $(MAKE) clean; exit $$result
 	@echo "All complete"
 
 test: compile
 	@rm *.a 2>/dev/null || true
 	@echo "--------------Compile Success Test Step DUT--------------------"
-	@cd ../ && PYTHONPATH=.:{{__XSPCOMM_PYTHON__}}/.. python3 example.py && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || (echo "Error: Test failed, plz check whether behavior is correct" && sleep 10)
+	@cd ../ && PYTHONPATH=.:{{__XSPCOMM_PYTHON__}}/.. python3 example.py || \
+		{ result=$$?; echo "Error: Test failed, plz check whether behavior is correct"; exit $$result; }
 	@echo "--------------------------------------------------------------"
 
 # copy xspcomm lib
@@ -32,7 +34,7 @@ compile: copy_xspcomm
 	@echo "end build wrapper at" && date
 
 clean:
-	@rm -rf *.fst *.vcd *.fsdb *.log *.key build
+	@rm -rf *.fst *.vcd *.fsdb *.log *.key build ../*.fst ../*.vcd ../*.fsdb ../*.log ../*.key
 
 purge: clean
 	@rm -rf *.txt Makefile *.hpp *.cmake *.i __pycache__
