@@ -35,6 +35,9 @@ void outputSignalYAML(const std::vector<trace_signal_info> &signals, const std::
 
 namespace verilator {
     std::vector<std::string> findTraceFiles(const std::string &rootHeaderFile);
+    trace_parse_result processTraceFiles(const std::string &rootHeaderFile,
+                                         const std::vector<std::string> &traceFiles,
+                                         const std::vector<cpp_variableInfo> &vars);
     trace_parse_result processTraceFiles(const std::vector<std::string> &traceFiles,
                                          const std::vector<cpp_variableInfo> &vars);
 } // namespace verilator

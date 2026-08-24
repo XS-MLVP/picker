@@ -1,0 +1,12 @@
+tracep->pushPrefix("Top", 0);
+tracep->declBus(c+1, 0, "direct_arrow", -1, 7, 0);
+tracep->declBus(c+2, 0, "direct_ref", -1, 7, 0);
+tracep->declBus(c+3, 0, "projection", -1, 6, 0);
+tracep->declBus(c+4, 0, "expression", -1, 7, 0);
+tracep->declBus(c+5, 0, "constant", -1, 7, 0);
+tracep->popPrefix();
+bufp->fullCData(oldp+1, vlSelf->Top__DOT__native, 8);
+bufp->fullCData(oldp+2, vlSelfRef.Top__DOT__other, 8);
+bufp->fullCData(oldp+3, (IData)(vlSelf->Top__DOT__native) >> 1U, 7);
+bufp->fullCData(oldp+4, vlSelf->Top__DOT__native | vlSelfRef.Top__DOT__other, 8);
+bufp->fullCData(oldp+5, 3U, 8);

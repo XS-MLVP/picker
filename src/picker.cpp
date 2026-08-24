@@ -392,7 +392,7 @@ int main(int argc, char **argv)
                 PK_MESSAGE("Trace files not found near %s, skipping trace-derived signal map", source_file.c_str());
             } else {
                 PK_MESSAGE("Parsing %zu trace file(s)", trace_files.size());
-                auto trace_result = picker::parser::verilator::processTraceFiles(trace_files, vars);
+                auto trace_result = picker::parser::verilator::processTraceFiles(source_file, trace_files, vars);
                 if (trace_result.signals.empty()) {
                     PK_FATAL("Trace files were found, but no usable signal mappings could be built "
                              "(decl=%zu, value=%zu, matched_slots=%zu). "
