@@ -10,6 +10,7 @@ export TLANG := {{__TARGET_LANGUAGE__}}
 export SIMULATOR_FLAGS := {{__VFLAG__}}
 export CFLAGS := {{__CFLAG__}}
 export COVERAGE := {{__COVERAGE__}}
+export VCS_COVERAGE_DB := {{__VCS_COVERAGE_DB__}}
 export CHECKPOINTS := {{__CHECKPOINTS__}}
 export VPI := {{__VPI__}}
 export RW_TYPE := {{__RW_TYPE__}}
@@ -55,9 +56,11 @@ endif
 
 release: compile
 	@cp -r build/${TARGET} .
+{% if __VCS_COVERAGE_DB__ == "" %}
 	# Bring .vdb alongside the .so so the runtime -cm_dir (anchored to the .so
 	# directory by dut_base.cpp) finds the database and appends new testdata.
 	@cp -r build/${PROJECT}.vdb . 2>/dev/null || true
+{% endif %}
 	@cp build/_SRC/*.h ${TARGET}/ 2>/dev/null|| true
 	@cp build/_SRC/*.hpp ${TARGET}/ 2>/dev/null|| true
 	@cp *.hpp ${TARGET}/

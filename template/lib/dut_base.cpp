@@ -9,8 +9,14 @@
 #include <map>
 #include <functional>
 #include <filesystem>
+#include <cerrno>
 #if defined(USE_VCS) || defined(__linux__)
 #include <sys/personality.h>
+#endif
+#if defined(USE_VCS)
+#include <sys/wait.h>
+#include <sys/file.h>
+#include <fcntl.h>
 #endif
 
 #define likely(x) __builtin_expect(!!(x), 1)
@@ -75,6 +81,86 @@ static std::string vcs_so_dir()
     return ec ? "." : cwd.string();
 }
 
+static std::filesystem::path vcs_coverage_db_path()
+{
+{% if __VCS_COVERAGE_DB__ == "" %}
+    return std::filesystem::path(vcs_so_dir()) / "{{__TOP_MODULE_NAME__}}.vdb";
+{% else %}
+    return std::filesystem::path({{__VCS_COVERAGE_DB_LITERAL__}});
+{% endif %}
+}
+
+class VcsCoverageLock {
+    int fd = -1;
+
+public:
+    explicit VcsCoverageLock(const std::filesystem::path &database)
+    {
+        const std::string path = database.string() + ".lock";
+        fd = open(path.c_str(), O_CREAT | O_RDWR, 0666);
+        if (fd >= 0 && flock(fd, LOCK_EX) != 0) {
+            close(fd);
+            fd = -1;
+        }
+    }
+
+    ~VcsCoverageLock()
+    {
+        if (fd >= 0) {
+            flock(fd, LOCK_UN);
+            close(fd);
+        }
+    }
+
+    bool acquired() const { return fd >= 0; }
+};
+
+// VCS code coverage always writes the test selected by the startup -cm_name.
+// Runtime $coverage_dump(name) does not change that directory name. Move the
+// finalized child snapshot to the name selected by SetCoverage() so successive
+// FlushCoverage() calls can preserve distinct tests in one VDB. Intermediate
+// flushes retain the runtime directory because the next child $finish updates it.
+static bool vcs_copy_coverage_testdata(const std::string &test_name, bool final_snapshot)
+{
+    const std::string runtime_test_name = "{{__TOP_MODULE_NAME__}}";
+    if (test_name == runtime_test_name) return true;
+
+    const std::filesystem::path testdata =
+        vcs_coverage_db_path() / "snps" / "coverage" / "db" / "testdata";
+    const std::filesystem::path source = testdata / runtime_test_name;
+    const std::filesystem::path target = testdata / test_name;
+    std::error_code ec;
+    if (!std::filesystem::is_directory(source, ec)) {
+        XWarning("VCS coverage testdata '%s' was not generated", source.string().c_str());
+        return false;
+    }
+
+    std::filesystem::remove_all(target, ec);
+    if (ec) {
+        XWarning("failed to replace VCS coverage testdata '%s': %s",
+                 target.string().c_str(), ec.message().c_str());
+        return false;
+    }
+    std::filesystem::copy(source, target,
+                          std::filesystem::copy_options::recursive |
+                          std::filesystem::copy_options::overwrite_existing,
+                          ec);
+    if (ec) {
+        XWarning("failed to copy VCS coverage testdata '%s' to '%s': %s",
+                 source.string().c_str(), target.string().c_str(), ec.message().c_str());
+        return false;
+    }
+    if (final_snapshot) {
+        std::filesystem::remove_all(source, ec);
+        if (ec) {
+            XWarning("failed to remove internal VCS coverage testdata '%s': %s",
+                     source.string().c_str(), ec.message().c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
 #endif
 
 DutBase::DutBase()
@@ -124,6 +210,10 @@ DutVcsBase::~DutVcsBase() {};
 
 int DutVcsBase::Step(uint64_t ncycle, bool dump)
 {
+    if (this->retired) {
+        XWarning("VCS DUT is already finished");
+        return -1;
+    }
     if (!dump) {
         // assert(ncycle == 0);
         VcsSimUntil(&cycle);
@@ -144,18 +234,91 @@ int DutVcsBase::Step(uint64_t ncycle, bool dump)
 
 int DutVcsBase::Finish()
 {
+    if (this->retired) return 0;
 {% if __TRACE__ == "fsdb" %}
     vcs_fsdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 {% endif %}
+    const int status = this->FinalizeCoverageSnapshot(true);
+    this->retired = true;
+    return status;
+};
+
+int DutVcsBase::FlushCoverage()
+{
+    if (this->retired) {
+        XWarning("VCS DUT is already finished");
+        return -1;
+    }
+    return this->FinalizeCoverageSnapshot(false);
+};
+
+int DutVcsBase::FinalizeCoverageSnapshot(bool final_snapshot)
+{
+    // VCS only writes UCAPI-readable code coverage testdata on the $finish path.
+    // Finalize a child copy so the parent DUT remains usable after this snapshot.
 {% if __COVERAGE__ == "ON" %}
+    VcsCoverageLock coverage_lock(vcs_coverage_db_path());
+    if (!coverage_lock.acquired()) {
+        XWarning("failed to acquire VCS coverage database lock");
+        return -1;
+    }
+    const std::string test_name = this->coverage_file_path.empty()
+        ? "{{__TOP_MODULE_NAME__}}"
+        : vcs_coverage_test_name(this->coverage_file_path);
+    std::fprintf(stdout, "\n[Picker Coverage] begin VCS %s: test=%s\n\n",
+                 final_snapshot ? "finish" : "flush", test_name.c_str());
+{% endif %}
+    // Do not let the child print a duplicate copy of the parent's buffered output.
+    std::fflush(nullptr);
+    pid_t pid = fork();
+    if (pid == 0) {
+{% if __COVERAGE__ == "ON" %}
+        vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(test_name.c_str());
+{% endif %}
+        finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+        _exit(0);
+    }
+    if (pid > 0) {
+        int status = 0;
+        pid_t waited = 0;
+        do {
+            waited = waitpid(pid, &status, 0);
+        } while (waited < 0 && errno == EINTR);
+        if (waited < 0) {
+            XWarning("waitpid failed while finalizing VCS coverage");
+            return -1;
+        }
+        int exit_status = status;
+        if (WIFEXITED(status)) exit_status = WEXITSTATUS(status);
+        else if (WIFSIGNALED(status)) exit_status = 128 + WTERMSIG(status);
+{% if __COVERAGE__ == "ON" %}
+        if (exit_status == 0) {
+            if (!vcs_copy_coverage_testdata(test_name, final_snapshot)) return -1;
+            std::fprintf(stdout, "\n[Picker Coverage] end VCS %s: test=%s, status=0\n\n",
+                         final_snapshot ? "finish" : "flush", test_name.c_str());
+            std::fflush(stdout);
+        } else {
+            XWarning("VCS coverage %s failed for test '%s' (status %d)",
+                     final_snapshot ? "finish" : "flush", test_name.c_str(), exit_status);
+        }
+{% endif %}
+        return exit_status;
+    }
+    XWarning("fork failed while finalizing VCS coverage");
+    return -1;
+};
+
+void DutVcsBase::DumpCoverage()
+{
+{% if __COVERAGE__ == "ON" %}
+    if (this->coverage_dumped) { return; }
     if (this->coverage_file_path.size() > 0)
         vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(vcs_coverage_test_name(this->coverage_file_path).c_str());
     else
         vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}("{{__TOP_MODULE_NAME__}}");
     vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+    this->coverage_dumped = true;
 {% endif %}
-    finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
-    return 0;
 };
 
 void DutVcsBase::SetWaveform(const char *filename)
@@ -168,6 +331,9 @@ void DutVcsBase::SetWaveform(const char *filename)
 void DutVcsBase::SetCoverage(const char *filename)
 {
 {% if __COVERAGE__ == "ON" %}
+    if (this->retired) {
+        XFatal("VCS DUT is already finished");
+    }
     if (filename == nullptr || std::strlen(filename) == 0) {
         XFatal("VCS coverage file path is empty");
     }
@@ -180,8 +346,17 @@ void DutVcsBase::ResetCoverage()
 {
 {% if __COVERAGE__ == "ON" %}
     vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+    this->coverage_dumped = false;
 {% else %}
     XFatal("VCS coverage is not enabled");
+{% endif %}
+};
+std::string DutVcsBase::GetCoveragePath()
+{
+{% if __COVERAGE__ == "ON" %}
+    return vcs_coverage_db_path().string();
+{% else %}
+    return "";
 {% endif %}
 };
 void DutVcsBase::FlushWaveform()
@@ -291,6 +466,19 @@ void DutUvsBase::ResetCoverage()
 {
     XInfo("UVS coverage is not supported");
 };
+void DutUvsBase::DumpCoverage()
+{
+    XInfo("UVS coverage is not supported");
+};
+int DutUvsBase::FlushCoverage()
+{
+    XInfo("UVS coverage is not supported");
+    return -1;
+};
+std::string DutUvsBase::GetCoveragePath()
+{
+    return "";
+};
 void DutUvsBase::FlushWaveform()
 {
     XInfo("UVS waveform is not supported");
@@ -399,6 +587,18 @@ void DutGSimBase::SetCoverage(const char *filename)
 }
 void DutGSimBase::ResetCoverage()
 {
+}
+void DutGSimBase::DumpCoverage()
+{
+}
+int DutGSimBase::FlushCoverage()
+{
+    this->DumpCoverage();
+    return 0;
+}
+std::string DutGSimBase::GetCoveragePath()
+{
+    return this->coverage_file_path;
 }
 
 int DutGSimBase::CheckPoint(const char *filename)
@@ -556,12 +756,7 @@ int DutVerilatorBase::Finish()
     // Finish Verilator context
     if (this->top != nullptr) {
         VerilatedContext *contextp = ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp();
-#if defined(VL_COVERAGE)
-        if (this->coverage_file_path.size() > 0)
-            contextp->coveragep()->write(this->coverage_file_path.c_str());
-        else
-            contextp->coveragep()->write("V{{__TOP_MODULE_NAME__}}_coverage.dat");
-#endif
+        this->DumpCoverage();
         ((V{{__TOP_MODULE_NAME__}} *)(this->top))->final();
         delete (V{{__TOP_MODULE_NAME__}} *)(this->top);
         delete contextp;
@@ -636,6 +831,13 @@ void DutVerilatorBase::WaveformEnable(bool enable=true)
 void DutVerilatorBase::SetCoverage(const char *filename)
 {
 #if defined(VL_COVERAGE)
+    if (filename == nullptr || std::strlen(filename) == 0) {
+        XFatal("Verilator coverage file path is empty");
+    }
+    if (!std::string(filename).ends_with(".dat")) {
+        XWarning("Verilator coverage does not support named snapshots; SetCoverage('%s') is ignored", filename);
+        return;
+    }
     this->coverage_file_path = filename;
 #else
     std::cerr << "Verilator coverage is not enabled";
@@ -646,6 +848,32 @@ void DutVerilatorBase::ResetCoverage()
 {
     std::cerr << "Verilator coverage reset is not supported";
     exit(-1);
+};
+void DutVerilatorBase::DumpCoverage()
+{
+#if defined(VL_COVERAGE)
+    if (this->top != nullptr) {
+        VerilatedContext *contextp = ((V{{__TOP_MODULE_NAME__}} *)(this->top))->contextp();
+        if (this->coverage_file_path.size() > 0)
+            contextp->coveragep()->write(this->coverage_file_path.c_str());
+        else
+            contextp->coveragep()->write("V{{__TOP_MODULE_NAME__}}_coverage.dat");
+    }
+#endif
+};
+int DutVerilatorBase::FlushCoverage()
+{
+    this->DumpCoverage();
+    return 0;
+};
+std::string DutVerilatorBase::GetCoveragePath()
+{
+#if defined(VL_COVERAGE)
+    if (this->coverage_file_path.size() > 0) { return this->coverage_file_path; }
+    return "V{{__TOP_MODULE_NAME__}}_coverage.dat";
+#else
+    return "";
+#endif
 };
 
 #if defined(VL_SAVEABLE)
@@ -871,10 +1099,7 @@ void DutUnifiedBase::init(int argc, const char **argv)
         const std::string metrics = vcs_coverage_metric_string();
         if (!metrics.empty()) try_append("-cm", metrics);
         try_append("-cm_name", "{{__TOP_MODULE_NAME__}}");
-        // Anchor .vdb to the .so directory so coverage is written to the
-        // release dir regardless of where pytest/the test is invoked from.
-        try_append("-cm_dir",
-            (std::filesystem::path(vcs_so_dir()) / "{{__TOP_MODULE_NAME__}}.vdb").string());
+        try_append("-cm_dir", vcs_coverage_db_path().string());
     }
 #endif
 
@@ -1146,7 +1371,7 @@ int DutUnifiedBase::RefreshComb()
 int DutUnifiedBase::Finish()
 {
     if (!this->dut) { return 0; }
-    this->dut->Finish();
+    int status = this->dut->Finish();
     delete this->dut;
     this->dut = nullptr;
     // this class maintain the other namespace
@@ -1160,7 +1385,7 @@ int DutUnifiedBase::Finish()
     free(this->argv);
     this->argv = nullptr;
 
-    return 0;
+    return status;
 }
 void DutUnifiedBase::SetCoverage(const std::string filename)
 {
@@ -1173,6 +1398,27 @@ void DutUnifiedBase::SetCoverage(const char *filename)
 void DutUnifiedBase::ResetCoverage()
 {
     return this->dut->ResetCoverage();
+}
+void DutUnifiedBase::DumpCoverage()
+{
+    if (this->dut) { return this->dut->DumpCoverage(); }
+}
+int DutUnifiedBase::FlushCoverage()
+{
+    if (!this->dut) { return -1; }
+    return this->dut->FlushCoverage();
+}
+std::string DutUnifiedBase::GetCoveragePath()
+{
+#if defined(USE_VCS)
+    return vcs_coverage_db_path().string();
+#elif defined(USE_VERILATOR)
+    if (this->dut) { return this->dut->GetCoveragePath(); }
+    return "V{{__TOP_MODULE_NAME__}}_coverage.dat";
+#else
+    if (this->dut) { return this->dut->GetCoveragePath(); }
+    return "";
+#endif
 }
 int DutUnifiedBase::GetCovMetrics()
 {

@@ -126,6 +126,11 @@ int set_options_export_rtl(CLI::App &top_app)
 
     // Enable coverage, Optional, default is OFF
     app->add_flag("-c,--coverage", export_opts.coverage, "Enable coverage, default is not selected as OFF");
+    app->add_option("--coverage-dir", export_opts.coverage_dir,
+                    "Directory for the VCS coverage database. The generated database is <dir>/<DUT>.vdb. "
+                    "Requires --sim vcs and --coverage.");
+    app->add_option("--source-root", export_opts.source_roots,
+                    "Source root used to create stable coverage logical paths. May be repeated.");
 
     // Select Verdi integration mode for VCS simulator, Optional, default is legacy
     app->add_option("--verdi-mode", export_opts.verdi_mode,
@@ -309,6 +314,21 @@ int check_picker_support()
             PK_ERROR("[Err] MEM_DIRECT not support simulator '%s'", export_opts.sim.c_str());
         }
         break;
+    }
+
+    if (!export_opts.coverage_dir.empty()) {
+        if (export_opts.sim != "vcs") {
+            PK_ERROR("[Err] --coverage-dir is only supported with '--sim vcs'");
+            exit(1);
+        }
+        if (!export_opts.coverage) {
+            PK_ERROR("[Err] --coverage-dir requires '--coverage'");
+            exit(1);
+        }
+        if (export_opts.vflag.find("-cm_dir") != std::string::npos) {
+            PK_ERROR("[Err] --coverage-dir cannot be combined with '-cm_dir' in --vflag");
+            exit(1);
+        }
     }
 
     return 0;

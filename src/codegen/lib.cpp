@@ -1,4 +1,5 @@
 #include <cstring>
+#include <iomanip>
 #include <unordered_set>
 #include <sstream>
 #include "codegen/lib.hpp"
@@ -7,6 +8,90 @@
 #include "codegen/firrtl.hpp"
 
 namespace picker { namespace codegen {
+
+    std::string coverage_content_hash(const std::string &path)
+    {
+        const std::string content = read_file(path);
+        uint64_t hash = 1469598103934665603ULL;
+        for (unsigned char byte : content) {
+            hash ^= byte;
+            hash *= 1099511628211ULL;
+        }
+        std::ostringstream output;
+        output << std::hex << std::setfill('0') << std::setw(16) << hash;
+        return output.str();
+    }
+
+    std::string coverage_tsv_escape(const std::string &value)
+    {
+        std::string escaped;
+        for (char ch : value) {
+            if (ch == '\\') escaped += "\\\\";
+            else if (ch == '\t') escaped += "\\t";
+            else if (ch == '\n') escaped += "\\n";
+            else escaped += ch;
+        }
+        return escaped;
+    }
+
+    void write_coverage_source_map(const picker::export_opts &opts,
+                                   const std::vector<std::string> &files,
+                                   const std::string &dst_dir,
+                                   const std::string &module)
+    {
+        if (!opts.coverage || (opts.sim != "vcs" && opts.sim != "verilator")) return;
+        std::vector<std::filesystem::path> roots;
+        for (const auto &root : opts.source_roots) {
+            std::error_code ec;
+            auto absolute = std::filesystem::weakly_canonical(root, ec);
+            if (!ec && std::filesystem::is_directory(absolute)) roots.push_back(absolute);
+        }
+
+        std::ostringstream output;
+        output << "# picker-coverage-source-map-v1\n";
+        std::set<std::tuple<std::string, std::string, std::string, std::string>> rows;
+        auto add_row = [&](const std::string &native, const std::string &source_id,
+                           const std::string &logical, const std::string &resolved) {
+            rows.emplace(native, source_id, logical, resolved);
+        };
+        for (const auto &file : files) {
+            std::error_code ec;
+            auto original = std::filesystem::weakly_canonical(file, ec);
+            if (ec) original = std::filesystem::absolute(file).lexically_normal();
+            std::string logical;
+            for (const auto &root : roots) {
+                auto relative = original.lexically_relative(root);
+                if (!relative.empty() && *relative.begin() != "..") {
+                    logical = relative.generic_string();
+                    break;
+                }
+            }
+            if (logical.empty()) {
+                logical = "external/" + coverage_content_hash(original.string()) + "/" +
+                          original.filename().generic_string();
+            }
+            const std::string source_id = "src:" + logical;
+            std::string extension = original.extension().string();
+            if (extension == ".sv") extension = ".v";
+            const auto packaged = std::filesystem::absolute(
+                std::filesystem::path(dst_dir) / (module + extension)).lexically_normal();
+            add_row(file, source_id, logical, packaged.string());
+            add_row(original.string(), source_id, logical, packaged.string());
+            add_row(packaged.string(), source_id, logical, packaged.string());
+            add_row((std::filesystem::path("build") / packaged.filename()).generic_string(),
+                    source_id, logical, packaged.string());
+            add_row((std::filesystem::absolute(dst_dir) / "build" / packaged.filename()).lexically_normal().string(),
+                    source_id, logical, packaged.string());
+        }
+        for (const auto &[native, source_id, logical, resolved] : rows) {
+            output << coverage_tsv_escape(native) << '\t'
+                   << coverage_tsv_escape(source_id) << '\t'
+                   << coverage_tsv_escape(logical) << '\t'
+                   << coverage_tsv_escape(resolved) << '\n';
+        }
+        std::filesystem::create_directories(std::filesystem::path(dst_dir) / "coverage");
+        write_file((std::filesystem::path(dst_dir) / "coverage" / "source-map.tsv").string(), output.str());
+    }
 
     bool check_file_type(const std::string src, const std::vector<std::string> &types)
     {
@@ -323,6 +408,16 @@ namespace picker { namespace codegen {
         data["__TOP_MODULE_NAME__"] = dst_module_name;
         data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
+        std::string vcs_coverage_db;
+        if (!opts.coverage_dir.empty()) {
+            std::error_code ec;
+            auto coverage_dir = std::filesystem::absolute(opts.coverage_dir, ec).lexically_normal();
+            if (ec) { PK_FATAL("Failed to resolve coverage directory '%s': %s", opts.coverage_dir.c_str(), ec.message().c_str()); }
+            vcs_coverage_db = (coverage_dir / (dst_module_name + ".vdb")).string();
+        }
+        data["__VCS_COVERAGE_DB__"] = vcs_coverage_db;
+        data["__VCS_COVERAGE_DB_LITERAL__"] = nlohmann::json(vcs_coverage_db).dump();
+
         // firrtl base simulators
         std::unordered_set<std::string> firrtl_simulators = {"gsim"};
         if (firrtl_simulators.count(opts.sim)) {
@@ -372,6 +467,18 @@ namespace picker { namespace codegen {
 
         // Render lib files
         recursive_render(src_dir, dst_dir, data, env);
+        if ((simulator == "vcs" || simulator == "verilator") && opts.coverage) {
+            std::string coverage_src_dir = opts.source_dir + "/coverage/" + simulator;
+            std::string coverage_dst_dir = dst_dir + "/coverage";
+            if (std::filesystem::exists(coverage_src_dir)) {
+                recursive_render(coverage_src_dir, coverage_dst_dir, data, env);
+                const std::string source_name =
+                    simulator == "vcs" ? "vcs_uncover.cpp" : "verilator_coverage.cpp";
+                std::filesystem::rename(
+                    coverage_dst_dir + "/" + source_name,
+                    coverage_dst_dir + "/coverage.cpp");
+            }
+        }
 
         // Copy verilog files
         for (const auto &entry : std::filesystem::directory_iterator(dst_dir)) {
@@ -395,6 +502,7 @@ namespace picker { namespace codegen {
             // create an empty verilog file to avoid simulator error
             write_file(dst_dir + "/" + dst_module_name + ".v", "// empty file generated by picker\n");
         }
+        write_coverage_source_map(opts, files, dst_dir, dst_module_name);
 
         PK_MESSAGE("Generate DPI files successfully!");
         return ret;

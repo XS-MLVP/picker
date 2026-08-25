@@ -32,6 +32,12 @@ if(SIMULATOR STREQUAL "verilator")
 	if(${COVERAGE} STREQUAL "ON")
 		set(COVERAGE_FLAG "COVERAGE")
 		add_definitions(-DVL_COVERAGE)
+		if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/coverage/coverage.cpp")
+			add_executable(coverage_helper coverage/coverage.cpp)
+			set_target_properties(coverage_helper PROPERTIES
+				OUTPUT_NAME coverage
+				RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/coverage")
+		endif()
 	else()
 		set(COVERAGE_FLAG "")
 	endif()

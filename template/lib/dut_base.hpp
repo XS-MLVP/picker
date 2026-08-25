@@ -43,6 +43,9 @@ public:
     // Set coverage file path
     virtual void SetCoverage(const char *filename) = 0;
     virtual void ResetCoverage() = 0;
+    virtual void DumpCoverage() = 0;
+    virtual int FlushCoverage() = 0;
+    virtual std::string GetCoveragePath() = 0;
     // Save Model Status with Simulator Capabilities
     virtual int CheckPoint(const char *filename) = 0;
     // Load Model Status with Simulator Capabilities
@@ -82,6 +85,9 @@ public:
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     void ResetCoverage();
+    void DumpCoverage();
+    int FlushCoverage();
+    std::string GetCoveragePath();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -120,6 +126,9 @@ public:
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     void ResetCoverage();
+    void DumpCoverage();
+    int FlushCoverage();
+    std::string GetCoveragePath();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -154,6 +163,9 @@ protected:
     uint64_t cycle_hl;
     uint64_t vcs_clock_period[3];
     std::string coverage_file_path;
+    bool coverage_dumped = false;
+    bool retired = false;
+    int FinalizeCoverageSnapshot(bool final_snapshot);
 
 public:
     std::string sv_scope = "{{__TOP_MODULE_NAME__}}_top";
@@ -170,6 +182,9 @@ public:
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     void ResetCoverage();
+    void DumpCoverage();
+    int FlushCoverage();
+    std::string GetCoveragePath();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -207,6 +222,9 @@ public:
     void WaveformEnable(bool enable);
     void SetCoverage(const char *filename);
     void ResetCoverage();
+    void DumpCoverage();
+    int FlushCoverage();
+    std::string GetCoveragePath();
     int CheckPoint(const char *filename);
     int Restore(const char *filename);
     uint64_t NativeSignalAddr(const char *name);
@@ -320,6 +338,9 @@ public:
     void SetCoverage(const char *filename);
     void SetCoverage(const std::string filename);
     void ResetCoverage();
+    void DumpCoverage();
+    int FlushCoverage();
+    std::string GetCoveragePath();
 
     // Get the bitmask for collected coverage metrics. 0 means coverage is disabled
     static int GetCovMetrics();
