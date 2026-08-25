@@ -1,12 +1,9 @@
 #include "covdb_user.h"
 
 #include <algorithm>
-#include <cstring>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <iomanip>
 #include <map>
 #include <set>
 #include <sstream>
@@ -21,11 +18,8 @@ namespace {
 
 struct Options {
     std::string database;
-    std::string source_map;
     std::string kind = "line";
     std::vector<std::string> kinds;
-    std::string detail = "all";
-    std::string file;
     std::string module;
     std::string instance;
     std::vector<std::string> tests;
@@ -34,9 +28,6 @@ struct Options {
 struct Item {
     std::string kind = "line";
     std::string file;
-    std::string source_id;
-    std::string logical_file;
-    std::string resolved_file;
     int line = 0;
     int column = 0;
     std::string module;
@@ -47,11 +38,6 @@ struct Item {
     int count = 0;
     int status = 0;
     std::string detail;
-    std::string atom_kind;
-    std::string native_id;
-    std::string native_name;
-    std::string from_state;
-    std::string to_state;
     bool counts_toward_rate = true;
 };
 
@@ -84,9 +70,7 @@ void usage(const char *argv0)
 {
     std::cerr << "Usage: " << argv0
               << " --database <dir> [--kind line|toggle|branch|condition|fsm] "
-              << "[--source-map <path>] "
-              << "[--detail summary|all|covered|uncovered] "
-              << "[--file <substr>] [--module <substr>] [--instance <prefix>] [--test <name>]\n";
+              << "[--module <substr>] [--instance <prefix>] [--test <name>]\n";
 }
 
 bool parse_args(int argc, char **argv, Options &opt)
@@ -100,20 +84,12 @@ bool parse_args(int argc, char **argv, Options &opt)
         };
         if (arg == "--database") {
             if (!take(opt.database)) return false;
-        } else if (arg == "--source-map") {
-            if (!take(opt.source_map)) return false;
         } else if (arg == "--kind") {
             std::string kind;
             if (!take(kind)) return false;
-            if (kind == "all") {
-                opt.kinds = {"line", "toggle", "branch", "condition", "fsm"};
-            } else if (std::find(opt.kinds.begin(), opt.kinds.end(), kind) == opt.kinds.end()) {
+            if (std::find(opt.kinds.begin(), opt.kinds.end(), kind) == opt.kinds.end()) {
                 opt.kinds.push_back(kind);
             }
-        } else if (arg == "--detail") {
-            if (!take(opt.detail)) return false;
-        } else if (arg == "--file") {
-            if (!take(opt.file)) return false;
         } else if (arg == "--module") {
             if (!take(opt.module)) return false;
         } else if (arg == "--instance") {
@@ -172,97 +148,16 @@ bool contains_filter(const std::string &value, const std::string &filter)
 
 bool item_in_scope(const Item &item, const Options &opt)
 {
-    if (!contains_filter(item.file, opt.file)) return false;
     if (!contains_filter(item.module, opt.module)) return false;
     if (!opt.instance.empty() && item.instance.rfind(opt.instance, 0) != 0) return false;
     return item.coverable > 0;
 }
 
 struct CoverageResult {
-    struct Stats {
-        int64_t covered = 0;
-        int64_t total = 0;
-    };
-
     std::vector<Item> uncovered;
-    std::vector<Item> covered_items;
     int64_t covered = 0;
     int64_t total = 0;
-    bool available = false;
-    std::string design_revision;
-    std::string inventory_revision;
-    std::map<std::string, std::map<std::string, Stats>> breakdown;
 };
-
-std::string revision_hash(const std::vector<std::string> &values)
-{
-    // Deterministic FNV-1a revision.  This is an identity/version token, not a
-    // security boundary; Toffee still publishes SHA-256 for persisted files.
-    uint64_t hash = 1469598103934665603ULL;
-    for (const auto &value : values) {
-        for (unsigned char byte : value) {
-            hash ^= byte;
-            hash *= 1099511628211ULL;
-        }
-        hash ^= 0xff;
-        hash *= 1099511628211ULL;
-    }
-    std::ostringstream output;
-    output << std::hex << std::setfill('0') << std::setw(16) << hash;
-    return output.str();
-}
-
-struct SourceLocation {
-    std::string source_id;
-    std::string logical_file;
-    std::string resolved_file;
-};
-
-std::string tsv_unescape(const std::string &value)
-{
-    std::string result;
-    for (size_t i = 0; i < value.size(); ++i) {
-        if (value[i] != '\\' || i + 1 >= value.size()) {
-            result += value[i];
-            continue;
-        }
-        const char next = value[++i];
-        if (next == 't') result += '\t';
-        else if (next == 'n') result += '\n';
-        else result += next;
-    }
-    return result;
-}
-
-std::map<std::string, SourceLocation> load_source_map(const std::string &path)
-{
-    std::map<std::string, SourceLocation> mappings;
-    if (path.empty()) return mappings;
-    std::ifstream input(path);
-    for (std::string line; std::getline(input, line);) {
-        if (line.empty() || line[0] == '#') continue;
-        std::vector<std::string> fields;
-        std::stringstream stream(line);
-        for (std::string field; std::getline(stream, field, '\t');) fields.push_back(tsv_unescape(field));
-        if (fields.size() == 4) mappings[fields[0]] = {fields[1], fields[2], fields[3]};
-    }
-    return mappings;
-}
-
-SourceLocation resolve_source(const std::string &native,
-                              const std::map<std::string, SourceLocation> &mappings)
-{
-    auto found = mappings.find(native);
-    if (found == mappings.end()) {
-        const auto normalized = std::filesystem::path(native).lexically_normal().string();
-        found = mappings.find(normalized);
-    }
-    if (found != mappings.end()) return found->second;
-    std::vector<std::string> identity{native};
-    return {"external:" + revision_hash(identity) + ":" + std::filesystem::path(native).filename().string(),
-            "external/" + revision_hash(identity) + "/" + std::filesystem::path(native).filename().string(),
-            native};
-}
 
 void ucapi_error_filter(covdbHandle errHdl, void *)
 {
@@ -391,7 +286,6 @@ class CoverageCollector {
     std::string current_file;
     int current_line = 0;
     std::map<std::string, Item> normalized;
-    std::map<std::string, SourceLocation> source_map;
 
     bool is_picker_generated_top(const Item &item) const
     {
@@ -407,7 +301,7 @@ class CoverageCollector {
     {
         // Keep instance and object identity until report aggregation.  Collapsing
         // instances here turns "one instance covered" into "all instances covered".
-        return item.kind + "\x1f" + item.source_id + "\x1f" + item.logical_file + "\x1f" + item.module + "\x1f" +
+        return item.kind + "\x1f" + item.file + "\x1f" + item.module + "\x1f" +
                item.instance + "\x1f" + std::to_string(item.line) + "\x1f" +
                std::to_string(item.column) + "\x1f" + item.object + "\x1f" + item.detail;
     }
@@ -425,10 +319,6 @@ class CoverageCollector {
         Item item;
         item.kind = opt.kind;
         item.file = current_file;
-        const auto source = resolve_source(current_file, source_map);
-        item.source_id = source.source_id;
-        item.logical_file = source.logical_file;
-        item.resolved_file = source.resolved_file;
         item.line = line;
         item.module = current_module;
         item.instance = current_instance;
@@ -438,33 +328,14 @@ class CoverageCollector {
         item.count = covdb_get(obj, region, test, covdbCovCount);
         item.status = covdb_get(obj, region, test, covdbCovStatus);
         item.detail = covdb_str(obj, covdbName);
-        if (opt.kind == "line") item.atom_kind = "statement";
-        if (opt.kind == "branch") item.atom_kind = "branch_arm";
-        if (opt.kind == "toggle") item.atom_kind = "toggle_transition";
-        if (opt.kind == "condition") {
-            item.atom_kind = "condition_bin";
-            item.native_id = item.detail;
-            item.native_name = item.detail;
-        }
         if (opt.kind == "fsm") {
             if (current_fsm_section == "sequences") return;
             item.object = current_fsm;
             if (current_fsm_section == "states") {
-                item.atom_kind = "fsm_state";
                 item.counts_toward_rate = false;
                 std::string value_name = covdb_str(obj, covdbValueName);
                 if (!value_name.empty()) item.detail = value_name;
-                item.native_id = item.detail;
-                item.native_name = item.detail;
             } else if (current_fsm_section == "transitions") {
-                item.atom_kind = "fsm_transition";
-                item.native_id = item.detail;
-                item.native_name = item.detail;
-                const auto arrow = item.detail.find("->");
-                if (arrow != std::string::npos) {
-                    item.from_state = item.detail.substr(0, arrow);
-                    item.to_state = item.detail.substr(arrow + 2);
-                }
             } else {
                 return;
             }
@@ -555,7 +426,6 @@ class CoverageCollector {
         covdbHandle mets = covdb_iterate(test, covdbMetrics);
         for (covdbHandle met = covdb_scan(mets); met; met = covdb_scan(mets)) {
             if (is_requested_metric(met, opt.kind)) {
-                result.available = true;
                 covdbHandle pmet = covdb_make_persistent_handle(met);
                 covdbHandle qreg = covdb_get_qualified_handle(preg, pmet, covdbIdentity);
                 recurse_qualified_region(qreg, covdbSourceInstance);
@@ -573,7 +443,7 @@ class CoverageCollector {
 
 public:
     CoverageCollector(covdbHandle design, covdbHandle test, const Options &opt)
-        : design(design), test(test), opt(opt), source_map(load_source_map(opt.source_map)) {}
+        : design(design), test(test), opt(opt) {}
 
     CoverageResult collect()
     {
@@ -581,31 +451,15 @@ public:
         covdbHandle insts = covdb_iterate(design, covdbInstances);
         for (covdbHandle inst = covdb_scan(insts); inst; inst = covdb_scan(insts)) recurse_instance(inst);
         covdb_release_handle(insts);
-        std::vector<std::string> design_items;
-        std::vector<std::string> inventory_items;
-        design_items.reserve(normalized.size());
-        inventory_items.reserve(normalized.size());
-        for (const auto &[key, item] : normalized) {
-            design_items.push_back(key);
+        for (const auto &[_, item] : normalized) {
             const int64_t total = std::max(0, item.coverable);
             const int64_t covered = std::max<int64_t>(0, std::min<int64_t>(item.covered, total));
             if (item.counts_toward_rate) {
                 result.total += total;
                 result.covered += covered;
             }
-            auto &stats = result.breakdown[item.logical_file][item.module];
-            if (item.counts_toward_rate) {
-                stats.total += total;
-                stats.covered += covered;
-            }
-            if (covered < total) inventory_items.push_back(key);
-            if ((opt.detail == "all" || opt.detail == "uncovered") && covered < total)
-                result.uncovered.push_back(item);
-            if ((opt.detail == "all" || opt.detail == "covered") && covered > 0)
-                result.covered_items.push_back(item);
+            if (covered < total) result.uncovered.push_back(item);
         }
-        result.design_revision = revision_hash(design_items);
-        result.inventory_revision = revision_hash(inventory_items);
         return result;
     }
 };
@@ -614,93 +468,17 @@ std::string render_json(const Options &opt, const std::map<std::string, Coverage
                         const TestLoadResult &loaded)
 {
     std::vector<Item> items;
-    std::vector<Item> covered_items;
     for (const auto &[_, result] : results)
         items.insert(items.end(), result.uncovered.begin(), result.uncovered.end());
-    for (const auto &[_, result] : results)
-        covered_items.insert(covered_items.end(), result.covered_items.begin(), result.covered_items.end());
-    auto item_less = [](const Item &lhs, const Item &rhs) {
+    std::sort(items.begin(), items.end(), [](const Item &lhs, const Item &rhs) {
         return std::tie(lhs.kind, lhs.file, lhs.module, lhs.line, lhs.object, lhs.detail, lhs.instance) <
                std::tie(rhs.kind, rhs.file, rhs.module, rhs.line, rhs.object, rhs.detail, rhs.instance);
-    };
-    std::sort(items.begin(), items.end(), item_less);
-    std::sort(covered_items.begin(), covered_items.end(), item_less);
-    std::vector<std::string> design_revisions;
-    std::vector<std::string> inventory_revisions;
-    for (const auto &[kind, result] : results) {
-        design_revisions.push_back(kind + ":" + result.design_revision);
-        inventory_revisions.push_back(kind + ":" + result.inventory_revision);
-    }
-    std::map<std::string, std::vector<size_t>> by_kind;
-    std::map<std::string, std::vector<size_t>> by_file;
-    std::map<std::string, std::vector<size_t>> by_module;
-    for (size_t i = 0; i < items.size(); ++i) {
-        by_kind[items[i].kind].push_back(i);
-        by_file[items[i].logical_file].push_back(i);
-        by_module[items[i].module].push_back(i);
-    }
-    auto render_counts = [](const std::map<std::string, std::vector<size_t>> &values) {
-        std::string out = "{\n";
-        bool first = true;
-        for (const auto &[key, indexes] : values) {
-            if (!first) out += ",\n";
-            first = false;
-            out += "      " + q(key) + ": " + std::to_string(indexes.size());
-        }
-        if (!values.empty()) out += "\n";
-        out += "    }";
-        return out;
-    };
-    auto render_indexes = [](const std::map<std::string, std::vector<size_t>> &values) {
-        std::string out = "{\n";
-        bool first_key = true;
-        for (const auto &[key, indexes] : values) {
-            if (!first_key) out += ",\n";
-            first_key = false;
-            out += "    " + q(key) + ": [";
-            if (!indexes.empty()) {
-                out += "\n";
-            }
-            for (size_t i = 0; i < indexes.size(); ++i) {
-                out += "      " + std::to_string(indexes[i]);
-                if (i + 1 != indexes.size()) out += ",";
-                out += "\n";
-            }
-            if (!indexes.empty()) {
-                out += "    ";
-            }
-            out += "]";
-        }
-        if (!values.empty()) out += "\n";
-        out += "  }";
-        return out;
-    };
-    auto render_stats = [&](const CoverageResult::Stats &stats) {
-        const int64_t uncovered = stats.total - stats.covered;
-        const double rate = stats.total ? 100.0 * stats.covered / stats.total : 0.0;
-        return "{\"covered\": " + std::to_string(stats.covered) +
-               ", \"total\": " + std::to_string(stats.total) +
-               ", \"uncovered\": " + std::to_string(uncovered) +
-               ", \"rate\": " + std::to_string(rate) + "}";
-    };
+    });
 
-    std::string out;
-    out += "{\n";
-    out += "  \"schema_version\": 5,\n";
+    std::string out = "{\n";
+    out += "  \"schema_version\": 1,\n";
     out += "  \"success\": true,\n";
-    out += "  \"design_revision\": " + q(revision_hash(design_revisions)) + ",\n";
-    out += "  \"inventory_revision\": " + q(revision_hash(inventory_revisions)) + ",\n";
-    out += "  \"provider\": {\n";
-    out += "    \"simulator\": \"vcs\",\n";
-    out += "    \"backend\": \"ucapi-helper\",\n";
-    out += "    \"identity\": \"picker.vcs.ucapi\",\n";
-    out += "    \"identity_version\": 3,\n";
-    out += "    \"contract_version\": 3,\n";
-    out += "    \"databases\": [" + q(opt.database) + "],\n";
-    out += "    \"source_map\": " + q(opt.source_map) + ",\n";
-    out += "    \"helper\": \"\",\n";
-    out += "    \"capabilities\": {\"supported_kinds\": [\"line\", \"toggle\", \"branch\", \"condition\", \"fsm\"], \"named_tests\": true, \"multiple_databases\": false, \"detail_modes\": true}\n";
-    out += "  },\n";
+    out += "  \"simulator\": \"vcs\",\n";
     out += "  \"query\": {\n";
     out += "    \"kinds\": [";
     for (size_t i = 0; i < opt.kinds.size(); ++i) {
@@ -708,158 +486,41 @@ std::string render_json(const Options &opt, const std::map<std::string, Coverage
         out += q(opt.kinds[i]);
     }
     out += "],\n";
-    out += "    \"module\": ";
-    out += opt.module.empty() ? "null" : q(opt.module);
-    out += ",\n";
-    out += "    \"instance\": ";
-    out += opt.instance.empty() ? "null" : q(opt.instance);
-    out += ",\n";
-    // Report the tests that actually contributed to the merged handle.  A
-    // requested test can be absent when partial loading is enabled.
-    const auto &reported_tests = loaded.loaded_tests;
+    out += "    \"module\": " + std::string(opt.module.empty() ? "null" : q(opt.module)) + ",\n";
+    out += "    \"instance\": " + std::string(opt.instance.empty() ? "null" : q(opt.instance)) + ",\n";
     out += "    \"tests\": [";
-    for (size_t i = 0; i < reported_tests.size(); ++i) {
+    for (size_t i = 0; i < loaded.loaded_tests.size(); ++i) {
         if (i) out += ", ";
-        out += q(reported_tests[i]);
+        out += q(loaded.loaded_tests[i]);
     }
-    out += "],\n";
-    out += "    \"detail_mode\": " + q(opt.detail) + "\n";
-    out += "  },\n";
-    out += "  \"summary\": {\n";
-    out += "    \"total_uncovered\": " + std::to_string(items.size()) + ",\n";
-    out += "    \"metrics\": {\n";
-    bool first_metric = true;
-    for (const auto &kind : opt.kinds) {
+    out += "]\n  },\n";
+    out += "  \"metrics\": {\n";
+    for (size_t i = 0; i < opt.kinds.size(); ++i) {
+        const auto &kind = opt.kinds[i];
         const auto &result = results.at(kind);
-        if (!first_metric) out += ",\n";
-        first_metric = false;
-        out += "      " + q(kind) + ": {\"covered\": " + std::to_string(result.covered) +
+        const int64_t uncovered = result.total - result.covered;
+        const double rate = result.total ? 100.0 * result.covered / result.total : 0.0;
+        out += "    " + q(kind) + ": {\"covered\": " + std::to_string(result.covered) +
                ", \"total\": " + std::to_string(result.total) +
-               ", \"uncovered\": " + std::to_string(result.total - result.covered) +
-               ", \"rate\": " + std::to_string(result.total ? 100.0 * result.covered / result.total : 0.0) +
-               ", \"available\": " + (result.available ? "true" : "false") +
-               ", \"details_available\": " + (result.available ? "true" : "false") + "}";
-    }
-    out += "\n";
-    out += "    },\n";
-    out += "    \"by_kind\": " + render_counts(by_kind) + ",\n";
-    out += "    \"by_file\": " + render_counts(by_file) + ",\n";
-    out += "    \"by_module\": " + render_counts(by_module) + "\n";
-    out += "  },\n";
-    out += "  \"breakdown\": {\n";
-    std::set<std::string> files;
-    for (const auto &[_, result] : results)
-        for (const auto &[file, __] : result.breakdown) files.insert(file);
-    out += "    \"files\": {";
-    if (!files.empty()) out += "\n";
-    bool first_file = true;
-    for (const auto &file : files) {
-        if (!first_file) out += ",\n";
-        first_file = false;
-        out += "      " + q(file) + ": {\n";
-        out += "        \"metrics\": {";
-        bool first_file_metric = true;
-        for (const auto &kind : opt.kinds) {
-            CoverageResult::Stats file_stats;
-            const auto file_it = results.at(kind).breakdown.find(file);
-            if (file_it != results.at(kind).breakdown.end()) {
-                for (const auto &[_, stats] : file_it->second) {
-                    file_stats.covered += stats.covered;
-                    file_stats.total += stats.total;
-                }
-            }
-            if (!first_file_metric) out += ", ";
-            first_file_metric = false;
-            out += q(kind) + ": " + render_stats(file_stats);
-        }
-        out += "},\n";
-        std::set<std::string> modules;
-        for (const auto &[_, result] : results) {
-            const auto file_it = result.breakdown.find(file);
-            if (file_it != result.breakdown.end())
-                for (const auto &[module, __] : file_it->second) modules.insert(module);
-        }
-        out += "        \"modules\": {";
-        if (!modules.empty()) out += "\n";
-        bool first_module = true;
-        for (const auto &module : modules) {
-            if (!first_module) out += ",\n";
-            first_module = false;
-            out += "          " + q(module) + ": {\"metrics\": {";
-            bool first_module_metric = true;
-            for (const auto &kind : opt.kinds) {
-                CoverageResult::Stats stats;
-                const auto file_it = results.at(kind).breakdown.find(file);
-                if (file_it != results.at(kind).breakdown.end()) {
-                    const auto module_it = file_it->second.find(module);
-                    if (module_it != file_it->second.end()) stats = module_it->second;
-                }
-                if (!first_module_metric) out += ", ";
-                first_module_metric = false;
-                out += q(kind) + ": " + render_stats(stats);
-            }
-            out += "}}";
-        }
-        if (!modules.empty()) out += "\n        ";
-        out += "}\n      }";
-    }
-    if (!files.empty()) out += "\n    ";
-    out += "}\n  },\n";
-    out += "  \"items\": [\n";
-    for (size_t i = 0; i < items.size(); ++i) {
-        const auto &it = items[i];
-        out += "    {\n";
-        out += "      \"kind\": " + q(it.kind) + ",\n";
-        out += "      \"source_id\": " + q(it.source_id) + ",\n";
-        out += "      \"logical_file\": " + q(it.logical_file) + ",\n";
-        out += "      \"resolved_file\": " + q(it.resolved_file) + ",\n";
-        out += "      \"line\": " + std::to_string(it.line) + ",\n";
-        out += "      \"column\": " + std::to_string(it.column) + ",\n";
-        out += "      \"module\": " + q(it.module) + ",\n";
-        out += "      \"instance\": " + q(it.instance) + ",\n";
-        out += "      \"object\": " + q(it.object) + ",\n";
-        out += "      \"covered\": " + std::to_string(it.covered) + ",\n";
-        out += "      \"coverable\": " + std::to_string(it.coverable) + ",\n";
-        out += "      \"count\": " + std::to_string(it.count) + ",\n";
-        out += "      \"status\": " + std::to_string(it.status) + ",\n";
-        out += "      \"detail\": " + q(it.detail) + ",\n";
-        out += "      \"atom_kind\": " + q(it.atom_kind) + ",\n";
-        out += "      \"native_id\": " + q(it.native_id) + ",\n";
-        out += "      \"native_name\": " + q(it.native_name) + ",\n";
-        out += "      \"from_state\": " + q(it.from_state) + ",\n";
-        out += "      \"to_state\": " + q(it.to_state) + ",\n";
-        out += "      \"counts_toward_rate\": " + std::string(it.counts_toward_rate ? "true" : "false") + "\n";
-        out += "    }";
-        if (i + 1 != items.size()) out += ",";
+               ", \"uncovered\": " + std::to_string(uncovered) +
+               ", \"rate\": " + std::to_string(rate) + "}";
+        if (i + 1 != opt.kinds.size()) out += ",";
         out += "\n";
     }
-    out += "  ],\n";
-    out += "  \"covered_items\": [\n";
-    for (size_t i = 0; i < covered_items.size(); ++i) {
-        const auto &it = covered_items[i];
-        out += "    {\n";
-        out += "      \"kind\": " + q(it.kind) + ",\n";
-        out += "      \"source_id\": " + q(it.source_id) + ",\n";
-        out += "      \"logical_file\": " + q(it.logical_file) + ",\n";
-        out += "      \"resolved_file\": " + q(it.resolved_file) + ",\n";
-        out += "      \"line\": " + std::to_string(it.line) + ",\n";
-        out += "      \"column\": " + std::to_string(it.column) + ",\n";
-        out += "      \"module\": " + q(it.module) + ",\n";
-        out += "      \"instance\": " + q(it.instance) + ",\n";
-        out += "      \"object\": " + q(it.object) + ",\n";
-        out += "      \"covered\": " + std::to_string(it.covered) + ",\n";
-        out += "      \"coverable\": " + std::to_string(it.coverable) + ",\n";
-        out += "      \"count\": " + std::to_string(it.count) + ",\n";
-        out += "      \"status\": " + std::to_string(it.status) + ",\n";
-        out += "      \"detail\": " + q(it.detail) + ",\n";
-        out += "      \"atom_kind\": " + q(it.atom_kind) + ",\n";
-        out += "      \"native_id\": " + q(it.native_id) + ",\n";
-        out += "      \"native_name\": " + q(it.native_name) + ",\n";
-        out += "      \"from_state\": " + q(it.from_state) + ",\n";
-        out += "      \"to_state\": " + q(it.to_state) + ",\n";
-        out += "      \"counts_toward_rate\": " + std::string(it.counts_toward_rate ? "true" : "false") + "\n";
-        out += "    }";
-        if (i + 1 != covered_items.size()) out += ",";
+    out += "  },\n";
+    out += "  \"items\": [\n";
+    for (size_t i = 0; i < items.size(); ++i) {
+        const auto &item = items[i];
+        out += "    {\"kind\": " + q(item.kind) +
+               ", \"file\": " + q(item.file) +
+               ", \"line\": " + std::to_string(item.line) +
+               ", \"column\": " + std::to_string(item.column) +
+               ", \"module\": " + q(item.module) +
+               ", \"instance\": " + q(item.instance) +
+               ", \"object\": " + q(item.object) +
+               ", \"count\": " + std::to_string(item.count) +
+               ", \"detail\": " + q(item.detail) + "}";
+        if (i + 1 != items.size()) out += ",";
         out += "\n";
     }
     out += "  ],\n";
@@ -868,11 +529,9 @@ std::string render_json(const Options &opt, const std::map<std::string, Coverage
         if (i) out += ", ";
         out += q(loaded.warnings[i]);
     }
-    out += "]\n";
-    out += "}\n";
+    out += "]\n}\n";
     return out;
 }
-
 } // namespace
 
 int main(int argc, char **argv)
@@ -882,18 +541,13 @@ int main(int argc, char **argv)
         usage(argv[0]);
         return 2;
     }
-    if (opt.kinds.empty()) opt.kinds = {"line", "toggle", "branch", "condition", "fsm"};
+    if (opt.kinds.empty()) opt.kinds = {"line"};
     for (const auto &kind : opt.kinds)
         if (kind != "line" && kind != "toggle" && kind != "branch" &&
             kind != "condition" && kind != "fsm") {
             std::cerr << "coverage kind is not implemented in this helper: " << kind << "\n";
             return 2;
         }
-    if (opt.detail != "summary" && opt.detail != "all" && opt.detail != "covered" &&
-        opt.detail != "uncovered") {
-        std::cerr << "invalid --detail mode: " << opt.detail << "\n";
-        return 2;
-    }
     if (!std::filesystem::exists(opt.database)) {
         std::cerr << "coverage database path does not exist: " << opt.database << "\n";
         return 1;

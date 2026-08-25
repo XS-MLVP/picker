@@ -36,14 +36,16 @@ rg -Fq "${VDB_PATH}" "${OUT_DIR}/dut_base.cpp"
 rg -Fq 'vcs_coverage_db_path()' "${OUT_DIR}/dut_base.cpp"
 rg -Fq 'if (kind == "toggle") return isTglMetric(metric);' "${OUT_DIR}/coverage/coverage.cpp"
 rg -Fq 'if (kind == "branch") return isBranchMetric(metric);' "${OUT_DIR}/coverage/coverage.cpp"
-rg -Fq 'if (opt.kinds.empty()) opt.kinds = {"line", "toggle", "branch", "condition", "fsm"};' "${OUT_DIR}/coverage/coverage.cpp"
+rg -Fq 'if (opt.kinds.empty()) opt.kinds = {"line"};' "${OUT_DIR}/coverage/coverage.cpp"
 rg -Fq 'covdb_loadmerge(covdbTest, test, name.c_str())' "${OUT_DIR}/coverage/coverage.cpp"
-rg -Fq '(opt.detail == "all" || opt.detail == "covered") && covered > 0' "${OUT_DIR}/coverage/coverage.cpp"
-rg -Fq '\"covered_items\"' "${OUT_DIR}/coverage/coverage.cpp"
-rg -Fq '\"breakdown\"' "${OUT_DIR}/coverage/coverage.cpp"
-rg -Fq '\"schema_version\": 5' "${OUT_DIR}/coverage/coverage.cpp"
-rg -Fq '\"identity_version\": 3' "${OUT_DIR}/coverage/coverage.cpp"
-rg -Fq '\"source_id\"' "${OUT_DIR}/coverage/coverage.cpp"
+rg -Fq '\"schema_version\": 1' "${OUT_DIR}/coverage/coverage.cpp"
+rg -Fq '\"simulator\": \"vcs\"' "${OUT_DIR}/coverage/coverage.cpp"
+rg -Fq '\"metrics\"' "${OUT_DIR}/coverage/coverage.cpp"
+rg -Fq '\"file\"' "${OUT_DIR}/coverage/coverage.cpp"
+if rg -Fq 'source-map' "${OUT_DIR}/coverage/coverage.cpp"; then
+  red "[vcs-coverage-dir] query executable still depends on a source map"
+  exit 1
+fi
 
 "${PICKER_BIN}" export \
   "${ROOT_DIR}/example/Adder/Adder.v" \
@@ -58,18 +60,17 @@ rg -Fq '\"source_id\"' "${OUT_DIR}/coverage/coverage.cpp"
 rg -Fq 'cp -r build/${PROJECT}.vdb' "${DEFAULT_DIR}/Makefile"
 rg -Fq 'std::filesystem::path(vcs_so_dir()) / "Adder.vdb"' "${DEFAULT_DIR}/dut_base.cpp"
 rg -Fq 'item.kind = opt.kind;' "${DEFAULT_DIR}/coverage/coverage.cpp"
-rg -Fq 'kinds = ["line", "toggle", "branch", "condition", "fsm"] if kind is None or kind == "all"' "${DEFAULT_DIR}/python/dut.py"
-rg -Fq 'def GetCoverage(self, kind=None, module=None, instance=None, test=None, report=None):' "${DEFAULT_DIR}/python/dut.py"
-rg -Fq 'def GetCoverageHelperPath(self) -> str:' "${DEFAULT_DIR}/python/dut.py"
-rg -Fq 'def __getattr__(self, name):' "${DEFAULT_DIR}/python/dut.py"
-rg -Fq 'if name == "Coverage":' "${DEFAULT_DIR}/python/dut.py"
-if rg -Fq 'def Coverage(self):' "${DEFAULT_DIR}/python/dut.py"; then
-  red "[vcs-coverage-dir] Coverage must not be visible to DUT signal introspection"
+rg -Fq 'kinds = ["line"] if kind is None' "${DEFAULT_DIR}/python/dut.py"
+rg -Fq 'def GetCoverage(self, kind=None, module=None, instance=None, test=None):' "${DEFAULT_DIR}/python/dut.py"
+rg -Fq 'provider.database = path' "${DEFAULT_DIR}/python/dut.py"
+rg -Fq 'provider.executable = executable' "${DEFAULT_DIR}/python/dut.py"
+if rg -Fq 'def GetCoverageHelperPath' "${DEFAULT_DIR}/python/dut.py" ||
+   rg -Fq 'def __getattr__' "${DEFAULT_DIR}/python/dut.py" ||
+   rg -Fq 'def DumpCoverage' "${DEFAULT_DIR}/python/dut.py"; then
+  red "[vcs-coverage-dir] generated Python API still exposes a redundant coverage alias"
   exit 1
 fi
-rg -Fq 'report_obj = self.GetCoverage(' "${DEFAULT_DIR}/python/dut.py"
-rg -Fq 'provider.source_map = _os.path.join(workspace, "coverage", "source-map.tsv")' "${DEFAULT_DIR}/python/dut.py"
-test -f "${DEFAULT_DIR}/coverage/source-map.tsv"
+test ! -e "${DEFAULT_DIR}/coverage/source-map.tsv"
 
 if "${PICKER_BIN}" export --sim verilator --coverage --coverage-dir "${REPORT_DIR}" >/dev/null 2>&1; then
   red "[vcs-coverage-dir] accepted --coverage-dir for Verilator"

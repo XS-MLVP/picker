@@ -58,8 +58,6 @@ def coverage_metrics(report, name):
     metrics = []
     for metric in report.metrics:
         metrics.append(metric)
-        assert metric.available, f"{name}: coverage metric is unavailable"
-        assert metric.details_available, f"{name}: coverage details are unavailable"
         assert metric.total > 0, f"{name}: coverage total must be positive"
         assert metric.covered + metric.uncovered == metric.total, (
             f"{name}: covered + uncovered must equal total"
@@ -112,7 +110,6 @@ def coverage_snapshot(dut, name):
     # and Verilator. VCS supports additional coverage kinds.
     #
     # PrintCoverage() prints a summary and returns a structured CoverageReport.
-    # Picker does not write JSON reports here; Toffee owns report persistence.
     report = dut.PrintCoverage(kind=QUERY_KIND)
     coverage_metrics(report, name)
     return report

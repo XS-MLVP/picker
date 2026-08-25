@@ -28,18 +28,17 @@ import sys
 with open(sys.argv[1], encoding="utf-8") as source:
     report = json.load(source)
 
-metric = report["summary"]["metrics"]["line"]
-assert report["schema_version"] == 5
-assert report["provider"]["simulator"] == "verilator"
-assert report["provider"]["identity"] == "picker.verilator.dat"
-assert report["provider"]["contract_version"] == 3
+metric = report["metrics"]["line"]
+assert report["schema_version"] == 1
+assert report["simulator"] == "verilator"
+assert report["query"] == {
+    "kinds": ["line"], "module": None, "instance": None, "tests": []
+}
 assert metric["covered"] == 2
 assert metric["total"] == 6
 assert metric["uncovered"] == 4
 assert abs(metric["rate"] - 100.0 / 3.0) < 1e-5
-assert metric["available"] is True
-assert metric["details_available"] is True
-assert [(item["resolved_file"], item["line"], item["count"]) for item in report["items"]] == [
+assert [(item["file"], item["line"], item["count"]) for item in report["items"]] == [
     ("build/{{__TOP_MODULE_NAME__}}.v", 99, 0),
     ("rtl/alpha.v", 20, 0),
     ("rtl/alpha.v", 30, 0),
@@ -54,15 +53,15 @@ import json
 import sys
 
 with open(sys.argv[1], encoding="utf-8") as source:
-    metric = json.load(source)["summary"]["metrics"]["line"]
+    metric = json.load(source)["metrics"]["line"]
 
 assert metric["covered"] == 1
 assert metric["total"] == 4
 assert metric["uncovered"] == 3
 PY
 
-if "${helper}" --database "${DATABASE}" --kind line --test phase_1 >/dev/null 2>&1; then
-    red "[verilator-coverage] helper accepted unsupported named testdata"
+if "${helper}" --database "${DATABASE}" --kind branch >/dev/null 2>&1; then
+    red "[verilator-coverage] helper accepted an unsupported coverage kind"
     exit 1
 fi
 

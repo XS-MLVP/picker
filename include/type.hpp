@@ -38,7 +38,6 @@ typedef struct export_opts {
     std::string wave_file_name;
     bool coverage;
     std::string coverage_dir;
-    std::vector<std::string> source_roots;
     std::string verdi_mode;  // legacy: -P novas.tab, modern: -debug_access+all
     std::string vflag;
     std::string cflag;

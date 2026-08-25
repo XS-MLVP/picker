@@ -129,9 +129,6 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_option("--coverage-dir", export_opts.coverage_dir,
                     "Directory for the VCS coverage database. The generated database is <dir>/<DUT>.vdb. "
                     "Requires --sim vcs and --coverage.");
-    app->add_option("--source-root", export_opts.source_roots,
-                    "Source root used to create stable coverage logical paths. May be repeated.");
-
     // Select Verdi integration mode for VCS simulator, Optional, default is legacy
     app->add_option("--verdi-mode", export_opts.verdi_mode,
                     "Select Verdi integration mode when compiling with VCS.\n"

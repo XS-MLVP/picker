@@ -15,13 +15,9 @@ namespace {
 
 struct Options {
     std::string database;
-    std::string source_map;
     std::string kind = "line";
-    std::string detail = "all";
-    std::string file;
     std::string module;
     std::string instance;
-    std::string test;
 };
 
 struct RawEntry {
@@ -36,9 +32,6 @@ struct RawEntry {
 
 struct LineRecord {
     std::string file;
-    std::string source_id;
-    std::string logical_file;
-    std::string resolved_file;
     int line = 0;
     int column = 0;
     std::string module;
@@ -51,8 +44,7 @@ void usage(const char *argv0)
 {
     std::cerr << "Usage: " << argv0
               << " --database <coverage.dat> [--kind line] "
-              << "[--source-map <path>] [--detail summary|all|covered|uncovered] "
-              << "[--file <substr>] [--module <substr>] [--instance <prefix>] [--test <name>]\n";
+              << "[--module <substr>] [--instance <prefix>]\n";
 }
 
 bool take_arg(int argc, char **argv, int &index, std::string &out)
@@ -68,20 +60,12 @@ bool parse_args(int argc, char **argv, Options &opt)
         const std::string arg = argv[i];
         if (arg == "--database") {
             if (!take_arg(argc, argv, i, opt.database)) return false;
-        } else if (arg == "--source-map") {
-            if (!take_arg(argc, argv, i, opt.source_map)) return false;
         } else if (arg == "--kind") {
             if (!take_arg(argc, argv, i, opt.kind)) return false;
-        } else if (arg == "--detail") {
-            if (!take_arg(argc, argv, i, opt.detail)) return false;
-        } else if (arg == "--file") {
-            if (!take_arg(argc, argv, i, opt.file)) return false;
         } else if (arg == "--module") {
             if (!take_arg(argc, argv, i, opt.module)) return false;
         } else if (arg == "--instance") {
             if (!take_arg(argc, argv, i, opt.instance)) return false;
-        } else if (arg == "--test") {
-            if (!take_arg(argc, argv, i, opt.test)) return false;
         } else if (arg == "-h" || arg == "--help") {
             usage(argv[0]);
             std::exit(0);
@@ -130,62 +114,6 @@ std::string q(const std::string &value)
     return "\"" + json_escape(value) + "\"";
 }
 
-std::string stable_hash(const std::string &value)
-{
-    uint64_t hash = 1469598103934665603ULL;
-    for (unsigned char byte : value) {
-        hash ^= byte;
-        hash *= 1099511628211ULL;
-    }
-    std::ostringstream output;
-    output << std::hex << hash;
-    return output.str();
-}
-
-struct SourceLocation {
-    std::string source_id;
-    std::string logical_file;
-    std::string resolved_file;
-};
-
-std::string tsv_unescape(const std::string &value)
-{
-    std::string result;
-    for (size_t i = 0; i < value.size(); ++i) {
-        if (value[i] != '\\' || i + 1 >= value.size()) result += value[i];
-        else {
-            const char next = value[++i];
-            result += next == 't' ? '\t' : next == 'n' ? '\n' : next;
-        }
-    }
-    return result;
-}
-
-std::map<std::string, SourceLocation> load_source_map(const std::string &path)
-{
-    std::map<std::string, SourceLocation> mappings;
-    if (path.empty()) return mappings;
-    std::ifstream input(path);
-    for (std::string line; std::getline(input, line);) {
-        if (line.empty() || line[0] == '#') continue;
-        std::vector<std::string> fields;
-        std::stringstream stream(line);
-        for (std::string field; std::getline(stream, field, '\t');) fields.push_back(tsv_unescape(field));
-        if (fields.size() == 4) mappings[fields[0]] = {fields[1], fields[2], fields[3]};
-    }
-    return mappings;
-}
-
-SourceLocation resolve_source(const std::string &native,
-                              const std::map<std::string, SourceLocation> &mappings)
-{
-    auto found = mappings.find(native);
-    if (found == mappings.end()) found = mappings.find(std::filesystem::path(native).lexically_normal().string());
-    if (found != mappings.end()) return found->second;
-    const std::string hash = stable_hash(native);
-    const std::string basename = std::filesystem::path(native).filename().string();
-    return {"external:" + hash + ":" + basename, "external/" + hash + "/" + basename, native};
-}
 
 std::string unescape_control_markers(std::string value)
 {
@@ -295,7 +223,7 @@ bool contains_filter(const std::string &value, const std::string &filter)
 
 bool in_scope(const RawEntry &entry, const Options &opt)
 {
-    return contains_filter(entry.file, opt.file) && contains_filter(entry.module, opt.module) &&
+    return contains_filter(entry.module, opt.module) &&
            (opt.instance.empty() || entry.instance.starts_with(opt.instance));
 }
 
@@ -310,7 +238,6 @@ bool is_picker_generated_top(const RawEntry &entry)
 
 bool collect_records(const Options &opt, std::vector<LineRecord> &records, std::string &error)
 {
-    const auto source_map = load_source_map(opt.source_map);
     std::ifstream input(opt.database);
     if (!input) {
         error = "cannot read coverage database " + opt.database;
@@ -350,10 +277,8 @@ bool collect_records(const Options &opt, std::vector<LineRecord> &records, std::
         if (is_picker_generated_top(entry) || !in_scope(entry, opt)) continue;
         for (int source_line : entry.lines) {
             Key key{entry.file, source_line, entry.module, entry.instance};
-            const auto source = resolve_source(entry.file, source_map);
             auto [it, inserted] = merged.try_emplace(key, LineRecord{
-                entry.file, source.source_id, source.logical_file, source.resolved_file,
-                source_line, source_line == *entry.lines.begin() ? entry.column : 0,
+                entry.file, source_line, source_line == *entry.lines.begin() ? entry.column : 0,
                 entry.module, entry.instance, entry.object, 0});
             it->second.count += entry.count;
         }
@@ -368,79 +293,40 @@ std::string make_report_json(const Options &opt, const std::vector<LineRecord> &
     for (const auto &record : records) covered += record.count > 0;
     const int64_t total = records.size();
     const int64_t uncovered = total - covered;
-    std::string design_identity;
-    std::string inventory_identity;
-    for (const auto &record : records) {
-        const std::string identity = record.source_id + "\x1f" + record.logical_file + "\x1f" +
-                                     std::to_string(record.line) + "\x1f" + record.module + "\x1f" +
-                                     record.instance + "\x1f" + record.object;
-        design_identity += identity + "\n";
-        if (record.count == 0) inventory_identity += identity + "\n";
-    }
+    const double rate = total ? 100.0 * covered / total : 0.0;
 
-    std::string output;
-    output += "{\n";
-    output += "  \"schema_version\": 5,\n";
+    std::string output = "{\n";
+    output += "  \"schema_version\": 1,\n";
     output += "  \"success\": true,\n";
-    output += "  \"design_revision\": " + q(stable_hash(design_identity)) + ",\n";
-    output += "  \"inventory_revision\": " + q(stable_hash(inventory_identity)) + ",\n";
-    output += "  \"provider\": {\"simulator\": \"verilator\", \"backend\": \"coverage-dat-helper\", \"databases\": [" +
-              q(std::filesystem::absolute(opt.database).string()) + "], \"helper\": \"\", \"source_map\": " + q(opt.source_map) +
-              ", \"identity\": \"picker.verilator.dat\", \"identity_version\": 1, \"contract_version\": 3, "
-              "\"capabilities\": {\"supported_kinds\": [\"line\"], \"named_tests\": false, \"multiple_databases\": false, \"detail_modes\": true}},\n";
-    output += "  \"query\": {\"kinds\": [\"line\"], "
-              "\"module\": " + (opt.module.empty() ? "null" : q(opt.module)) +
-              ", \"instance\": " + (opt.instance.empty() ? "null" : q(opt.instance)) +
-              ", \"tests\": [], \"detail_mode\": " + q(opt.detail) + "},\n";
-    output += "  \"summary\": {\"total_uncovered\": " + std::to_string(uncovered) + ", \"metrics\": {\"line\": {\"covered\": " +
-              std::to_string(covered) + ", \"total\": " + std::to_string(total) + ", \"uncovered\": " +
-              std::to_string(uncovered) + ", \"rate\": " + std::to_string(total ? 100.0 * covered / total : 0.0) +
-              ", \"available\": true, \"details_available\": true}}},\n";
+    output += "  \"simulator\": \"verilator\",\n";
+    output += "  \"query\": {\"kinds\": [\"line\"], \"module\": " +
+              std::string(opt.module.empty() ? "null" : q(opt.module)) +
+              ", \"instance\": " + std::string(opt.instance.empty() ? "null" : q(opt.instance)) +
+              ", \"tests\": []},\n";
+    output += "  \"metrics\": {\"line\": {\"covered\": " + std::to_string(covered) +
+              ", \"total\": " + std::to_string(total) +
+              ", \"uncovered\": " + std::to_string(uncovered) +
+              ", \"rate\": " + std::to_string(rate) + "}},\n";
     output += "  \"items\": [\n";
     bool first = true;
     for (const auto &record : records) {
-        if (record.count != 0 || (opt.detail != "all" && opt.detail != "uncovered")) continue;
+        if (record.count != 0) continue;
         if (!first) output += ",\n";
         first = false;
-        output += "    {\"kind\": \"line\", \"source_id\": " + q(record.source_id) +
-                  ", \"logical_file\": " + q(record.logical_file) +
-                  ", \"resolved_file\": " + q(record.resolved_file) +
+        output += "    {\"kind\": \"line\", \"file\": " + q(record.file) +
                   ", \"line\": " + std::to_string(record.line) +
                   ", \"column\": " + std::to_string(record.column) +
                   ", \"module\": " + q(record.module) +
                   ", \"instance\": " + q(record.instance) +
                   ", \"object\": " + q(record.object) +
-                  ", \"covered\": 0, \"coverable\": 1, \"count\": " + std::to_string(record.count) +
-                  ", \"status\": 0, \"detail\": \"Verilator line coverage count is zero\", "
-                  "\"atom_kind\": \"statement\", \"native_id\": \"\", \"native_name\": \"\", "
-                  "\"from_state\": \"\", \"to_state\": \"\", \"counts_toward_rate\": true}";
-    }
-    output += "\n  ],\n";
-    output += "  \"covered_items\": [\n";
-    first = true;
-    for (const auto &record : records) {
-        if (record.count == 0 || (opt.detail != "all" && opt.detail != "covered")) continue;
-        if (!first) output += ",\n";
-        first = false;
-        output += "    {\"kind\": \"line\", \"source_id\": " + q(record.source_id) +
-                  ", \"logical_file\": " + q(record.logical_file) +
-                  ", \"resolved_file\": " + q(record.resolved_file) +
-                  ", \"line\": " + std::to_string(record.line) +
-                  ", \"column\": " + std::to_string(record.column) +
-                  ", \"module\": " + q(record.module) +
-                  ", \"instance\": " + q(record.instance) +
-                  ", \"object\": " + q(record.object) +
-                  ", \"covered\": 1, \"coverable\": 1, \"count\": " + std::to_string(record.count) +
-                  ", \"status\": 1, \"detail\": \"Verilator line coverage count is nonzero\", "
-                  "\"atom_kind\": \"statement\", \"native_id\": \"\", \"native_name\": \"\", "
-                  "\"from_state\": \"\", \"to_state\": \"\", \"counts_toward_rate\": true}";
+                  ", \"count\": " + std::to_string(record.count) +
+                  ", \"detail\": \"Verilator line coverage count is zero\"}";
     }
     output += "\n  ],\n";
     output += "  \"errors\": []\n";
     output += "}\n";
     return output;
 }
-
 } // namespace
 
 int main(int argc, char **argv)
@@ -452,15 +338,6 @@ int main(int argc, char **argv)
     }
     if (lower_copy(opt.kind) != "line") {
         std::cerr << "verilator coverage helper: only line coverage is implemented in this helper\n";
-        return 2;
-    }
-    if (opt.detail != "summary" && opt.detail != "all" && opt.detail != "covered" &&
-        opt.detail != "uncovered") {
-        std::cerr << "verilator coverage helper: invalid --detail mode\n";
-        return 2;
-    }
-    if (!opt.test.empty()) {
-        std::cerr << "verilator coverage helper: Verilator coverage.dat has no named testdata; omit --test\n";
         return 2;
     }
     std::vector<LineRecord> records;

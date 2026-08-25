@@ -120,25 +120,12 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def ResetCoverage(self):
         self.dut.ResetCoverage()
 
-    def DumpCoverage(self):
-        self.dut.DumpCoverage()
-
     def FlushCoverage(self) -> int:
         """Finalize a queryable coverage snapshot without destroying the DUT."""
         return self.dut.FlushCoverage()
 
     def GetCoveragePath(self) -> str:
         return self.dut.GetCoveragePath()
-
-    def GetCoverageHelperPath(self) -> str:
-        """Return the generated coverage query helper, or an empty string."""
-{% if __SIMULATOR__ == "vcs" or __SIMULATOR__ == "verilator" %}
-        workspace = _os.path.dirname(_os.path.abspath(__file__))
-        helper = _os.path.join(workspace, "coverage", "coverage")
-        return helper if _os.path.isfile(helper) else ""
-{% else %}
-        return ""
-{% endif %}
 
     def GetCovMetrics(self) -> int:
         """
@@ -159,44 +146,40 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         """Return the simulator selected when this DUT was exported."""
         return "{{__SIMULATOR__}}"
 
-    def GetCoverage(self, kind=None, module=None, instance=None, test=None, report=None):
+    def GetCoverage(self, kind=None, module=None, instance=None, test=None):
         """
-        Return a structured coverage report from the existing database.
+        Query the existing simulator coverage database.
 
-        Call FlushCoverage() first for a running DUT, or call this after Finish().
-        This method only queries the existing coverage database and never flushes it.
+        Call FlushCoverage() before querying a running DUT, or query after
+        Finish(). The default query requests line coverage only.
 
         Args:
-            kind: A coverage kind, an iterable of kinds, ``"all"``, or ``None``.
-            module: Optional module filter.
-            instance: Optional instance filter.
-            test: Optional VCS testdata filter. Verilator ignores this argument.
-            report: Optional path at which to write the JSON representation.
+            kind: A coverage kind or iterable of kinds.
+            module: Optional module-name filter.
+            instance: Optional hierarchical instance-prefix filter.
+            test: Optional VCS testdata name.
 
         Returns:
-            xspcomm.CoverageReport: Metrics plus covered and uncovered coverage items.
+            xspcomm.CoverageReport: Summary metrics and uncovered items.
         """
         path = self.GetCoveragePath()
-{% if __SIMULATOR__ == "vcs" %}
+{% if __SIMULATOR__ == "vcs" or __SIMULATOR__ == "verilator" %}
         workspace = _os.path.dirname(_os.path.abspath(__file__))
-        helper = _os.path.join(workspace, "coverage", "coverage")
-        if not _os.path.exists(helper):
+        executable = _os.path.join(workspace, "coverage", "coverage")
+        if not _os.path.isfile(executable):
             raise RuntimeError(
-                "Coverage helper was not generated. Re-export with --coverage."
+                "Coverage query executable was not generated. Re-export with --coverage."
             )
-        provider = xsp.CoverageProviderInfo()
-        provider.simulator = "vcs"
-        provider.backend = "ucapi-helper"
-        provider.databases.push_back(path)
-        provider.helper = helper
-        provider.source_map = _os.path.join(workspace, "coverage", "source-map.tsv")
-        provider.identity = "picker.vcs.ucapi"
-        provider.identity_version = 3
-        provider.contract_version = 3
-        client = xsp.CoverageClient(provider)
-        if report is not None and report is not False:
-            raise ValueError("VCS GetCoverage returns a CoverageReport object; Toffee owns JSON report generation")
-        kinds = ["line", "toggle", "branch", "condition", "fsm"] if kind is None or kind == "all" else ([kind] if isinstance(kind, str) else list(kind))
+
+        kinds = ["line"] if kind is None else (
+            [kind] if isinstance(kind, str) else list(kind)
+        )
+{% if __SIMULATOR__ == "verilator" %}
+        if kinds != ["line"]:
+            raise ValueError("Verilator coverage queries support only kind='line'")
+        if test is not None:
+            raise ValueError("Verilator coverage.dat has no named testdata")
+{% endif %}
         query = xsp.CoverageQuery()
         for name in kinds:
             parsed = xsp.CoverageKindFromString(str(name))
@@ -207,6 +190,12 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         query.instance = "" if instance is None else str(instance)
         if test is not None:
             query.tests.push_back(str(test))
+
+        provider = xsp.CoverageProviderInfo()
+        provider.simulator = "{{__SIMULATOR__}}"
+        provider.database = path
+        provider.executable = executable
+        client = xsp.CoverageClient(provider)
         report_obj = client.Query(query)
         if not report_obj.success:
             error = client.LastError()
@@ -217,76 +206,19 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
             _warnings.warn(str(warning), RuntimeWarning, stacklevel=2)
         return report_obj
 {% else %}
-{% if __SIMULATOR__ == "verilator" %}
-        workspace = _os.path.dirname(_os.path.abspath(__file__))
-        helper = _os.path.join(workspace, "coverage", "coverage")
-        if not _os.path.exists(helper):
-            raise RuntimeError(
-                "Coverage helper was not generated. Re-export with --coverage."
-            )
-        kinds = ["line"] if kind is None or kind == "all" else ([kind] if isinstance(kind, str) else list(kind))
-        query = xsp.CoverageQuery()
-        for name in kinds:
-            parsed = xsp.CoverageKindFromString(str(name))
-            if xsp.CoverageKindName(parsed) == "unknown":
-                raise ValueError(f"unknown coverage kind: {name}")
-            query.kinds.push_back(parsed)
-        query.module = "" if module is None else str(module)
-        query.instance = "" if instance is None else str(instance)
-        if test is not None:
-            _warnings.warn(
-                "Verilator coverage has no named testdata; GetCoverage(test=...) is ignored.",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-        provider = xsp.CoverageProviderInfo()
-        provider.simulator = "verilator"
-        provider.backend = "coverage-dat-helper"
-        provider.databases.push_back(path)
-        provider.helper = helper
-        provider.source_map = _os.path.join(workspace, "coverage", "source-map.tsv")
-        provider.identity = "picker.verilator.dat"
-        provider.identity_version = 1
-        provider.contract_version = 3
-        client = xsp.CoverageClient(provider)
-        report_obj = client.Query(query)
-        if not report_obj.success:
-            error = client.LastError()
-            if not error and report_obj.errors:
-                error = report_obj.errors[0]
-            raise RuntimeError(error or "coverage query failed")
-        if report is not None and report is not False:
-            raise ValueError("GetCoverage returns a CoverageReport object; Toffee owns JSON report generation")
-        return report_obj
-{% else %}
         raise RuntimeError("GetCoverage is not implemented for simulator '{{__SIMULATOR__}}'")
 {% endif %}
-{% endif %}
 
-    def __getattr__(self, name):
-        # Keep the query alias out of dir(self): Toffee enumerates every public
-        # DUT attribute while binding signals and must not query an unfinished VDB.
-        if name == "Coverage":
-            return self.GetCoverage()
-        raise AttributeError(
-            f"{type(self).__name__!s} object has no attribute {name!r}"
+    def PrintCoverage(self, kind=None, module=None, instance=None, test=None):
+        """Print and return the report produced by GetCoverage()."""
+        return xsp.print_coverage_report(
+            self.GetCoverage(
+                kind=kind,
+                module=module,
+                instance=instance,
+                test=test,
+            )
         )
-
-    def PrintCoverage(self, kind=None, module=None, instance=None, test=None, report=None):
-        """
-        Print and return a structured coverage report from the existing database.
-
-        This is the human-readable counterpart of GetCoverage(). Use ``dut.Coverage``
-        or GetCoverage() when another tool will process the result.
-        """
-        report_obj = self.GetCoverage(
-            kind=kind,
-            module=module,
-            instance=instance,
-            test=test,
-            report=report,
-        )
-        return xsp.print_coverage_report(report_obj)
     
     def CheckPoint(self, name: str) -> int:
         self.dut.CheckPoint(name)
