@@ -87,40 +87,44 @@ if [[ ! -d "${XCOMM_DIR}/.git" ]]; then
     rm -rf "${XCOMM_DIR}"
     git clone --depth=1 "${XCOMM_REPO_FALLBACK}" "${XCOMM_DIR}"
   fi
+fi
+
+if [[ -n "${XCOMM_SKIP_ALIGN:-}" ]]; then
+  echo "[xcomm] XCOMM_SKIP_ALIGN is set, skipping automatic branch alignment."
+elif ! git -C "${XCOMM_DIR}" remote get-url origin >/dev/null 2>&1; then
+  echo "[xcomm] No 'origin' remote found, skipping automatic branch alignment."
+elif ! git -C "${XCOMM_DIR}" rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+  echo "[xcomm] No upstream configured for current branch, skipping automatic branch alignment."
+elif [[ -n "$(git -C "${XCOMM_DIR}" status --porcelain)" ]] || [[ -n "$(git -C "${XCOMM_DIR}" rev-list @{u}..HEAD 2>/dev/null || true)" ]]; then
+  echo "[xcomm] Local changes or unpushed commits detected in dependence/xcomm, skipping automatic branch alignment."
 else
-  if [[ -n "${XCOMM_SKIP_ALIGN:-}" ]]; then
-    echo "[xcomm] XCOMM_SKIP_ALIGN is set, skipping automatic branch alignment."
-  elif ! git -C "${XCOMM_DIR}" remote get-url origin >/dev/null 2>&1; then
-    echo "[xcomm] No 'origin' remote found, skipping automatic branch alignment."
-  elif ! git -C "${XCOMM_DIR}" rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
-    echo "[xcomm] No upstream configured for current branch, skipping automatic branch alignment."
-  elif [[ -n "$(git -C "${XCOMM_DIR}" status --porcelain)" ]] || [[ -n "$(git -C "${XCOMM_DIR}" rev-list @{u}..HEAD 2>/dev/null || true)" ]]; then
-    echo "[xcomm] Local changes or unpushed commits detected in dependence/xcomm, skipping automatic branch alignment."
-  else
-    if ! git -C "${XCOMM_DIR}" fetch --all --tags --prune; then
-      echo "[xcomm] Fetch failed, skipping automatic branch alignment."
-      exit 0
-    fi
-    PARENT_BRANCH=$(git -C "${ROOT_DIR}" branch --show-current)
-    if [[ -z "${PARENT_BRANCH}" ]]; then
-      echo "[xcomm] In detached HEAD, falling back to master branch for xcomm"
-      PARENT_BRANCH="master"
-    fi
-    echo "[xcomm] Trying to align with parent branch '${PARENT_BRANCH}'"
-    BRANCH="${PARENT_BRANCH}"
-    if git -C "${XCOMM_DIR}" ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1; then
-      echo "[xcomm] Branch '${BRANCH}' found in xcomm. Checking it out."
-    else
-      echo "[xcomm] Branch '${BRANCH}' not found in xcomm. Falling back to master."
-      BRANCH="master"
-    fi
-    CURRENT_BRANCH=$(git -C "${XCOMM_DIR}" branch --show-current)
-    if [[ "${CURRENT_BRANCH}" == "${BRANCH}" ]] && \
-       [[ "$(git -C "${XCOMM_DIR}" rev-parse HEAD)" == "$(git -C "${XCOMM_DIR}" rev-parse "origin/${BRANCH}")" ]]; then
-      echo "[xcomm] Already up to date on '${BRANCH}', skipping alignment."
-      exit 0
-    fi
-    git -C "${XCOMM_DIR}" fetch origin "${BRANCH}:refs/remotes/origin/${BRANCH}"
-    git -C "${XCOMM_DIR}" checkout -B "${BRANCH}" "origin/${BRANCH}"
+  if ! git -C "${XCOMM_DIR}" fetch --all --tags --prune; then
+    echo "[xcomm] Fetch failed, skipping automatic branch alignment."
+    exit 0
   fi
+  PARENT_BRANCH=$(git -C "${ROOT_DIR}" branch --show-current)
+  if [[ -z "${PARENT_BRANCH}" ]]; then
+    echo "[xcomm] In detached HEAD, falling back to master branch for xcomm"
+    PARENT_BRANCH="master"
+  fi
+  echo "[xcomm] Trying to align with parent branch '${PARENT_BRANCH}'"
+  BRANCH="${PARENT_BRANCH}"
+  if git -C "${XCOMM_DIR}" ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1; then
+    echo "[xcomm] Branch '${BRANCH}' found in xcomm. Checking it out."
+  else
+    echo "[xcomm] Branch '${BRANCH}' not found in xcomm. Falling back to master."
+    BRANCH="master"
+  fi
+  CURRENT_BRANCH=$(git -C "${XCOMM_DIR}" branch --show-current)
+  if [[ "${CURRENT_BRANCH}" == "${BRANCH}" ]] && \
+     [[ "$(git -C "${XCOMM_DIR}" rev-parse HEAD)" == "$(git -C "${XCOMM_DIR}" rev-parse "origin/${BRANCH}")" ]]; then
+    echo "[xcomm] Already up to date on '${BRANCH}', skipping alignment."
+    exit 0
+  fi
+  BRANCH_REFSPEC="+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}"
+  if ! git -C "${XCOMM_DIR}" config --get-all remote.origin.fetch | grep -Fqx "${BRANCH_REFSPEC}"; then
+    git -C "${XCOMM_DIR}" config --add remote.origin.fetch "${BRANCH_REFSPEC}"
+  fi
+  git -C "${XCOMM_DIR}" fetch origin "${BRANCH}:refs/remotes/origin/${BRANCH}"
+  git -C "${XCOMM_DIR}" checkout -B "${BRANCH}" --track "origin/${BRANCH}"
 fi
