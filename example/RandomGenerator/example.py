@@ -43,5 +43,7 @@ if __name__ == "__main__":
         ref.step()
 
     print("Test Passed, destroy UT_RandomGenerator")
-    dut.Finish()
 
+    dut.Finish()
+    dut.PrintCoverage(kind="line", report=True)
+    print("Coverage report written to .DUT_COVERAGE_REPORT.json")

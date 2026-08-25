@@ -1,11 +1,11 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: all preflight smoke template_purge export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes clean
+.PHONY: all preflight smoke template_purge export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes coverage_helper vcs_coverage_dir_codegen clean
 
 SCRIPT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/scripts
 
-all: preflight smoke template_purge export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes pack_python
+all: preflight smoke template_purge export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes coverage_helper vcs_coverage_dir_codegen pack_python
 
 # Ensure picker is built with python and java support before running tests
 preflight:
@@ -85,6 +85,12 @@ pack_unsupported_type: preflight
 
 pack_multiple_classes: preflight
 	bash "$(SCRIPT_DIR)/test_pack_multiple_classes.sh"
+
+coverage_helper:
+	bash "$(SCRIPT_DIR)/test_verilator_coverage_helper.sh"
+
+vcs_coverage_dir_codegen: preflight
+	bash "$(SCRIPT_DIR)/test_vcs_coverage_dir_codegen.sh"
 
 clean:
 	rm -rf picker_out_* pack_example

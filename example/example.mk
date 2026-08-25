@@ -6,6 +6,7 @@ EXAMPLE_VERILATOR_TARGETS := \
 	AdderMultiInstance \
 	Cache \
 	CacheSignalCFG \
+	Coverage \
 	DualPortStackCb \
 	InternalSignals \
 	MultiClock \

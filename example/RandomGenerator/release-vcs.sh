@@ -5,10 +5,11 @@ OUT_ROOT="${OUT_ROOT:-output}"
 OUT_DIR="$(realpath -m "${OUT_ROOT}/RandomGenerator")"
 
 rm -rf "$OUT_DIR"
-./build/bin/picker export example/RandomGenerator/RandomGenerator.v --autobuild true --sim vcs -w RandomGenerator.fsdb --sname RandomGenerator --tdir "$OUT_DIR" --sdir template --coverage "$@"
+./build/bin/picker export example/RandomGenerator/RandomGenerator.v --autobuild true --sim vcs -w RandomGenerator.fsdb --sname RandomGenerator --tdir "$OUT_DIR" --sdir template --coverage --verdi-mode modern "$@"
 # if python in $@, then it will generate python binding
 if [[ $* == *"python"* ]]; then
     cp example/RandomGenerator/example.py "$OUT_DIR"
+    cp example/RandomGenerator/test.py "$OUT_DIR"
 elif [[ $* == *"java"* ]]; then
     cp example/RandomGenerator/example.java "$OUT_DIR"
 elif [[ $* == *"scala"* ]]; then

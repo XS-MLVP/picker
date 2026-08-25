@@ -5,7 +5,7 @@ OUT_ROOT="${OUT_ROOT:-output}"
 OUT_DIR="$(realpath -m "${OUT_ROOT}/Adder")"
 
 rm -rf "$OUT_DIR"
-./build/bin/picker export example/Adder/Adder.v --autobuild true --sim vcs -w Adder.fsdb --sname Adder --tdir "$OUT_DIR" --sdir template --coverage "$@"
+./build/bin/picker export example/Adder/Adder.v --autobuild true --sim vcs -w Adder.fsdb --sname Adder --tdir "$OUT_DIR" --sdir template --coverage --coverage-dir "/home/sfangyy/work/XSV/picker/output/uc_report" --verdi-mode modern "$@"
 # if python in $@, then it will generate python binding
 if [[ $* == *"python"* ]]; then
     cp example/Adder/example.py "$OUT_DIR"

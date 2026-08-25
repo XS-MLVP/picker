@@ -22,6 +22,11 @@ rm -rf "${ROOT_DIR}/picker_out_adder"
 
 cp "${ROOT_DIR}/example/Adder/example.py" "${ROOT_DIR}/picker_out_adder/Adder/python/"
 
+if ! rg -q 'return "verilator"' "${ROOT_DIR}/picker_out_adder/Adder/python/dut.py"; then
+  red "[export-python] generated DUT does not expose GetSimulator()"
+  exit 1
+fi
+
 blue "[export-python] Building generated project"
 make -C "${ROOT_DIR}/picker_out_adder/Adder" EXAMPLE=ON -j"$(nproc)"
 
