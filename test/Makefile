@@ -3,6 +3,8 @@ SHELL := /bin/bash
 
 .PHONY: all preflight smoke template_purge export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes clean
 
+.NOTPARALLEL: all
+
 SCRIPT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/scripts
 
 all: preflight smoke template_purge export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes pack_python

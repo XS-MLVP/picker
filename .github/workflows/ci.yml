@@ -142,7 +142,7 @@ jobs:
 
       - name: Full tests (make -C test all)
         run: |
-          make -C test all -j"$(nproc)"
+          make -C test all
 
       - name: Cleanup generated artifacts
         if: always()
