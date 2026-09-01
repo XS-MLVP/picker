@@ -176,6 +176,8 @@ Options:
                               Copy xspcomm lib to generated DUT dir, default is true
   -V,--vflag TEXT             User defined simulator compile args, passthrough.
                               Eg: Using vcs simulator for exporting line coverage, -V '"-cm line -cm_dir /abs_path_to_store_coverage_data"'
+  -S,--sflag TEXT ...         User defined slang RTL parser args, passthrough.
+                              Eg: '--cmd-ignore=-myflag,1'
   -C,--cflag TEXT             User defined gcc/clang compile command,   passthrough.
                               Eg: -C '"-O3 -std=c++17 -I./include"' 
   --verbose                   Verbose mode
@@ -224,6 +226,7 @@ Options:
 - `-c,--coverage`: 可选。启用覆盖率，默认不选择为 OFF
 - `--cp_lib,--copy_xspcomm_lib BOOLEAN [1]`: 可选。将 xspcomm 库复制到生成的 DUT 目录，默认是 true
 - `-V,--vflag TEXT`: 可选。用户定义的模拟器编译参数，透传。例如： 模拟器使用 vcs 时，导出行覆盖率: '-V '"-cm line -cm_dir /abs_path_to_store_coverage_data"''
+- `-S,--sflag TEXT ...`: 可选。用户定义的 slang（RTL 解析前端）参数，透传。filelist 中 slang 无法识别的参数会被自动屏蔽，此选项用于显式传入 slang 选项，例如：`--cmd-ignore=-myflag,1`
 - `-C,--cflag TEXT`: 可选。用户定义的 gcc/clang 编译命令，透传。例如： -C '"-O3 -std=c++17 -I./include"'
 - `--verbose`: 可选。详细模式
 - `-e,--example`: 可选。构建示例项目，默认是 OFF

@@ -147,6 +147,10 @@ int set_options_export_rtl(CLI::App &top_app)
         "-V,--vflag", export_opts.vflag,
         "User defined simulator compile args, passthrough. \nEg: '-v -x-assign=fast -Wall --trace' || '-C vcs -cc -f filelist.f'");
 
+    // User defined slang (RTL frontend) args, passthrough. Eg: '--cmd-ignore=-myflag,1'
+    app->add_option("-S,--sflag", export_opts.sflag,
+                    "User defined slang RTL parser args, passthrough. \nEg: '--cmd-ignore=-myflag,1'");
+
     // User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17
     // -I./include'
     app->add_option("-C,--cflag", export_opts.cflag,

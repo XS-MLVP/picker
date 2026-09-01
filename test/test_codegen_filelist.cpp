@@ -94,23 +94,24 @@ int main()
     });
     assert(stderr_output.empty());
 
-    std::set<std::string> incset(incdirs.begin(), incdirs.end());
-    assert(incset.size() == 4);
-    assert(incset.count((base / "inc1").string()) == 1);
-    assert(incset.count((base / "inc2").string()) == 1);
-    assert(incset.count((base / "inc3").string()) == 1);
-    assert(incset.count((base / "inc4").string()) == 1);
+    // include flags stay in the filelist, every simulator parses them itself,
+    // only their paths are rewritten to absolute ones
+    assert(incdirs.empty());
+    assert(contains_line(ofilelist, "+incdir+" + (base / "inc1").string() + "+" + (base / "inc2").string()));
+    assert(contains_line(ofilelist, "-I" + (base / "inc3").string()));
+    assert(contains_line(ofilelist, "-I" + (base / "inc4").string()));
 
     assert(contains_line(ofilelist, (base / "rtl1.sv").string()));
     assert(contains_line(ofilelist, (base / "sub" / "rtl2.v").string()));
-    assert(!contains_line(ofilelist, "incdir"));
 
+    // include dirs picker derives itself are translated per simulator
+    const std::vector<std::string> derived = {(base / "inc1").string()};
     std::string vflag;
-    picker::codegen::append_incdirs_to_vflag("verilator", incdirs, vflag);
+    picker::codegen::append_incdirs_to_vflag("verilator", derived, vflag);
     assert(contains_line(vflag, "-I" + (base / "inc1").string()));
 
     std::string vflag_vcs;
-    picker::codegen::append_incdirs_to_vflag("vcs", incdirs, vflag_vcs);
+    picker::codegen::append_incdirs_to_vflag("vcs", derived, vflag_vcs);
     assert(contains_line(vflag_vcs, "+incdir+" + (base / "inc1").string()));
 
     // second scenario: duplicates, comments, and source_file skip
@@ -132,10 +133,9 @@ int main()
     // sub2/ should include rtl3.sv but not ignore.txt
     assert(contains_line(ofilelist2, (base / "sub2" / "rtl3.sv").string()));
     assert(!contains_line(ofilelist2, (base / "sub2" / "ignore.txt").string()));
-    // duplicate incdir should collapse
-    std::set<std::string> incset2(incdirs2.begin(), incdirs2.end());
-    assert(incset2.size() == 1);
-    assert(incset2.count((base / "inc1").string()) == 1);
+    // include flags are passed through as written, picker does not merge them
+    assert(incdirs2.empty());
+    assert(contains_line(ofilelist2, "+incdir+" + (base / "inc1").string() + "+" + (base / "inc1").string()));
 
     const fs::path filelist3 = base / "filelist3.f";
     write_text(filelist3,
@@ -154,8 +154,9 @@ int main()
     fs::current_path(original_cwd);
 
     assert(stderr_output.empty());
-    assert(incdirs3.size() == 1);
-    assert(incdirs3.front() == base.string());
+    // '+incdir+.' resolves against the filelist directory, not the current one
+    assert(incdirs3.empty());
+    assert(contains_line(ofilelist3, "+incdir+" + base.string()));
     assert(contains_line(ofilelist3, (base / "rtl1.sv").string()));
     assert(!contains_line(ofilelist3, (cwd_base / "rtl1.sv").string()));
 
@@ -184,6 +185,42 @@ int main()
     std::set<std::string> incset4(incdirs4.begin(), incdirs4.end());
     assert(incset4.size() == 1);
     assert(incset4.count(base.string()) == 1);
+
+    // fifth scenario: compile args are passed through, in filelist order
+    fs::create_directories(base / "lib");
+    write_text(base / "lib" / "cell.v", "module cell; endmodule\n");
+    write_text(base / "nested.f", "+define+FROM_NESTED\n"
+                                  "rtl1.sv\n");
+
+    const fs::path filelist5 = base / "filelist5.f";
+    write_text(filelist5,
+               "+define+WIDTH=32\n"
+               "-timescale=1ns/1ps\n"
+               "-full64\n"
+               "-CFLAGS -O2\n"
+               "-y ./lib\n"
+               "-f ./nested.f\n"
+               "sub/rtl2.v\n");
+
+    std::string ofilelist5;
+    std::vector<std::string> incdirs5;
+    stderr_output = capture_stderr([&]() {
+        picker::codegen::gen_filelist({}, {filelist5.string()}, ofilelist5, incdirs5);
+    });
+
+    assert(stderr_output.empty());
+    assert(contains_line(ofilelist5, "+define+WIDTH=32"));
+    assert(contains_line(ofilelist5, "-timescale=1ns/1ps"));
+    assert(contains_line(ofilelist5, "-full64"));
+    assert(contains_line(ofilelist5, "-CFLAGS -O2"));
+    // '-y' keeps its flag but the directory becomes absolute
+    assert(contains_line(ofilelist5, "-y " + (base / "lib").string()));
+    // nested filelist is inlined: both its define and its source show up
+    assert(contains_line(ofilelist5, "+define+FROM_NESTED"));
+    assert(contains_line(ofilelist5, (base / "rtl1.sv").string()));
+    assert(contains_line(ofilelist5, (base / "sub" / "rtl2.v").string()));
+    // order is preserved: the define written first stays before the last source
+    assert(ofilelist5.find("+define+WIDTH=32") < ofilelist5.find((base / "sub" / "rtl2.v").string()));
 
     fs::remove_all(cwd_base);
     fs::remove_all(base);
