@@ -181,6 +181,8 @@ Options:
                               Copy xspcomm lib to generated DUT dir, default is true
   -V,--vflag TEXT             User defined simulator compile args, passthrough.
                               Eg: Using vcs simulator for exporting line coverage, -V '"-cm line -cm_dir /abs_path_to_store_coverage_data"'
+  -S,--sflag TEXT ...         User defined slang RTL parser args, passthrough.
+                              Eg: '--cmd-ignore=-myflag,1'
   -C,--cflag TEXT             User defined gcc/clang compile command, passthrough.
                               Eg: -C '"-O3 -std=c++17 -I./include"'
   --verbose                   Verbose mode

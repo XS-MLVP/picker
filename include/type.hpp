@@ -40,6 +40,7 @@ typedef struct export_opts {
     std::string verdi_mode;  // legacy: -P novas.tab, modern: -debug_access+all
     std::string vflag;
     std::string cflag;
+    std::vector<std::string> sflag;
     bool verbose;
     bool example;
     bool autobuild;

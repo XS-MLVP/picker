@@ -1,7 +1,7 @@
-#include <cstring>
 #include <unordered_set>
 #include <sstream>
 #include "codegen/lib.hpp"
+#include "filelist.hpp"
 #include "picker.hpp"
 #include "codegen/sv.hpp"
 #include "codegen/firrtl.hpp"
@@ -39,10 +39,15 @@ namespace picker { namespace codegen {
         }
     }
 
+    static std::string quote_entry(const std::string &entry)
+    {
+        if (entry.find_first_of(" \t") == std::string::npos) { return entry; }
+        return "\"" + entry + "\"";
+    }
+
     void gen_filelist(const std::vector<std::string> &source_file, const std::vector<std::string> &ifilelists,
                       std::string &ofilelist, std::vector<std::string> &incdirs)
     {
-        std::vector<std::pair<std::string, std::string>> path_list;
         const std::vector<std::string> allow_file_types = {
             ".sv", ".v", ".svh", ".vh", ".cpp", ".c", ".cc", ".cxx", ".so", ".a", ".o"};
         const std::vector<std::string> header_file_types = {".svh", ".vh"};
@@ -66,103 +71,75 @@ namespace picker { namespace codegen {
             source_file_set.insert(normalized);
         }
 
-        for (auto ifilelist : ifilelists) {
-            if (check_file_type(ifilelist, {".txt", ".f"})) { // file
-                std::ifstream ifs(ifilelist);
-                std::string line;
-                auto fs_path = std::filesystem::absolute(ifilelist).parent_path().string();
-                while (std::getline(ifs, line)) { path_list.push_back({line, fs_path}); }
-            } else { // split by comma
-                std::string line;
-                std::stringstream ss(ifilelist);
-                while (std::getline(ss, line, ',')) { path_list.push_back({line, ""}); }
-            }
-        }
-
-        auto add_incdir = [&](std::string dir, const std::string &base_dir) {
-            dir = picker::trim(dir);
-            if (dir.empty()) { return; }
-            auto resolved_dir = resolve_input_path(dir, base_dir);
-            if (!std::filesystem::exists(resolved_dir)) { PK_FATAL("Include dir not found: %s\n", dir.c_str()); }
-            dir = std::filesystem::absolute(resolved_dir).lexically_normal().string();
-            if (incdir_set.insert(dir).second) { incdirs.push_back(dir); }
+        auto resolve_incdir = [&](const std::string &dir, const std::string &base_dir) {
+            auto trimmed = picker::trim(dir);
+            if (trimmed.empty()) { return std::string(); }
+            return std::filesystem::absolute(resolve_input_path(trimmed, base_dir)).lexically_normal().string();
         };
 
-        auto parse_incdir_flags = [&](const std::string &line, const std::string &base_dir) -> bool {
-            bool matched = false;
-            std::stringstream ss(line);
-            std::string tok;
-            std::vector<std::string> tokens;
-            while (ss >> tok) { tokens.push_back(tok); }
+        auto add_incdir = [&](const std::string &dir, const std::string &base_dir) {
+            auto resolved = resolve_incdir(dir, base_dir);
+            if (resolved.empty()) { return; }
+            if (incdir_set.insert(resolved).second) { incdirs.push_back(resolved); }
+        };
 
-            for (size_t i = 0; i < tokens.size(); ++i) {
-                const auto &t = tokens[i];
-                if (t.starts_with("+incdir+")) {
-                    matched = true;
-                    std::string rest = t.substr(strlen("+incdir+"));
-                    size_t pos = 0;
-                    while (pos < rest.size()) {
-                        size_t next = rest.find('+', pos);
-                        std::string dir = rest.substr(pos, next - pos);
-                        add_incdir(dir, base_dir);
-                        if (next == std::string::npos) { break; }
-                        pos = next + 1;
+        auto add_file = [&](const std::string &path) {
+            if (source_file_set.count(path) != 0) { return; } // skip source file
+            if (check_file_type(path, header_file_types)) {
+                add_incdir(std::filesystem::path(path).parent_path().string(), "");
+                return;
+            }
+            ofilelist += quote_entry(path) + "\n";
+        };
+
+        std::vector<picker::filelist::token> tokens;
+        picker::filelist::expand(ifilelists, tokens);
+
+        for (const auto &token : tokens) {
+            switch (token.kind) {
+            case picker::filelist::token_kind::incdir: {
+                std::string line;
+                for (const auto &dir : token.argv) {
+                    auto resolved = resolve_incdir(dir, token.base_dir);
+                    if (resolved.empty()) { continue; }
+                    if (token.name == "+incdir") {
+                        line += (line.empty() ? "+incdir+" : "+") + resolved;
+                    } else {
+                        if (!line.empty()) { line += " "; }
+                        line += "-I" + resolved;
                     }
-                    continue;
                 }
-                if (t == "-I") {
-                    matched = true;
-                    if (i + 1 < tokens.size()) { add_incdir(tokens[++i], base_dir); }
-                    continue;
-                }
-                if (t.starts_with("-I") && t.size() > 2) {
-                    matched = true;
-                    add_incdir(t.substr(2), base_dir);
-                    continue;
-                }
+                if (!line.empty()) { ofilelist += quote_entry(line) + "\n"; }
+                continue;
             }
-            return matched;
-        };
-
-        for (auto &path_item : path_list) {
-            auto path = picker::trim(path_item.first);
-            const auto &fs_path = path_item.second;
-            if (path.starts_with("#")) { continue; }                      // skip comment line
-            path = picker::trim(path.substr(0, path.find_first_of("#"))); // remove comment part
-            if (path.empty()) { continue; }                               // skip empty line
-            if (parse_incdir_flags(path, fs_path)) { continue; }
-
-            if (check_file_type(path, allow_file_types)) { // file
-                auto target_file = path;
-                auto resolved_file = resolve_input_path(path, fs_path);
-                if (!std::filesystem::exists(resolved_file)) PK_FATAL("File not found: %s\n", target_file.c_str());
-                path = std::filesystem::absolute(resolved_file).lexically_normal().string();
-                if (source_file_set.count(path) != 0) { continue; } // skip source file
-                if (check_file_type(path, header_file_types)) {
-                    add_incdir(std::filesystem::path(path).parent_path().string(), "");
-                    continue;
+            case picker::filelist::token_kind::arg: {
+                std::string line;
+                for (const auto &entry : token.argv) {
+                    if (!line.empty()) { line += " "; }
+                    line += quote_entry(entry);
                 }
-                ofilelist += path + "\n";
-            } else if (path.ends_with("/")) { // directory
-                auto target_dir = path;
-                auto resolved_dir = resolve_input_path(path, fs_path);
-                if (!std::filesystem::exists(resolved_dir)) PK_FATAL("Directory not found: %s\n", target_dir.c_str());
+                ofilelist += line + "\n";
+                continue;
+            }
+            case picker::filelist::token_kind::path:
+                break;
+            }
+
+            auto path = token.argv.front();
+            if (path.ends_with("/")) { // directory
+                auto resolved_dir = resolve_input_path(path, token.base_dir);
+                if (!std::filesystem::exists(resolved_dir)) PK_FATAL("Directory not found: %s\n", path.c_str());
                 std::filesystem::recursive_directory_iterator iter(resolved_dir);
                 for (const auto &entry : iter) {
                     if (entry.is_regular_file()) {
                         std::string filename = entry.path().filename().string();
-                        if (check_file_type(filename, allow_file_types)) {
-                            const auto entry_path = entry.path().string();
-                            if (check_file_type(entry_path, header_file_types)) {
-                                add_incdir(entry.path().parent_path().string(), "");
-                                continue;
-                            }
-                            ofilelist += entry_path + "\n";
-                        }
+                        if (check_file_type(filename, allow_file_types)) { add_file(entry.path().string()); }
                     }
                 }
             } else {
-                PK_FATAL("Unsupported file type: %s\n", path.c_str());
+                add_file(std::filesystem::absolute(resolve_input_path(path, token.base_dir))
+                             .lexically_normal()
+                             .string());
             }
         }
     }

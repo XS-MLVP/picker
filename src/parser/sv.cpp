@@ -1,4 +1,5 @@
 #include "picker.hpp"
+#include "filelist.hpp"
 #include "parser/sv.hpp"
 
 #include "slang/ast/Compilation.h"
@@ -13,9 +14,12 @@
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/syntax/SyntaxVisitor.h"
 #include "slang/text/SourceManager.h"
+#include "slang/util/CommandLine.h"
 
 #include <algorithm>
 #include <fstream>
+#include <map>
+#include <set>
 #include <sstream>
 #include <unordered_map>
 
@@ -34,6 +38,7 @@ namespace picker { namespace parser {
         using slang::ast::PortSymbol;
         using slang::ast::SymbolKind;
         using slang::ast::Type;
+        using slang::CommandLine;
         using slang::driver::Driver;
         using slang::syntax::ModuleDeclarationSyntax;
         using slang::syntax::SyntaxVisitor;
@@ -119,6 +124,57 @@ namespace picker { namespace parser {
         void append_source_arg(const std::string &file, std::vector<std::string> &args)
         {
             args.push_back(normalize_path(file));
+        }
+
+        // Single dash names are asked as '--name': slang looks both up in the same table,
+        // but only the single dash form falls back to prefix matching, which would
+        // silently turn '-full64' into '-f ull64'.
+        bool slang_knows_option(Driver &probe, const std::string &name)
+        {
+            if (name.empty()) { return false; }
+
+            std::string arg = name;
+            if (arg.starts_with("-") && !arg.starts_with("--")) { arg = "-" + arg; }
+
+            const size_t before = probe.cmdLine.getErrors().size();
+            CommandLine::ParseOptions parse_opts;
+            parse_opts.ignoreProgramName = true;
+            parse_opts.ignoreDuplicates  = true;
+            probe.cmdLine.parse(arg, parse_opts);
+
+            for (const auto &error : probe.cmdLine.getErrors().subspan(before)) {
+                if (error.message.find("unknown command line argument") != std::string::npos) { return false; }
+            }
+            return true;
+        }
+
+        // '--cmd-ignore <name>,<N>' rules for every filelist arg slang does not know.
+        std::vector<std::string> collect_cmd_ignore_rules(const std::vector<std::string> &filelists)
+        {
+            std::vector<picker::filelist::token> tokens;
+            picker::filelist::expand(filelists, tokens);
+
+            Driver probe;
+            probe.addStandardArgs();
+
+            std::map<std::string, int> rules;
+            std::set<std::string> probed;
+            for (const auto &token : tokens) {
+                if (token.kind != picker::filelist::token_kind::arg || token.name.empty()) { continue; }
+                if (!probed.insert(token.name).second) { continue; }
+                if (slang_knows_option(probe, token.name)) {
+                    PK_DEBUG("slang knows filelist arg: %s", token.name.c_str());
+                    continue;
+                }
+                rules[token.name] = token.values;
+            }
+
+            std::vector<std::string> ret;
+            for (const auto &[name, values] : rules) {
+                PK_DEBUG("Hide filelist arg from slang: %s,%d", name.c_str(), values);
+                ret.push_back(name + "," + std::to_string(values));
+            }
+            return ret;
         }
 
         void append_filelists_to_driver_args(const std::vector<std::string> &filelists, std::vector<std::string> &args)
@@ -267,11 +323,20 @@ namespace picker { namespace parser {
             driver.addStandardArgs();
 
             std::vector<std::string> args = {"picker-slang", "--single-unit", "--ignore-unknown-modules",
-                                             "--exclude-ext", "so,a,o"};
+                                             "--exclude-ext", "so,a,o,cpp,c,cc,cxx"};
             if (opts.sim == "vcs") {
                 args.push_back("--compat");
                 args.push_back("vcs");
             }
+
+            // Ignore rules must come before the filelist that contains the args.
+            if (use_filelists) {
+                for (const auto &rule : collect_cmd_ignore_rules(opts.filelists)) {
+                    args.push_back("--cmd-ignore");
+                    args.push_back(rule);
+                }
+            }
+            for (const auto &flag : opts.sflag) { args.push_back(flag); }
 
             if (use_filelists) { append_filelists_to_driver_args(opts.filelists, args); }
             append_explicit_files_to_driver_args(opts.file, args);
@@ -376,40 +441,18 @@ namespace picker { namespace parser {
                                         std::vector<std::string> &out)
     {
         namespace fs = std::filesystem;
-        std::vector<std::string> entries;
-        std::string last_list_base;
 
-        for (const auto &fl : filelists) {
-            if (fl.ends_with(".txt") || fl.ends_with(".f")) {
-                // Lines inside are relative to the filelist file
-                last_list_base = fs::absolute(fl).parent_path().string();
-                std::ifstream ifs(fl);
-                std::string line;
-                while (std::getline(ifs, line)) {
-                    entries.push_back(line);
-                }
-            } else {
-                // Comma-separated entries directly from CLI
-                std::stringstream ss(fl);
-                std::string token;
-                while (std::getline(ss, token, ',')) {
-                    entries.push_back(token);
-                }
-            }
-        }
+        std::vector<picker::filelist::token> tokens;
+        picker::filelist::expand(filelists, tokens);
 
-        for (auto entry : entries) {
-            entry = strip_comment_and_trim(entry);
-            if (entry.empty()) continue;
+        for (const auto &token : tokens) {
+            // compile args and their values are not sources
+            if (token.kind != picker::filelist::token_kind::path) { continue; }
 
-            // Resolve relative path against the last seen filelist base if present
-            std::string path = entry;
-            if (!fs::exists(path) && !path.starts_with("/") && !last_list_base.empty()) {
-                path = (fs::path(last_list_base) / path).string();
-            }
-
+            auto path = token.argv.front();
+            if (!fs::exists(path) && !token.base_dir.empty()) { path = (fs::path(token.base_dir) / path).string(); }
             if (!fs::exists(path)) {
-                // Not fatal here; filelist may contain non-Verilog or generated paths not yet present
+                // Not fatal here; filelist may contain generated paths not yet present
                 continue;
             }
 
@@ -417,14 +460,10 @@ namespace picker { namespace parser {
                 for (auto const &dir_entry : fs::recursive_directory_iterator(path)) {
                     if (!dir_entry.is_regular_file()) continue;
                     auto p = dir_entry.path().string();
-                    if (is_verilog_src(p)) {
-                        out.push_back(fs::absolute(p).string());
-                    }
+                    if (is_verilog_src(p)) { out.push_back(fs::absolute(p).string()); }
                 }
-            } else if (fs::is_regular_file(path)) {
-                if (is_verilog_src(path)) {
-                    out.push_back(fs::absolute(path).string());
-                }
+            } else if (fs::is_regular_file(path) && is_verilog_src(path)) {
+                out.push_back(fs::absolute(path).string());
             }
         }
     }

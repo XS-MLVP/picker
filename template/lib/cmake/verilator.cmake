@@ -24,10 +24,8 @@ if(SIMULATOR STREQUAL "verilator")
 		set(TRACE_FLAG "")
 	endif()
 
-	# Readf filelist from file
-	file(READ ${CMAKE_CURRENT_SOURCE_DIR}/filelist.f FILELIST)
-	# set filelist to variable
-	string(REGEX REPLACE "\n" ";" FILELIST "${FILELIST}")
+	# Filelist is passed to verilator with -f below, it reports the files it reads
+	# back to cmake through <prefix>_DEPS
 	# set coverage flags
 	if(${COVERAGE} STREQUAL "ON")
 		set(COVERAGE_FLAG "COVERAGE")
@@ -61,7 +59,6 @@ if(SIMULATOR STREQUAL "verilator")
 		SOURCES
 		${ModuleName}_top.sv
 		${ModuleName}.v
-		${FILELIST}
 		TOP_MODULE
 		${ModuleName}_top
 		PREFIX
@@ -76,6 +73,8 @@ if(SIMULATOR STREQUAL "verilator")
 		"-O3"
 		VERILATOR_ARGS
 		-Wno-fatal
+		-f
+		${CMAKE_CURRENT_SOURCE_DIR}/filelist.f
 		${SIMULATOR_FLAGS}
 		-CFLAGS
 		"-fPIC ${CFLAGS}")
