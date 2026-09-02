@@ -131,10 +131,10 @@ jobs:
           name: ${{ matrix.os }}-appdir
           path: AppDir
       
-      - name: Unit test (test_picker_utils)
+      - name: C++ unit tests
         run: |
-          cmake --build build --target test_picker_utils -j"$(nproc)"
-          ./build/bin/test_picker_utils
+          cmake --build build --parallel "$(nproc)"
+          ctest --test-dir build --output-on-failure --parallel "$(nproc)"
 
       - name: Smoke tests
         run: |

@@ -1,5 +1,14 @@
 include_directories(../include)
 
+# Picker's Release builds define NDEBUG, while these tests use standard
+# assert() for their checks. Keep the optimized build but make test assertions
+# evaluate in every configuration.
+if(MSVC)
+    add_compile_options(/UNDEBUG)
+else()
+    add_compile_options(-UNDEBUG)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(parser_internalcfg)

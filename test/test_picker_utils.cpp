@@ -13,6 +13,10 @@ static void write_text(const std::string &p, const std::string &t) {
   o << t;
 }
 
+#ifdef NDEBUG
+#error "Picker test targets must be compiled with assertions enabled"
+#endif
+
 int main() {
   // trim/ltrim/rtrim and trim with custom pattern
   assert(picker::ltrim(string("  hi")) == "hi");

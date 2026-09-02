@@ -155,7 +155,9 @@ int main()
 
     assert(stderr_output.empty());
     assert(incdirs3.size() == 1);
-    assert(incdirs3.front() == base.string());
+    // Some standard libraries preserve a trailing separator for "base/.", so
+    // compare the existing directories rather than their spellings.
+    assert(fs::equivalent(fs::path(incdirs3.front()), base));
     assert(contains_line(ofilelist3, (base / "rtl1.sv").string()));
     assert(!contains_line(ofilelist3, (cwd_base / "rtl1.sv").string()));
 

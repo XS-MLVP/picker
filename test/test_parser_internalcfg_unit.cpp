@@ -32,6 +32,7 @@ int main()
     assert(pins.size() == 3);
 
     bool found_a = false, found_b = false, found_c = false;
+    // Mapping keys are hierarchy components, including a scalar leaf's key.
     for (const auto &p : pins) {
         if (p.logic_pin == "top.sub.a") {
             found_a = true;
