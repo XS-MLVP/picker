@@ -9,20 +9,25 @@ if(SIMULATOR STREQUAL "verilator")
 		OUTPUT_VARIABLE CMD_VERILATOR_ROOT
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
-	find_package(verilator REQUIRED PATHS ${CMD_VERILATOR_ROOT} NO_DEFAULT_PATH)
+	find_package(verilator 5.020 REQUIRED PATHS ${CMD_VERILATOR_ROOT} NO_DEFAULT_PATH)
 	include_directories(${VERILATOR_ROOT}/include
 											${VERILATOR_ROOT}/include/vltstd)
 
 	# Trace
-	if(${TRACE} STREQUAL "fst")
+	if("${TRACE}" STREQUAL "fst")
 		set(TRACE_FLAG TRACE_FST)
 		add_definitions(-DVL_TRACE)
-	elseif(${TRACE} STREQUAL "vcd")
-		set(TRACE_FLAG TRACE)
+	elseif("${TRACE}" STREQUAL "vcd")
+		if(verilator_VERSION VERSION_LESS "5.036")
+			set(TRACE_FLAG TRACE)
+		else()
+			set(TRACE_FLAG TRACE_VCD)
+		endif()
 		add_definitions(-DVL_TRACE)
 	else()
 		set(TRACE_FLAG "")
 	endif()
+	message(STATUS "Verilator ${verilator_VERSION}, trace option: ${TRACE_FLAG}")
 
 	# Filelist is passed to verilator with -f below, it reports the files it reads
 	# back to cmake through <prefix>_DEPS

@@ -16,7 +16,16 @@ jobs:
   build-and-test:
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-22.04-arm]
+        include:
+          - os: ubuntu-22.04
+            verilator_override: ''
+            full_test: true
+          - os: ubuntu-22.04-arm
+            verilator_override: ''
+            full_test: true
+          - os: ubuntu-22.04
+            verilator_override: v5.026
+            full_test: false
     runs-on: ${{ matrix.os }}
     env:
       BUILD_XSPCOMM_SWIG: python,java
@@ -27,7 +36,11 @@ jobs:
       - name: Load shared tool versions
         run: |
           set -euo pipefail
-          echo "VERILATOR_VERSION=$(sed -n 's/^  verilator:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
+          VERILATOR_VERSION='${{ matrix.verilator_override }}'
+          if [ -z "${VERILATOR_VERSION}" ]; then
+            VERILATOR_VERSION=$(sed -n 's/^  verilator:[[:space:]]*//p' .build-config.yml)
+          fi
+          echo "VERILATOR_VERSION=${VERILATOR_VERSION}" >> "$GITHUB_ENV"
           echo "SWIG_VERSION=$(sed -n 's/^  swig:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
           echo "NODE_VERSION=$(sed -n 's/^  node:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
           echo "PYTHON_VERSION=$(sed -n 's/^  python:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
@@ -40,7 +53,7 @@ jobs:
             build-essential git wget curl \
             python3 python3-pip python3-dev libpython3-dev \
             pkg-config libpcre3-dev libpcre2-dev libfl-dev \
-            bison flex gperf clang g++ zlib1g-dev \
+            bison flex gperf clang g++ zlib1g-dev liblz4-dev \
             gnupg autoconf automake libtool help2man \
             openjdk-17-jdk
 
@@ -112,37 +125,50 @@ jobs:
           cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL="$(nproc)" -DCMAKE_INSTALL_PREFIX=/usr
 
       - name: Install into AppDir (prepare artifact)
+        if: matrix.full_test
         run: |
-          
           # Install into AppDir alongside the repo
           cd build && make install DESTDIR="$(pwd)"/../AppDir
 
       - name: Upload build directory
-        if: success()
+        if: success() && matrix.full_test
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-builddir
           path: build
 
       - name: Upload AppDir (preinstalled files)
-        if: success()
+        if: success() && matrix.full_test
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-appdir
           path: AppDir
-      
+
       - name: Unit test (test_picker_utils)
+        if: matrix.full_test
         run: |
           cmake --build build --target test_picker_utils -j"$(nproc)"
           ./build/bin/test_picker_utils
 
       - name: Smoke tests
+        if: matrix.full_test
         run: |
           make -C test smoke
 
       - name: Full tests (make -C test all)
+        if: matrix.full_test
         run: |
           make -C test all
+
+      - name: Build legacy compatibility binary
+        if: matrix.full_test == false
+        run: |
+          cmake --build build --parallel "$(nproc)"
+
+      - name: Legacy Verilator VCD compatibility
+        if: matrix.full_test == false
+        run: |
+          make -C test export_cachecfg
 
       - name: Cleanup generated artifacts
         if: always()
