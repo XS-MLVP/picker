@@ -36,7 +36,7 @@ struct cpp_variableInfo {
         if (size_map.find(type) == size_map.end()) {
         {% if __SIMULATOR__ == "verilator" %}
             if (type.rfind("VlWide<", 0) == 0) {
-                return stoi(type.substr(7, type.size() - 8)) * 4;
+                return stoi(type.substr(7, type.size() - 8)) * sizeof(EData);
             }
         {% endif %}
         {% if __SIMULATOR__ == "gsim" %}

@@ -298,11 +298,9 @@ void render_varible_info()
 void init_type_size()
 {
 {% if __SIMULATOR__ == "verilator" %}
-    SET_SIZE(CData);
-    SET_SIZE(SData);
-    SET_SIZE(IData);
-    SET_SIZE(WData);
-    SET_SIZE(QData);
+    {% for t in __yaml_varible_type_set__ %}
+    SET_SIZE({{t}});
+    {% endfor %}
 {% endif %}
 {% if __SIMULATOR__ == "gsim" %}
     {% for t in __yaml_varible_type_set__ %}
