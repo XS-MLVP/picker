@@ -9,10 +9,11 @@ require_cmd python3
 
 PICKER_BIN="$(resolve_picker)"
 ROOT_DIR="${ROOT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+WAVE_FORMAT="${WAVE_FORMAT:-vcd}"
 
 OUTDIR="${ROOT_DIR}/picker_out/CacheCFG"
 
-blue "[export-cachecfg] Exporting Cache with --fs Cache.txt and --sname Cache"
+blue "[export-cachecfg] Exporting Cache with --fs Cache.txt and --sname Cache and ${WAVE_FORMAT} tracing"
 rm -rf "${OUTDIR}"
 "${PICKER_BIN}" export \
   --autobuild false \
@@ -20,7 +21,7 @@ rm -rf "${OUTDIR}"
   --sname Cache \
   --tname CacheCFG \
   --fs "${ROOT_DIR}/example/CacheSignalCFG/Cache.txt" \
-  -w cache.vcd \
+  -w "cache.${WAVE_FORMAT}" \
   --tdir  "${ROOT_DIR}/picker_out/" \
   --lang python \
   --sim verilator
