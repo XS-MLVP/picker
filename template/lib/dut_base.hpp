@@ -183,6 +183,7 @@ int UvsMain(int argc, char **argv);
 void UvsInit();
 void UvsRunUntil(uint64_t);
 void UvsRun(uint64_t);
+int UvsFinish(void);
 void finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 }
 
