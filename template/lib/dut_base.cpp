@@ -275,7 +275,7 @@ int DutUvsBase::Step(uint64_t ncycle, bool dump)
 int DutUvsBase::Finish()
 {
     // Finish VCS context
-    finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+    UvsFinish();
     return 0;
 };
 
