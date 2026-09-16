@@ -87,32 +87,6 @@ from .xagent import Agent, BaseTransaction{% for trans in transactions %}, {{tra
 
 
 # ==================== DUT Implementation ====================
-
-class _PinWrapper:
-    """Wrapper to provide dut.pin.value access instead of dut.pin.xdata.value"""
-    def __init__(self, xpin: xsp.XPin):
-        self._xpin = xpin
-
-    @property
-    def value(self):
-        return self._xpin.xdata.value
-
-    @value.setter
-    def value(self, val):
-        self._xpin.xdata.value = val
-
-    @property
-    def xpin(self):
-        return self._xpin
-
-    @property
-    def xdata(self):
-        return self._xpin.xdata
-
-    @property
-    def event(self):
-        return self._xpin.event  
-
 class DUT{{package_name}}:
     """
     DUT abstraction for {{package_name}} with pin-level interface.
@@ -134,29 +108,28 @@ class DUT{{package_name}}:
 
     def __init__(self, **kwargs):
         """Initialize DUT with Agent and xspcomm infrastructure."""
-        self._event = xsp.Event()
         self._xports: Dict[str, xsp.XPort] = {}
         self._user_callback: Optional[Callable[['DUT{{package_name}}'], None]] = None
-        self._xpins = {}
+        self._xdata = {}
         self._callback_pending = False
 
         # Monitor feedback extra cycles (configurable)
         self._monitor_extra_cycles: int = kwargs.get('monitor_extra_cycles', 1)
 
-        # Initialize XPins and XPorts per transaction
+        # Initialize direct XData leaves and XPorts per transaction
         {% for trans in transactions -%}
         # Transaction: {{trans.name}}
         self._xports['{{trans.name}}'] = xsp.XPort()
         {% for data in trans.variables -%}
-        self._xpins['{{data.name}}'] = xsp.XPin(xsp.XData({{data.bit_count}}), self._event)
-        self._xpins['{{data.name}}'].xdata.AsImmWrite()
-        self._xports['{{trans.name}}'].Add("{{data.name}}", self._xpins['{{data.name}}'].xdata)
+        self._xdata['{{data.name}}'] = xsp.XData({{data.bit_count}})
+        self._xdata['{{data.name}}'].AsImmWrite()
+        self._xports['{{trans.name}}'].Add("{{data.name}}", self._xdata['{{data.name}}'])
         {% endfor -%}
 
         {% endfor -%}
-        # Create pin accessors
+        # Expose the same direct XData leaves as DUT attributes.
         {% for data in variables -%}
-        self.{{data.name}} = _PinWrapper(self._xpins['{{data.name}}'])
+        self.{{data.name}} = self._xdata['{{data.name}}']
         {% endfor -%}
 
         # Monitor callback
@@ -167,7 +140,7 @@ class DUT{{package_name}}:
                 {% for trans in transactions %}
                 if trans_type == '{{trans.name}}':   
                     {% for data in trans.variables -%}
-                    self._xpins['{{data.name}}'].xdata.value = trans_obj.{{data.name}}.value
+                    self._xdata['{{data.name}}'].value = trans_obj.{{data.name}}.value
                     {% endfor -%}                            
                 {% endfor %}
                 self._callback_pending = True
@@ -204,7 +177,7 @@ class DUT{{package_name}}:
             {% for trans in transactions -%}
             tr = {{trans.name}}()
             {% for data in trans.variables -%}
-            tr.{{data.name}}.value = self._xpins['{{data.name}}'].xdata.value
+            tr.{{data.name}}.value = self._xdata['{{data.name}}'].value
             {% endfor -%}
             self.agent.drive(tr)
             {% endfor -%}
@@ -240,7 +213,7 @@ class DUT{{package_name}}:
     def SetZero(self):
         """Set all pins to zero."""
         {% for data in variables -%}
-        self._xpins['{{data.name}}'].xdata.value = 0
+        self._xdata['{{data.name}}'].value = 0
         {% endfor %}
 
     def InitClock(self, clock_pin: Optional[str] = None, domain: str = "default", frequency: Optional[float] = None):
@@ -258,8 +231,8 @@ class DUT{{package_name}}:
             dut.InitClock("clk")  # Validate clock pin exists
             dut.InitClock("clk", domain="sys_clk", frequency=100e6)
         """
-        if clock_pin is not None and clock_pin not in self._xpins:
-            raise ValueError(f"Clock pin '{clock_pin}' not found. Available pins: {list(self._xpins.keys())}")
+        if clock_pin is not None and clock_pin not in self._xdata:
+            raise ValueError(f"Clock pin '{clock_pin}' not found. Available pins: {list(self._xdata.keys())}")
 
         # Delegate to Agent
         self.agent.InitClock(domain=domain, frequency=frequency)
@@ -323,7 +296,7 @@ class DUT{{package_name}}:
     def __repr__(self):
         fields = []
         {% for data in variables -%}
-        fields.append(f"{{data.name}}={self._xpins['{{data.name}}'].xdata.value}")
+        fields.append(f"{{data.name}}={self._xdata['{{data.name}}'].value}")
         {% endfor -%}
         if self.agent._clock_enabled:
             fields.append(f"cycle={self.agent.GetCycleCount()}")

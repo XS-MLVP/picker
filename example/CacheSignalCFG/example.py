@@ -1,23 +1,23 @@
 try:
-    from UT_CacheCFG import *
+    from UT_CacheSignalCFG import *
 except:
     try:
-        from CacheCFG import *
+        from CacheSignalCFG import *
     except:
         from __init__ import *
 
 
 if __name__ == "__main__":
-    dut = DUTCacheCFG()
+    dut = DUTCacheSignalCFG()
     dut.InitClock("clock")
-    print("Pins startwith(CacheCFG_top.clock): ", dut.xcfg.GetSignalNames("CacheCFG_top.clock"))
-    clk = dut.GetInternalSignal("CacheCFG_top.clock")
-    rst = dut.GetInternalSignal("CacheCFG_top.reset")
-    array_2 = dut.GetInternalSignal("CacheCFG_top.Cache.dataArray.ram.array_2", is_array=True)
-    direct_signal = dut.GetInternalSignal("CacheCFG_top.Cache.arb.io_in_1_bits_cmd")
-    direct_source = dut.GetInternalSignal("CacheCFG_top.io_in_req_bits_cmd")
-    projection_signal = dut.GetInternalSignal("CacheCFG_top.Cache.arb.grant_1")
-    expr_signal = dut.GetInternalSignal("CacheCFG_top.Cache.arb.io_out_bits_cmd")
+    print("Pins startwith(CacheSignalCFG_top.clock): ", dut.xcfg.GetSignalNames("CacheSignalCFG_top.clock"))
+    clk = dut.GetInternalSignal("CacheSignalCFG_top.clock")
+    rst = dut.GetInternalSignal("CacheSignalCFG_top.reset")
+    array_2 = dut.GetInternalSignal("CacheSignalCFG_top.Cache.dataArray.ram.array_2", is_array=True)
+    direct_signal = dut.GetInternalSignal("CacheSignalCFG_top.Cache.arb.io_in_1_bits_cmd")
+    direct_source = dut.GetInternalSignal("CacheSignalCFG_top.io_in_req_bits_cmd")
+    projection_signal = dut.GetInternalSignal("CacheSignalCFG_top.Cache.arb.grant_1")
+    expr_signal = dut.GetInternalSignal("CacheSignalCFG_top.Cache.arb.io_out_bits_cmd")
 
     assert clk is not None
     assert rst is not None

@@ -5,13 +5,13 @@ namespace picker { namespace codegen {
 
     namespace py {
         static const std::string xdata_init_template =
-            "        self.{{pin_uniq_name}} = xsp.XPin(xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}}), self.event)\n";
+            "        self.{{pin_uniq_name}} = xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}})\n";
         static const std::string xdata_binddpi_template =
             "        self.{{pin_uniq_name}}.BindDPIPtr(self.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut.GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
         static const std::string xdata_bindptr_template =
             "        self.{{pin_uniq_name}}.BindNativeData(self.dut.NativeSignalAddr(\"{{logic_pin}}\"))\n";
         static const std::string xport_add_template =
-            "        self.xport.Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}}.xdata)\n";
+            "        self.xport.Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}})\n";
         static const std::string xport_cascaded_template =
             "        self.{{port_name}} = self.xport.NewSubPort(\"{{prefix_key}}_\")\n";
 
@@ -141,6 +141,7 @@ namespace picker { namespace codegen {
         data["__XDATA_BIND__"]     = xdata_bindrw;
         data["__XPORT_ADD__"]      = xport_add;
         data["__XPORT_CASCADED__"] = cascaded_signals;
+        data["__SIGNAL_TREE_JSON__"] = signal_tree_json.dump();
 
         data["__SWIG_CONSTANT__"]    = swig_constant;
         data["__USE_SIMULATOR__"]    = "USE_" + simulator;

@@ -1,5 +1,9 @@
 #coding=utf8
 
+import json as _json
+import keyword as _keyword
+from types import MappingProxyType as _MappingProxyType
+
 try:
     from . import xspcomm as xsp
 except Exception as e:
@@ -28,6 +32,80 @@ del _ctypes, _os
 {% endif %}
 
 
+class _SignalView(object):
+    """Read-only hierarchy whose leaves are generated XData objects."""
+
+    __slots__ = ("_fields",)
+
+    def __init__(self, fields):
+        object.__setattr__(self, "_fields", _MappingProxyType(dict(fields)))
+
+    def __getitem__(self, key):
+        return self._fields[key]
+
+    def __iter__(self):
+        return iter(self._fields)
+
+    def __len__(self):
+        return len(self._fields)
+
+    def keys(self):
+        return self._fields.keys()
+
+    def items(self):
+        return self._fields.items()
+
+    def __getattr__(self, name):
+        key = name[:-1] if _keyword.iskeyword(name[:-1]) else name
+        try:
+            return self._fields[key]
+        except KeyError as error:
+            raise AttributeError(name) from error
+
+    def __setattr__(self, name, value):
+        raise AttributeError("generated signal hierarchy is read-only")
+
+
+def _build_signal_view(dut, node, prefix):
+    children = {
+        key: value for key, value in node.items()
+        if key not in ("_", "Pin", "High", "Low")
+    }
+    if node.get("_") is True:
+        return getattr(dut, prefix)
+    if children and all(key.isdigit() for key in children):
+        indexes = sorted(int(key) for key in children)
+        if indexes != list(range(len(indexes))):
+            raise ValueError(
+                f"signal-tree sequence {prefix!r} must use contiguous indexes"
+            )
+        return tuple(
+            _build_signal_view(dut, children[str(index)], f"{prefix}_{index}")
+            for index in indexes
+        )
+    return _SignalView({
+        key: _build_signal_view(
+            dut, child, f"{prefix}_{key}" if prefix else key
+        )
+        for key, child in children.items()
+    })
+
+
+def _attach_signal_hierarchy(dut):
+    for key, node in dut.signal_tree.items():
+        if node.get("_") is True:
+            continue
+        top = getattr(dut, key)
+        view = _build_signal_view(dut, node, key)
+        setattr(top, "_hierarchy", view)
+        for field, value in view.items():
+            attr = field + "_" if _keyword.iskeyword(field) else field
+            if hasattr(type(top), attr):
+                # Keep the backend XPort API intact.  A conflicting RTL field
+                # remains available through top._hierarchy[field].
+                continue
+            setattr(top, attr, value)
+
 
 class DUT{{__TOP_MODULE_NAME__}}(object):
 
@@ -39,6 +117,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.xclock.Add(self.xport)
         self.event = self.xclock.getEvent()
         self.internal_signals = {}
+        self.signal_tree = _json.loads(r'''{{__SIGNAL_TREE_JSON__}}''')
         self.xcfg = xsp.XSignalCFG(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr())
         {% if __SIMULATOR__ == "gsim" %}
         # Set fast mode for GSim
@@ -62,6 +141,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
         # Cascaded ports
 {{__XPORT_CASCADED__}}
+
+        # Structured access over the same XData leaves.  Top-level aggregates
+        # remain XPort instances for compatibility with batch backend APIs.
+        _attach_signal_hierarchy(self)
 
     def __del__(self):
         self.Finish()
@@ -163,9 +246,9 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
             if signal is None:
                 return None
             if not isinstance(signal, xsp.XData):
-                self.internal_signals[name] = [xsp.XPin(s, self.event) for s in signal]
+                self.internal_signals[name] = list(signal)
             else:
-                self.internal_signals[name] = xsp.XPin(signal, self.event)
+                self.internal_signals[name] = signal
         return self.internal_signals[name]
 
     def GetInternalSignalList(self, prefix="", deep=99, use_vpi=False):
@@ -192,7 +275,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     ################################
 
     def __getitem__(self, key):
-        return xsp.XPin(self.port[key], self.event)
+        return self.port[key]
 
     # Async APIs wrapped from XClock
     async def AStep(self,i: int):
@@ -206,8 +289,8 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     def __setattr__(self, name, value):
         assert not isinstance(getattr(self, name, None),
-                              (xsp.XPin, xsp.XData)), \
-        f"XPin and XData of DUT are read-only, do you mean to set the value of the signal? please use `{name}.value = ` instead."
+                              xsp.XData), \
+        f"XData attributes of DUT are read-only; set the signal with `{name}.value = ...` instead."
         return super().__setattr__(name, value)
 
 
