@@ -129,9 +129,24 @@ public:
                     signal = this->xcfg->NewXData(name, xname);
                 }
             }else{
-                signal = XData::FromVPI(this->dut->GetVPIHandleObj(name), this->dut->GetVPIFuncPtr("vpi_get"),
+                uint64_t vpi_handle = this->dut->GetVPIHandleObj(name);
+                signal = XData::FromVPI(vpi_handle, this->dut->GetVPIFuncPtr("vpi_get"),
                                      this->dut->GetVPIFuncPtr("vpi_get_value"),
                                      this->dut->GetVPIFuncPtr("vpi_put_value"), "VPI:"+name);
+#if defined(USE_UVS)
+                if (!disable_uvs_mem_direct) {
+                            if (signal != nullptr && vpi_handle != 0) {
+                                typedef uint64_t (*vpi_get_address_t)(uint64_t);
+                                auto get_addr = (vpi_get_address_t)this->dut->GetVPIFuncPtr("uvs_get_address");
+                                if (get_addr != nullptr) {
+                                    uint64_t addr = get_addr(vpi_handle);
+                                    if (addr != 0) {
+                                        signal->BindMixFromUvs(addr);
+                                    }
+                                }
+                            }
+                        }
+#endif
             }
             if(signal == nullptr){
                 return nullptr;

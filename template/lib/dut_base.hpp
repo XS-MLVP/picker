@@ -178,6 +178,7 @@ public:
 #endif
 
 #if defined(USE_UVS)
+extern int disable_uvs_mem_direct;
 extern "C" {
 int UvsMain(int argc, char **argv);
 void UvsInit();
