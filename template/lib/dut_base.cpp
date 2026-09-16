@@ -219,6 +219,8 @@ uint64_t DutVcsBase::NativeSignalAddr(const char *name){
 
 #if defined(USE_UVS)
 
+int disable_uvs_mem_direct = 0;
+
 DutUvsBase::DutUvsBase()
 {
     // XXFatal("UVS does not support no-args constructor");
@@ -235,6 +237,12 @@ DutUvsBase::DutUvsBase(int argc, char **argv)
 
 void DutUvsBase::init(int argc, char **argv)
 {
+    // check whether the DISABLE_UVS_MEM_DIRECT is set
+    const char *disable_mem_direct_env = std::getenv("DISABLE_UVS_MEM_DIRECT");
+    if (disable_mem_direct_env) {
+        disable_uvs_mem_direct = 1;
+    }
+
     // initialize context
     UvsMain(argc, argv);
 
