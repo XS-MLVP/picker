@@ -53,7 +53,7 @@ namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = picker::dpi_function_base_name(pin[i].logic_pin);
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
@@ -97,7 +97,7 @@ namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = picker::dpi_function_base_name(pin[i].logic_pin);
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 // Set empty or [hb:lb] for verilog render

@@ -46,6 +46,22 @@ int main() {
   assert(picker::streplace(string("a_b_c"), string("_"), string("-")) == string("a-b-c"));
   assert(picker::streplace(string("a_b_c"), {"a_", "_c"}, string("")) == string("b"));
 
+  // DPI-C names preserve the historical spelling unless a SystemVerilog-only
+  // dollar sign or the reserved encoding prefix requires reversible encoding.
+  assert(picker::dpi_function_base_name("dut.signal") == string("dut_signal"));
+  assert(picker::dpi_function_base_name("dut.sig$1") == string("pickerdpix6475742e7369672431"));
+  assert(picker::dpi_function_base_name("pickerdpix24") ==
+         string("pickerdpix7069636b6572647069783234"));
+  assert(picker::dpi_function_base_name("Pickerdpix6124") ==
+         string("pickerdpix5069636b65726470697836313234"));
+  assert(picker::dpi_function_base_name("dut.sig$1") !=
+         picker::dpi_function_base_name("pickerdpix6475742e7369672431"));
+  assert(picker::dpi_function_base_name("a$").find('_') == string::npos);
+  // Go capitalizes generated members, so the encoded spelling for `a$` must
+  // remain distinct from a user signal that already has that capitalized form.
+  assert(picker::capitalize_first_letter(picker::dpi_function_base_name("a$")) !=
+         picker::capitalize_first_letter(picker::dpi_function_base_name("Pickerdpix6124")));
+
   // contains helpers and key_as_vector
   vector<int> vi{1, 2, 3};
   assert(picker::contains(vi, 2));

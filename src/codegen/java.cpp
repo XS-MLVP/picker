@@ -33,7 +33,7 @@ namespace picker { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
-                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = picker::dpi_function_base_name(pin[i].logic_pin);
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -65,7 +65,7 @@ namespace picker { namespace codegen {
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
-                data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["pin_func_name"]  = picker::dpi_function_base_name(pin[i].logic_pin);
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
