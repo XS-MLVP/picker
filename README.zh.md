@@ -244,6 +244,7 @@ picker export path/a.v,path/b.v --sname A,2,B,3 --tname C
 环境变量：
 
 - `DUMPVARS_OPTION`: 设置`$dumpvars`的 option 参数。例如`DUMPVARS_OPTION="+mda" picker ....` 开启 vcs 中数组波形的支持。
+- `GLIBC_TUNABLES`: 在 Linux 上使用 VCS 时，如果遇到 `cannot allocate memory in static TLS block`，可在启动仿真进程前执行 `export GLIBC_TUNABLES=glibc.rtld.optional_static_tls=262144`，增大 glibc 预留的静态 TLS 空间。详细说明见 [VCS 静态 TLS 空间不足问题](doc/vcs-tls.zh.md)。
 
 ##### pack:
 
