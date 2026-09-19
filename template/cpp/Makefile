@@ -9,7 +9,7 @@ test: compile
 	@cp build/UT{{__TOP_MODULE_NAME__}}_example .
 	@rm -rf build
 	@echo "--------------Compile Success Test Step DUT--------------------"
-	@./UT{{__TOP_MODULE_NAME__}}_example && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || true
+	@./UT{{__TOP_MODULE_NAME__}}_example && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || { status=$$?; echo "Error: Test failed with status $$status, please check whether behavior is correct" >&2; exit $$status; }
 	@echo "--------------------------------------------------------------"
 
 # copy xspcomm lib
