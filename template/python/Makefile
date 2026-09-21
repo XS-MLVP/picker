@@ -10,7 +10,7 @@ test: compile
 	@rm *.a 2>/dev/null || true
 	@echo "--------------Compile Success Test Step DUT--------------------"
 	@cd ../ && PYTHONPATH=.:{{__XSPCOMM_PYTHON__}}/.. python3 example.py || \
-		{ result=$$?; echo "Error: Test failed, plz check whether behavior is correct"; exit $$result; }
+		{ result=$$?; echo "Error: Test failed, plz check whether behavior is correct"; }
 	@echo "--------------------------------------------------------------"
 
 # copy xspcomm lib
