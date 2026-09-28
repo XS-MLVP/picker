@@ -1,0 +1,3 @@
+
+add_executable(test_filelist_unit test_filelist_unit.cpp)
+target_link_libraries(test_filelist_unit test_common)

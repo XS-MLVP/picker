@@ -9,25 +9,28 @@ if(SIMULATOR STREQUAL "verilator")
 		OUTPUT_VARIABLE CMD_VERILATOR_ROOT
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
-	find_package(verilator REQUIRED PATHS ${CMD_VERILATOR_ROOT} NO_DEFAULT_PATH)
+	find_package(verilator 5.020 REQUIRED PATHS ${CMD_VERILATOR_ROOT} NO_DEFAULT_PATH)
 	include_directories(${VERILATOR_ROOT}/include
 											${VERILATOR_ROOT}/include/vltstd)
 
 	# Trace
-	if(${TRACE} STREQUAL "fst")
+	if("${TRACE}" STREQUAL "fst")
 		set(TRACE_FLAG TRACE_FST)
 		add_definitions(-DVL_TRACE)
-	elseif(${TRACE} STREQUAL "vcd")
-		set(TRACE_FLAG TRACE)
+	elseif("${TRACE}" STREQUAL "vcd")
+		if(verilator_VERSION VERSION_LESS "5.036")
+			set(TRACE_FLAG TRACE)
+		else()
+			set(TRACE_FLAG TRACE_VCD)
+		endif()
 		add_definitions(-DVL_TRACE)
 	else()
 		set(TRACE_FLAG "")
 	endif()
+	message(STATUS "Verilator ${verilator_VERSION}, trace option: ${TRACE_FLAG}")
 
-	# Readf filelist from file
-	file(READ ${CMAKE_CURRENT_SOURCE_DIR}/filelist.f FILELIST)
-	# set filelist to variable
-	string(REGEX REPLACE "\n" ";" FILELIST "${FILELIST}")
+	# Filelist is passed to verilator with -f below, it reports the files it reads
+	# back to cmake through <prefix>_DEPS
 	# set coverage flags
 	if(${COVERAGE} STREQUAL "ON")
 		set(COVERAGE_FLAG "COVERAGE")
@@ -67,7 +70,6 @@ if(SIMULATOR STREQUAL "verilator")
 		SOURCES
 		${ModuleName}_top.sv
 		${ModuleName}.v
-		${FILELIST}
 		TOP_MODULE
 		${ModuleName}_top
 		PREFIX
@@ -82,6 +84,8 @@ if(SIMULATOR STREQUAL "verilator")
 		"-O3"
 		VERILATOR_ARGS
 		-Wno-fatal
+		-f
+		${CMAKE_CURRENT_SOURCE_DIR}/filelist.f
 		${SIMULATOR_FLAGS}
 		-CFLAGS
 		"-fPIC ${CFLAGS}")

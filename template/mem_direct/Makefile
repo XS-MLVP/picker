@@ -16,12 +16,23 @@ LIB_DUT_PATH := ../build/libDPI${TOP_NAME}.a
 
 # Use the last VERILATOR_ROOT reported by `verilator -V`
 V_ROOT := $(shell verilator -V | grep ROOT | grep verilator | tail -n 1 | awk '{print $$3}')
+V_VERSION := $(shell verilator --version 2> /dev/null | cut -f2 -d' ' | tr -d '.')
 
 CXXFLAGS += -I ${V_ROOT}/include -I ${V_ROOT}/include/vltstd/ \
 		-I ../build/DPI${TOP_NAME} \
 		-L../build  ${CFLAGS}
 LDFLAGS += $(WHOLE_ARCHIVE_LDFLAGS) -Wl,-undefined,dynamic_lookup -Wl,-rpath,{{__XSPCOMM_LIB__}}
-LDLIBS += -lpthread -lz -L{{__XSPCOMM_LIB__}} -lxspcomm
+LDLIBS += -lpthread
+
+# Verilator 5.050+ introduced a new FST writer backed by liblz4.
+# Link that after DUT and before -lz to follow Verilator upstream practice.
+ifeq ($(TRACE),fst)
+ifeq ($(shell expr $(V_VERSION) \>= 5050 2> /dev/null),1)
+LDLIBS += -llz4
+endif
+endif
+
+LDLIBS += -lz -L{{__XSPCOMM_LIB__}} -lxspcomm
 {% endif %}
 
 {% if __SIMULATOR__ == "gsim" %}

@@ -33,9 +33,16 @@ int main()
                "rtl/sub/\n"
                "missing.sv\n");
 
+    // entries given on the command line are relative to the working directory,
+    // entries inside a filelist are relative to that filelist
+    const fs::path original_cwd = fs::current_path();
+    fs::current_path(base);
+
     std::vector<std::string> out;
     std::vector<std::string> inputs = {filelist.string(), "rtl/b.v"};
     picker::parser::collect_verilog_from_filelists(inputs, out);
+
+    fs::current_path(original_cwd);
 
     std::set<std::string> outs(out.begin(), out.end());
     assert(outs.count(fs::absolute(base / "rtl" / "a.sv").string()) == 1);

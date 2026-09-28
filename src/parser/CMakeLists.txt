@@ -9,6 +9,11 @@ set(source_file
      firrtl.cpp
      gsim_root.cpp
      parser_map.cpp
+     verilator_trace/common.cpp
+     verilator_trace/version.cpp
+     verilator_trace/v5_026.cpp
+     verilator_trace/v5_048.cpp
+     verilator_trace/dispatch.cpp
 )
 
 add_library(parser ${source_file})

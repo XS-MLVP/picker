@@ -9,7 +9,7 @@ require_cmd cmake
 PICKER_BIN="$(resolve_picker)"
 ROOT_DIR="${ROOT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 
-OUTDIR="${ROOT_DIR}/picker_out_GSIM/NutShell"
+OUTDIR="${ROOT_DIR}/picker_out/GSim/NutShell"
 FIR="${ROOT_DIR}/example/GSim/NutShell/SimTop-nutshell.fir"
 ARCHIVE="${ROOT_DIR}/example/GSim/NutShell/SimTop-nutshell.tar.bz2"
 
@@ -31,4 +31,3 @@ test -d "${OUTDIR}"
 test -f "${OUTDIR}/Makefile"
 
 green "[export-gsim-smoke] OK"
-

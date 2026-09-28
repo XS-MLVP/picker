@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gperf \
     clang \
     g++ \
+    liblz4-dev \
     zlib1g-dev \
     gnupg \
     autoconf \

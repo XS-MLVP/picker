@@ -68,7 +68,6 @@ namespace verilator {
 
             if (line.find("Data") != std::string::npos && no_struct == -1) {
                 no_struct = 1;
-                continue;
             } // 2
 
             if (structDepth > 0 && line.find("};") != std::string::npos) {
@@ -95,9 +94,10 @@ namespace verilator {
     {
         cpp_variableInfo info;
         std::smatch match;
+        std::string normalizedType = std::regex_replace(typeStr, std::regex(R"(^alignas\s*\([^)]*\)\s*)"), "");
 
         // Match VlUnpacked type
-        if (std::regex_match(typeStr, match, std::regex(R"(^VlUnpacked<(.+),\s*(\d+)>$)"))) {
+        if (std::regex_match(normalizedType, match, std::regex(R"(^VlUnpacked<(.+),\s*(\d+)>$)"))) {
             std::string innerType = trim(match[1]);
             info.array_size       = stoi(match[2]);
             cpp_variableInfo inner    = parseType(innerType);
@@ -105,7 +105,7 @@ namespace verilator {
             info.width            = inner.width;
         }
         // Match VlWide type
-        else if (std::regex_match(typeStr, match, std::regex(R"(^VlWide<(\d+)>/\*(\d+:\d+)\*/$)"))) {
+        else if (std::regex_match(normalizedType, match, std::regex(R"(^VlWide<(\d+)>/\*(\d+:\d+)\*/$)"))) {
             info.type         = "VlWide<" + match[1].str() + ">";
             std::string range = match[2];
             size_t colon      = range.find(':');
@@ -114,7 +114,7 @@ namespace verilator {
             info.width        = high - low + 1;
         }
         // Match Basic type (only CData/SData/QData/IData/WData)
-        else if (std::regex_match(typeStr, match, std::regex(R"(^(CData|SData|QData|IData|WData)/\*(\d+:\d+)\*/$)"))) {
+        else if (std::regex_match(normalizedType, match, std::regex(R"(^(CData|SData|QData|IData|WData)/\*(\d+:\d+)\*/$)"))) {
             info.type         = match[1];
             std::string range = match[2];
             size_t colon      = range.find(':');
