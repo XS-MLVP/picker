@@ -1,19 +1,60 @@
-name: CI
+name: Development CI
 
 on:
   pull_request:
-    branches: [ "**" ]
+    branches: [master]
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [ "**" ]
-    tags: [ 'v*' ]
+    branches-ignore: [master]
 
 permissions:
   contents: read
   packages: read
 
+concurrency:
+  group: picker-dev-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  release-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s test/release -v
+
+  branch-or-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      run_build: ${{ steps.decide.outputs.run_build }}
+    steps:
+      - name: Skip branch build when a master PR already exists
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            echo 'run_build=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          count=$(gh api -X GET "repos/${GITHUB_REPOSITORY}/pulls" \
+            -f "head=${GITHUB_REPOSITORY_OWNER}:${GITHUB_REF_NAME}" \
+            -f base=master -f state=open --jq 'length')
+          if [[ "$count" == 0 ]]; then
+            echo 'run_build=true' >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping branch build: ${count} open master PR(s) run their own CI"
+            echo 'run_build=false' >> "$GITHUB_OUTPUT"
+          fi
+
   build-and-test:
+    needs: branch-or-pr
+    if: needs.branch-or-pr.outputs.run_build == 'true'
     strategy:
       matrix:
         include:
@@ -32,6 +73,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Load shared tool versions
         run: |
@@ -45,41 +88,10 @@ jobs:
           echo "NODE_VERSION=$(sed -n 's/^  node:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
           echo "PYTHON_VERSION=$(sed -n 's/^  python:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
 
-      - name: Install base build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            ca-certificates tzdata \
-            build-essential git wget curl \
-            python3 python3-pip python3-dev libpython3-dev \
-            pkg-config libpcre3-dev libpcre2-dev libfl-dev \
-            bison flex gperf clang g++ zlib1g-dev liblz4-dev \
-            gnupg autoconf automake libtool help2man \
-            openjdk-17-jdk
+      - name: Install native build toolchain
+        run: bash scripts/build/setup-native-toolchain.sh
 
-      - name: Install latest CMake from Kitware APT
-        run: |
-          set -euo pipefail
-          wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
-            gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | \
-            sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends cmake
-
-      - name: Build and install SWIG from source
-        run: |
-          set -euo pipefail
-          git clone https://github.com/swig/swig.git -b "${SWIG_VERSION}" --depth=1 /tmp/swig
-          cd /tmp/swig
-          ./autogen.sh
-          ./configure --prefix=/usr/local
-          make -j"$(nproc)"
-          sudo make install
-          rm -rf /tmp/swig
-
-      - name: Build and install Verilator from source
-        id: setup-verilator
+      - name: Set Verilator cache path
         run: |
           set -euo pipefail
           echo "VERILATOR_PREFIX=${HOME}/.cache/verilator/${VERILATOR_VERSION}" >> "$GITHUB_ENV"
@@ -91,25 +103,8 @@ jobs:
           path: ~/.cache/verilator/${{ env.VERILATOR_VERSION }}
           key: verilator-${{ matrix.os }}-${{ env.VERILATOR_VERSION }}-v1
 
-      - name: Use cached Verilator (if available)
-        if: steps.cache-verilator.outputs.cache-hit == 'true'
-        run: |
-          echo "${VERILATOR_PREFIX}/bin" >> "$GITHUB_PATH"
-          verilator --version || true
-
-      - name: Build and install Verilator into fakeroot
-        if: steps.cache-verilator.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          git clone https://github.com/verilator/verilator -b "${VERILATOR_VERSION}" --depth=1 /tmp/verilator
-          cd /tmp/verilator
-          autoconf
-          ./configure --prefix="${VERILATOR_PREFIX}"
-          make -j"$(nproc)"
-          make install
-          rm -rf /tmp/verilator
-          echo "${VERILATOR_PREFIX}/bin" >> "$GITHUB_PATH"
-          verilator --version || true
+      - name: Install or reuse Verilator
+        run: bash scripts/build/setup-verilator.sh
 
       - name: Save Verilator fakeroot cache (trusted contexts only)
         if: steps.cache-verilator.outputs.cache-hit != 'true' && github.event_name == 'push'
@@ -118,17 +113,15 @@ jobs:
           path: ~/.cache/verilator/${{ env.VERILATOR_VERSION }}
           key: verilator-${{ matrix.os }}-${{ env.VERILATOR_VERSION }}-v1
 
-      - name: Build
+      - name: Build native Picker
+        env:
+          INSTALL_APPDIR: ${{ matrix.full_test }}
         run: |
-          make init
-          # Ensure install prefix is /usr so files land in AppDir/usr
-          cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_PARALLEL="$(nproc)" -DCMAKE_INSTALL_PREFIX=/usr
-
-      - name: Install into AppDir (prepare artifact)
-        if: matrix.full_test
-        run: |
-          # Install into AppDir alongside the repo
-          cd build && make install DESTDIR="$(pwd)"/../AppDir
+          if [[ "$INSTALL_APPDIR" == true ]]; then
+            bash scripts/build/build-native.sh --install-appdir
+          else
+            bash scripts/build/build-native.sh
+          fi
 
       - name: Upload build directory
         if: success() && matrix.full_test
@@ -137,12 +130,17 @@ jobs:
           name: ${{ matrix.os }}-builddir
           path: build
 
-      - name: Upload AppDir (preinstalled files)
-        if: success() && matrix.full_test
+      - name: Archive AppDir with executable permissions
+        if: matrix.full_test
+        run: tar -C AppDir -czf appdir-${{ matrix.os }}.tar.gz .
+
+      - name: Upload AppDir archive
+        if: matrix.full_test
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-appdir
-          path: AppDir
+          path: appdir-${{ matrix.os }}.tar.gz
+          if-no-files-found: error
 
       - name: Unit test (test_picker_utils)
         if: matrix.full_test
@@ -150,20 +148,28 @@ jobs:
           cmake --build build --target test_picker_utils -j"$(nproc)"
           ./build/bin/test_picker_utils
 
-      - name: Smoke tests
-        if: matrix.full_test
-        run: |
-          make -C test smoke
-
       - name: Full tests (make -C test all)
         if: matrix.full_test
         run: |
           make -C test all
 
-      - name: Build legacy compatibility binary
-        if: matrix.full_test == false
+      - name: Build Python wheels
+        if: matrix.full_test
         run: |
-          cmake --build build --parallel "$(nproc)"
+          python3 -m venv /tmp/picker-wheel-builder
+          /tmp/picker-wheel-builder/bin/python -m pip install 'build>=1,<2'
+          make wheel PYTHON=/tmp/picker-wheel-builder/bin/python
+
+      - name: Install wheels in a clean environment
+        if: matrix.full_test
+        run: bash scripts/build/verify-wheel.sh
+
+      - name: Upload Python wheels
+        if: matrix.full_test
+        uses: actions/upload-artifact@v4
+        with:
+          name: picker-dev-wheels-${{ matrix.os }}-${{ github.sha }}
+          path: dist/*.whl
 
       - name: Legacy Verilator VCD compatibility
         if: matrix.full_test == false
@@ -189,73 +195,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install AppImage dependencies
-        run: |
-          ARCH=$(uname -m)
-          if [ "$ARCH" = "arm64" ]; then
-            ARCH="aarch64"
-          fi
-          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${ARCH}.AppImage
-          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage
-          chmod +x appimagetool-${ARCH}.AppImage
-          sudo mv appimagetool-${ARCH}.AppImage /usr/bin/appimagetool
-          chmod +x linuxdeploy-${ARCH}.AppImage
-          sudo mv linuxdeploy-${ARCH}.AppImage /usr/bin/linuxdeploy
-
-      - name: Download AppDir artifact
+      - name: Download AppDir archive
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.os }}-appdir
-          path: AppDir
+          path: appdir-archive
 
-      - name: Package AppImage from AppDir
+      - name: Restore AppDir and package AppImage
         run: |
-          linuxdeploy --appdir AppDir/ --output appimage \
-            --desktop-file src/appimage/picker.desktop \
-            --icon-file src/appimage/logo256.png
+          mkdir -p AppDir
+          tar -C AppDir -xzf appdir-archive/appdir-${{ matrix.os }}.tar.gz
+          bash scripts/build/package-appimage.sh
 
       - name: Upload AppImage artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-appimage
           path: '*.AppImage'
-
-  appimage-publish:
-    needs: appimage-build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    steps:
-      - name: Download AppImage
-        uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-          path: appimages
-
-      - name: Generate release tag
-        id: tag_vars
-        run: |
-          DATE=$(date +'%Y%m%d')
-          SHORT_SHA=${GITHUB_SHA::6}
-          echo "TAG_NAME=$DATE-$SHORT_SHA" >> $GITHUB_OUTPUT
-
-      - name: Create AppImage release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            appimages/*.AppImage
-          tag_name: ${{ steps.tag_vars.outputs.TAG_NAME }}
-          name:    Picker AppImage ${{ steps.tag_vars.outputs.TAG_NAME }}
-          body: |
-            This is the AppImage release for Picker.
-            It includes the latest changes and features.
-          target_commitish: ${{ github.sha }}
-          draft: false
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker-pr-changes:
     runs-on: ubuntu-latest
@@ -289,57 +245,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image for validation
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: false
           load: false
-
-  docker-build-push:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    env:
-      REGISTRY: ghcr.io
-      IMAGE_NAME: xs-mlvp/picker
-      IMAGE_TAG: ${{ github.sha }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Load shared tool versions
-        run: |
-          set -euo pipefail
-          echo "VERILATOR_VERSION=$(sed -n 's/^  verilator:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
-          echo "SWIG_VERSION=$(sed -n 's/^  swig:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
-          echo "NODE_VERSION=$(sed -n 's/^  node:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
-          echo "PYTHON_VERSION=$(sed -n 's/^  python:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          cache-from: type=local,src=/tmp/.buildx-cache
