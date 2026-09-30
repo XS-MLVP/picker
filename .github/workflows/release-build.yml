@@ -1,0 +1,258 @@
+name: Tagged CI
+run-name: Tagged CI / ${{ github.event.client_payload.tag || inputs.tag }}
+
+on:
+  repository_dispatch:
+    types: [build-version-tag]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing version tag to build and test (vX.Y.Z)"
+        required: true
+        type: string
+      xcomm_version:
+        description: "Optional compatible xspcomm release; latest compatible is selected by default"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: picker-tag-build-${{ github.event.client_payload.tag || inputs.tag }}
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.version.outputs.sha }}
+      xcomm_version: ${{ steps.xcomm.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.client_payload.tag || inputs.tag }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate existing tag
+        id: version
+        env:
+          TAG: ${{ github.event.client_payload.tag || inputs.tag }}
+          EXPECTED_SHA: ${{ github.event.client_payload.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${TAG}^{commit}")"
+          if [[ -n "$EXPECTED_SHA" ]]; then
+            test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          fi
+          git fetch origin master:refs/remotes/origin/master --tags
+          python scripts/release/tag_policy.py verify HEAD
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Select compatible xspcomm release
+        id: xcomm
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_VERSION: ${{ inputs.xcomm_version }}
+        run: |
+          set -euo pipefail
+          gh release list -R XS-MLVP/xcomm --json tagName,isDraft,isPrerelease --limit 100 > /tmp/xspcomm-releases.json
+          python -m pip install 'packaging>=24,<27'
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import tomllib
+          from packaging.requirements import Requirement
+
+          with open("pyproject.toml", "rb") as config:
+              dependencies = tomllib.load(config)["project"]["dependencies"]
+          requirement = next(Requirement(dependency) for dependency in dependencies if Requirement(dependency).name == "xspcomm")
+          with open("/tmp/xspcomm-releases.json") as source:
+              releases = json.load(source)
+          compatible = []
+          for release in releases:
+              tag = release["tagName"]
+              if release["isDraft"] or release["isPrerelease"] or not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
+                  continue
+              version = tag[1:]
+              if requirement.specifier.contains(version):
+                  compatible.append((tuple(map(int, version.split("."))), version))
+          requested = os.environ["REQUESTED_VERSION"]
+          if requested:
+              if requested not in {version for _, version in compatible}:
+                  raise SystemExit(f"xspcomm v{requested} is not a compatible published release")
+              version = requested
+          elif compatible:
+              version = max(compatible)[1]
+          else:
+              raise SystemExit(f"No published xspcomm release satisfies {requirement}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print(f"version={version}", file=output)
+          print(f"Using xspcomm v{version}")
+          PY
+  wheel:
+    needs: resolve
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.client_payload.tag || inputs.tag }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build Picker wheel
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build bison flex gperf zlib1g-dev liblz4-dev
+          python -m pip install 'build>=1,<2'
+          XCOMM_SKIP_ALIGN=1 make init
+          export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)"
+          NO_BUILD_XSPCOMM=1 python -m build --wheel
+      - name: Download released xspcomm wheel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          XCOMM_VERSION: ${{ needs.resolve.outputs.xcomm_version }}
+        run: |
+          mkdir -p wheelhouse
+          gh release download "v${XCOMM_VERSION}" \
+            -R XS-MLVP/xcomm --pattern '*.whl' --dir wheelhouse
+      - name: Install and verify released wheels
+        env:
+          PICKER_WHEEL_DIR: dist
+          XCOMM_WHEEL_DIR: wheelhouse
+          PICKER_VERSION_EXPECTED: ${{ needs.resolve.outputs.version }}
+          XCOMM_VERSION_EXPECTED: ${{ needs.resolve.outputs.xcomm_version }}
+          VERIFY_PYTHON: python
+        run: bash scripts/build/verify-wheel.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: picker-release-wheel
+          path: dist/*.whl
+          if-no-files-found: error
+
+  native:
+    needs: resolve
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: x86_64
+          - os: ubuntu-22.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.os }}
+    env:
+      TAG: ${{ github.event.client_payload.tag || inputs.tag }}
+      VERSION: ${{ needs.resolve.outputs.version }}
+      XCOMM_VERSION: ${{ needs.resolve.outputs.xcomm_version }}
+      ARCH: ${{ matrix.arch }}
+      BUILD_XSPCOMM_SWIG: python,java
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.client_payload.tag || inputs.tag }}
+      - name: Install native build dependencies
+        run: bash scripts/build/setup-native-toolchain.sh
+      - name: Set Verilator version and cache path
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^  verilator:[[:space:]]*//p' .build-config.yml)
+          test -n "$version"
+          echo "VERILATOR_VERSION=$version" >> "$GITHUB_ENV"
+          echo "VERILATOR_PREFIX=${HOME}/.cache/verilator/${version}" >> "$GITHUB_ENV"
+      - uses: actions/cache/restore@v4
+        id: verilator-cache
+        with:
+          path: ~/.cache/verilator/${{ env.VERILATOR_VERSION }}
+          key: verilator-${{ matrix.os }}-${{ env.VERILATOR_VERSION }}-v1
+      - name: Install or reuse Verilator
+        run: bash scripts/build/setup-verilator.sh
+      - uses: actions/cache/save@v4
+        if: steps.verilator-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/verilator/${{ env.VERILATOR_VERSION }}
+          key: verilator-${{ matrix.os }}-${{ env.VERILATOR_VERSION }}-v1
+      - name: Build at the Picker and xcomm tags
+        env:
+          PICKER_RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
+          XCOMM_RELEASE_VERSION: ${{ needs.resolve.outputs.xcomm_version }}
+        run: |
+          bash scripts/build/build-native.sh --install-appdir
+      - name: Unit and full tests
+        run: |
+          set -euo pipefail
+          cmake --build build --target test_picker_utils --parallel "$(nproc)"
+          ./build/bin/test_picker_utils
+          make -C test all
+      - name: Verify and package native archive
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "$ARCH"
+          test -x AppDir/usr/bin/picker
+          test -d AppDir/usr/share/picker/template
+          test -e AppDir/usr/lib/libxspcomm.so.1
+          output="$(AppDir/usr/bin/picker --version)"
+          [[ "$output" == *"$VERSION"* ]]
+          mkdir -p release-assets
+          tar -C AppDir -czf "release-assets/picker-${TAG}-linux-${ARCH}.tar.gz" usr
+      - name: Package AppImage from the same install tree
+        env:
+          APPIMAGE_OUTPUT_FILE: release-assets/picker-${{ github.event.client_payload.tag || inputs.tag }}-linux-${{ matrix.arch }}.AppImage
+        run: |
+          bash scripts/build/package-appimage.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: picker-release-native-${{ matrix.arch }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  bundle:
+    needs: [resolve, wheel, native]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: picker-release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Check release assets and create checksums
+        env:
+          TAG: ${{ github.event.client_payload.tag || inputs.tag }}
+          TAG_SHA: ${{ needs.resolve.outputs.sha }}
+          XCOMM_VERSION: ${{ needs.resolve.outputs.xcomm_version }}
+        run: |
+          set -euo pipefail
+          cd release-assets
+          shopt -s nullglob
+          wheels=( *.whl )
+          appimages=( *.AppImage )
+          archives=( *.tar.gz )
+          [[ ${#wheels[@]} -eq 1 && ${#appimages[@]} -eq 2 && ${#archives[@]} -eq 2 ]]
+          python - <<'PY'
+          import json
+          import os
+
+          with open("RELEASE-MANIFEST.json", "w") as output:
+              json.dump({"picker_tag": os.environ["TAG"],
+                         "picker_sha": os.environ["TAG_SHA"],
+                         "ci_run_id": int(os.environ["GITHUB_RUN_ID"]),
+                         "xcomm_tag": "v" + os.environ["XCOMM_VERSION"]}, output, indent=2)
+              output.write("\n")
+          PY
+          sha256sum "${wheels[@]}" "${appimages[@]}" "${archives[@]}" RELEASE-MANIFEST.json > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: picker-release-bundle
+          path: release-assets/*
+          if-no-files-found: error

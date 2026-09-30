@@ -1,0 +1,155 @@
+name: Version policy
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version component to bump (recovery/manual tag)"
+        required: true
+        type: choice
+        options: [patch, minor, major]
+
+permissions:
+  contents: read
+
+jobs:
+  release-label:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require exactly one version label
+        env:
+          LABELS_JSON: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          labels = json.loads(os.environ["LABELS_JSON"])
+          selected = sorted(set(labels) & {"release:patch", "release:minor", "release:major"})
+          if len(selected) != 1:
+              raise SystemExit(f"Expected exactly one release label; found: {selected}")
+          print(f"Version bump: {selected[0]}")
+          PY
+
+  resolve:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      publish: ${{ steps.pr.outputs.publish }}
+      bump: ${{ steps.pr.outputs.bump }}
+    steps:
+      - name: Resolve merged PR release label
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" > /tmp/associated-prs.json
+          python - <<'PY'
+          import json
+          import os
+
+          with open("/tmp/associated-prs.json") as source:
+              prs = json.load(source)
+          merged = [pr for pr in prs if pr["merged_at"] and pr["base"]["ref"] == "master" and pr["merge_commit_sha"] == os.environ["GITHUB_SHA"]]
+          if not merged:
+              print("No merged PR for push; no version tag")
+              exit()
+          if len(merged) != 1:
+              raise SystemExit(f"Expected one merged PR for commit; found {len(merged)}")
+          labels = {label["name"] for label in merged[0]["labels"]}
+          selected = labels & {"release:patch", "release:minor", "release:major"}
+          if len(selected) != 1:
+              raise SystemExit(f"Expected exactly one release label; found {sorted(selected)}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print("publish=true", file=output)
+              print(f"bump={selected.pop().split(':', 1)[1]}", file=output)
+          PY
+
+  tag:
+    needs: resolve
+    if: needs.resolve.outputs.publish == 'true' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: picker-version-tag
+      queue: max
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Calculate and push version tag
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANUAL_BUMP: ${{ inputs.bump }}
+          PR_BUMP: ${{ needs.resolve.outputs.bump }}
+        run: |
+          set -euo pipefail
+          git fetch origin master:refs/remotes/origin/master --tags
+          python scripts/release/tag_policy.py verify HEAD
+          python - <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+          import tomllib
+
+          bump = os.environ["PR_BUMP"] or os.environ["MANUAL_BUMP"]
+          if bump not in {"patch", "minor", "major"}:
+              raise SystemExit(f"Invalid bump: {bump}")
+          current_tag = subprocess.check_output(
+              [sys.executable, "scripts/release/tag_policy.py", "latest"], text=True
+          ).strip()
+          if current_tag:
+              current = tuple(map(int, re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)", current_tag).groups()))
+              subprocess.run(["git", "merge-base", "--is-ancestor", current_tag, "HEAD"], check=True)
+          else:
+              with open("pyproject.toml", "rb") as config:
+                  fallback = tomllib.load(config)["tool"]["setuptools_scm"]["fallback_version"]
+              current = tuple(map(int, re.fullmatch(r"(\d+)\.(\d+)\.(\d+)\.dev0", fallback).groups()))
+          major, minor, patch = current
+          next_version = {
+              "patch": (major, minor, patch + 1),
+              "minor": (major, minor + 1, 0),
+              "major": (major + 1, 0, 0),
+          }[bump]
+          version = ".".join(map(str, next_version))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print(f"tag=v{version}", file=output)
+          print(f"Tag v{version} ({bump})")
+          PY
+          TAG="$(sed -n 's/^tag=//p' "$GITHUB_OUTPUT")"
+          if git rev-parse "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists" >&2
+            exit 1
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git tag -a "$TAG" -m "Picker ${TAG#v}"
+          git push origin "refs/tags/${TAG}"
+      - name: Start tagged build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          python -c 'import json, os; print(json.dumps({"event_type": "build-version-tag", "client_payload": {"tag": os.environ["TAG"], "sha": os.environ["GITHUB_SHA"]}}))' |
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/dispatches" --input -

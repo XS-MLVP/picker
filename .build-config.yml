@@ -3,3 +3,5 @@ tools:
   swig: v4.2.1
   node: 20.12.2
   python: 3.11
+dependencies:
+  xcomm: 18f3e60e9eb9d38127e3ecdccfacf91cf016b19c

@@ -13,6 +13,11 @@ example/
 .bsp/
 .scala-build/
 
+# Python-generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
 # Compiled Object files
 *.slo
 *.lo
@@ -46,7 +51,8 @@ log
 *.app
 *.AppImage
 
-build/
+# Root CMake output; scripts/build/ contains tracked source scripts.
+/build/
 dist/
 .vscode/
 .toolchains/
@@ -71,4 +77,3 @@ Testing
 # Local verible installs/archives
 verible-*/
 verible-*.tar.gz
-

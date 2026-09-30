@@ -9,6 +9,7 @@ include example/example.mk
 
 export NPROC := $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)
 export BUILD_XSPCOMM_SWIG ?= python
+PYTHON ?= python3
 
 # Default target should not destroy previous builds
 all: init build
@@ -76,15 +77,13 @@ test_all_scala:
 clean:
 	rm -rf temp build dist output app_image_build AppDir picker_out* picker_e203_ifu_ift2icb
 
-wheel: init
-	rm -rf dist dependence/xcomm/dist
-	cd dependence/xcomm && XSPCOMM_INSTALL_PREFIX=picker/ XSPCOMM_BUILD_WHEEL=1 pipx run build --wheel
-	NO_BUILD_XSPCOMM=1 pipx run build --wheel
+wheel:
+	cd dependence/xcomm && $(PYTHON) -m build --wheel
+	NO_BUILD_XSPCOMM=1 $(PYTHON) -m build --wheel
 	mkdir -p dist && cp dependence/xcomm/dist/*.whl ./dist
 
 wheel_install: wheel
-	pip3 uninstall -y xspcomm picker || true
-	pip3 install dist/xspcomm*.whl dist/picker*.whl
+	@echo "Install in a fresh virtual environment: $(PYTHON) -m pip install --no-index --find-links=dist picker"
 
 # Run test suite
 tests:

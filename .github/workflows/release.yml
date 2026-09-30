@@ -1,0 +1,109 @@
+name: Release Picker
+
+on:
+  workflow_run:
+    workflows: [Tagged CI]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Successful Tagged CI run ID whose exact artifacts should be published"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+    env:
+      SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate source run
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" > source-run.json
+          python - <<'PY'
+          import json
+          import os
+
+          with open("source-run.json") as source:
+              run = json.load(source)
+          assert run["repository"]["full_name"] == os.environ["GITHUB_REPOSITORY"]
+          assert run["path"].split("@", 1)[0].endswith("/.github/workflows/release-build.yml") or run["path"].split("@", 1)[0] == ".github/workflows/release-build.yml"
+          assert run["event"] in {"repository_dispatch", "workflow_dispatch"}
+          assert run["status"] == "completed" and run["conclusion"] == "success"
+          assert run["id"] == int(os.environ["SOURCE_RUN_ID"])
+          PY
+      - name: Download exact CI release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: picker-release-bundle
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+          path: release-assets
+      - name: Verify bundle and tag
+        id: validate
+        run: |
+          set -euo pipefail
+          cd release-assets
+          sha256sum --check SHA256SUMS
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          with open("RELEASE-MANIFEST.json") as source:
+              manifest = json.load(source)
+          tag = manifest["picker_tag"]
+          sha = manifest["picker_sha"]
+          xcomm = manifest["xcomm_tag"]
+          assert manifest["ci_run_id"] == int(os.environ["SOURCE_RUN_ID"])
+          assert re.fullmatch(r"v\d+\.\d+\.\d+", tag)
+          assert re.fullmatch(r"[0-9a-f]{40}", sha)
+          assert re.fullmatch(r"v\d+\.\d+\.\d+", xcomm)
+          assets = {path.name for path in Path(".").iterdir() if path.is_file()}
+          wheels = [name for name in assets if name.endswith(".whl")]
+          appimages = [name for name in assets if name.endswith(".AppImage")]
+          archives = [name for name in assets if name.endswith(".tar.gz")]
+          assert len(wheels) == 1 and len(appimages) == 2 and len(archives) == 2
+          assert assets == set(wheels + appimages + archives + ["RELEASE-MANIFEST.json", "SHA256SUMS"])
+          assert wheels[0].startswith(f"picker-{tag[1:]}-")
+          assert set(appimages) == {f"picker-{tag}-linux-{arch}.AppImage" for arch in ("x86_64", "aarch64")}
+          assert set(archives) == {f"picker-{tag}-linux-{arch}.tar.gz" for arch in ("x86_64", "aarch64")}
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print(f"tag={tag}", file=output)
+              print(f"sha={sha}", file=output)
+          PY
+      - name: Confirm tag points to the tested commit
+        env:
+          TAG: ${{ steps.validate.outputs.tag }}
+          TAG_SHA: ${{ steps.validate.outputs.sha }}
+        run: |
+          set -euo pipefail
+          git init -q tag-check
+          git -C tag-check remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -C tag-check fetch -q origin "refs/tags/${TAG}"
+          test "$(git -C tag-check rev-parse 'FETCH_HEAD^{commit}')" = "$TAG_SHA"
+          git -C tag-check fetch -q origin master:refs/remotes/origin/master
+          (cd tag-check && python ../scripts/release/tag_policy.py verify "$TAG_SHA")
+      - name: Publish the verified CI assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.validate.outputs.tag }}
+          files: release-assets/*
+          fail_on_unmatched_files: true
+          overwrite_files: true
