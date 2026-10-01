@@ -49,10 +49,16 @@ older run to fail its ancestry check.
 **Tagged CI** checks out that exact tag, tests the native builds and builds a
 CPython 3.12 Linux x86-64 wheel, Linux x86-64 and aarch64 AppImages, and Linux
 x86-64 and aarch64 native archives. It uploads one checked release bundle.
-**Release Picker** runs only after Tagged CI succeeds, downloads that run's
-bundle, checks its hashes and tag SHA, and publishes those exact files without
-rebuilding. All five packages, `SHA256SUMS` and `RELEASE-MANIFEST.json` go into
-one GitHub Release. The manifest records the Picker tag, commit, CI run ID and
+After the bundle upload succeeds, Tagged CI explicitly dispatches **Release
+Picker** with its run ID. A `workflow_run` listener is not used because Tagged
+CI is itself dispatched using `GITHUB_TOKEN`. Release Picker waits up to 60
+minutes for the source run to complete successfully; a failed, cancelled or
+unfinished run cannot publish. Tagged CI does not wait for Release Picker,
+which would prevent the source run from completing. Release Picker downloads
+that run's bundle, checks its hashes and tag SHA, and publishes those exact
+files without rebuilding. All five packages, `SHA256SUMS` and
+`RELEASE-MANIFEST.json` go into one GitHub Release. The manifest records the
+Picker tag, commit, CI run ID and
 xcomm version used. The archives contain the installed
 `usr/bin/picker`, `usr/share/picker` templates and native libraries; they are
 not bare executables. AppImage is the self-contained desktop distribution;

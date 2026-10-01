@@ -1,13 +1,10 @@
 name: Release Picker
 
 on:
-  workflow_run:
-    workflows: [Tagged CI]
-    types: [completed]
   workflow_dispatch:
     inputs:
       run_id:
-        description: "Successful Tagged CI run ID whose exact artifacts should be published"
+        description: "Tagged CI run ID to wait for and publish its exact artifacts"
         required: true
         type: string
 
@@ -17,36 +14,24 @@ permissions:
 
 jobs:
   publish:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
       actions: read
       pull-requests: read
     env:
-      SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+      SOURCE_RUN_ID: ${{ inputs.run_id }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Validate source run
+      - name: Wait for successful Tagged CI completion
+        timeout-minutes: 65
         run: |
           set -euo pipefail
-          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
-          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" > source-run.json
-          python - <<'PY'
-          import json
-          import os
-
-          with open("source-run.json") as source:
-              run = json.load(source)
-          assert run["repository"]["full_name"] == os.environ["GITHUB_REPOSITORY"]
-          assert run["path"].split("@", 1)[0].endswith("/.github/workflows/release-build.yml") or run["path"].split("@", 1)[0] == ".github/workflows/release-build.yml"
-          assert run["event"] in {"repository_dispatch", "workflow_dispatch"}
-          assert run["status"] == "completed" and run["conclusion"] == "success"
-          assert run["id"] == int(os.environ["SOURCE_RUN_ID"])
-          PY
+          python3 scripts/release/wait_for_source_run.py \
+            "$GITHUB_REPOSITORY" "$SOURCE_RUN_ID" --timeout 3600
       - name: Download exact CI release bundle
         uses: actions/download-artifact@v4
         with:
