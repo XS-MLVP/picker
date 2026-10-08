@@ -163,9 +163,9 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
             if signal is None:
                 return None
             if not isinstance(signal, xsp.XData):
-                self.internal_signals[name] = [xsp.XPin(s, self.event) for s in signal]
+                self.internal_signals[name] = list(signal)
             else:
-                self.internal_signals[name] = xsp.XPin(signal, self.event)
+                self.internal_signals[name] = signal
         return self.internal_signals[name]
 
     def GetInternalSignalList(self, prefix="", deep=99, use_vpi=False):
@@ -192,7 +192,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     ################################
 
     def __getitem__(self, key):
-        return xsp.XPin(self.port[key], self.event)
+        return self.xport[key]
 
     # Async APIs wrapped from XClock
     async def AStep(self,i: int):
@@ -206,8 +206,8 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     def __setattr__(self, name, value):
         assert not isinstance(getattr(self, name, None),
-                              (xsp.XPin, xsp.XData)), \
-        f"XPin and XData of DUT are read-only, do you mean to set the value of the signal? please use `{name}.value = ` instead."
+                              xsp.XData), \
+        f"XData attributes of DUT are read-only; set the signal with `{name}.value = ...` instead."
         return super().__setattr__(name, value)
 
 
