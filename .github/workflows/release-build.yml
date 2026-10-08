@@ -201,7 +201,7 @@ jobs:
           test "$(uname -m)" = "$ARCH"
           test -x AppDir/usr/bin/picker
           test -d AppDir/usr/share/picker/template
-          test -e AppDir/usr/lib/libxspcomm.so.1
+          test -e AppDir/usr/lib/libxspcomm.so.2
           output="$(AppDir/usr/bin/picker --version)"
           [[ "$output" == *"$VERSION"* ]]
           mkdir -p release-assets

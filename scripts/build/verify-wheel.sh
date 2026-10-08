@@ -43,7 +43,7 @@ assert signal.U() == 0xA5
 clock = xspcomm.XClock(lambda _: 0)
 clock.Step(2)
 assert clock.clk == 2
-assert xspcomm.abi_version() == 1
+assert xspcomm.abi_version() == 2
 
 picker = os.path.join(os.path.dirname(sys.executable), "picker")
 output = subprocess.check_output([picker, "--version"], text=True)

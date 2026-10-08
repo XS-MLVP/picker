@@ -17,12 +17,12 @@ def test_multi_clock():
     clk1, clk2, clk3 = XClock(lambda x: 0), XClock(lambda x: 0), XClock(lambda x: 0)
     clk4, clk5, clk6 = XClock(lambda x: 0), XClock(lambda x: 0), XClock(lambda x: 0)
     
-    clk1.Add(dut.xport.SelectPins(["reg1"])).Add(dut.clk1.xdata)
-    clk2.Add(dut.xport.SelectPins(["reg2"])).Add(dut.clk2.xdata)
-    clk3.Add(dut.xport.SelectPins(["reg3"])).Add(dut.clk3.xdata)
-    clk4.Add(dut.xport.SelectPins(["reg4"])).Add(dut.clk4.xdata)
-    clk5.Add(dut.xport.SelectPins(["reg5"])).Add(dut.clk5.xdata)
-    clk6.Add(dut.xport.SelectPins(["reg6"])).Add(dut.clk6.xdata)
+    clk1.Add(dut.xport.SelectPins(["reg1"])).Add(dut.clk1)
+    clk2.Add(dut.xport.SelectPins(["reg2"])).Add(dut.clk2)
+    clk3.Add(dut.xport.SelectPins(["reg3"])).Add(dut.clk3)
+    clk4.Add(dut.xport.SelectPins(["reg4"])).Add(dut.clk4)
+    clk5.Add(dut.xport.SelectPins(["reg5"])).Add(dut.clk5)
+    clk6.Add(dut.xport.SelectPins(["reg6"])).Add(dut.clk6)
     
     main_clock.FreqDivWith(1, clk1)
     main_clock.FreqDivWith(2, clk2)

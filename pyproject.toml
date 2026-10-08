@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 name = "picker"
 dynamic = ["version"]
 dependencies = [
-    "xspcomm>=0.1.0.dev0,<0.2",
+    "xspcomm>=0.2.0,<0.3",
 ]
 
 [[tool.dynamic-metadata]]

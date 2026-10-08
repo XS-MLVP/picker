@@ -89,8 +89,10 @@ in `.build-config.yml` (an explicit `XCOMM_SOURCE_REF` commit can override it)
 and never become release assets. Tagged builds use the selected published xcomm
 tag instead. The build refuses to switch an xcomm checkout with local changes.
 
-The `xspcomm>=0.1.0.dev0,<0.2` requirement in `pyproject.toml` is a deliberate
-compatibility range, not an automatically generated version. Change it only
+The `xspcomm>=0.2.0,<0.3` requirement in `pyproject.toml` selects the supported
+xcomm 0.2 series with native ABI 2. Development CI pins the v0.2.0 commit in
+`.build-config.yml`; wheel verification requires `xspcomm.abi_version() == 2`,
+and native release archives must contain `libxspcomm.so.2`. Change the range only
 after testing the corresponding xcomm ABI and baseline APIs. Release metadata,
 the installed Picker command and CMake receive their version from the same tag.
 
@@ -137,6 +139,16 @@ when a native ABI change is incompatible, then rebuild xcomm, Picker and any
 generated DUT extensions. A package patch release alone must not change the
 SONAME. A Python wheel is also tied to its CPython ABI and platform tag;
 the SWIG module is not declared `abi3`.
+
+The xcomm 0.2 trigger engine changes the native layouts of `XClock`, `XData`,
+and `ExprNode`. Rebuild existing generated DUT extensions against the ABI 2
+headers and runtime; changing a library symlink cannot make an ABI 1 binary
+compatible. Keep each DUT extension and its xcomm runtime on the same native
+ABI. The coverage snapshot protocol version is separate from this ABI number.
+
+Generated Python and UVM DUT signals are direct `XData` objects. Use
+`dut.signal.value` for signal values and pass `dut.signal` to backend APIs;
+the former `XPin` wrapper and `dut.signal.xdata` access are no longer used.
 
 The wheel CI installs xcomm and Picker from built wheels in a clean virtual
 environment, checks metadata against native versions, exercises signal and clock APIs,
