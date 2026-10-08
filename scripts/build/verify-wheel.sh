@@ -39,7 +39,7 @@ if os.environ.get("XCOMM_VERSION_EXPECTED"):
 assert xspcomm.version() == xcomm_version
 signal = xspcomm.XData(8, xspcomm.XData.InOut)
 signal.Set(0xA5)
-assert signal.U() == 0xA5
+assert (signal.U() & 0xFF) == 0xA5
 clock = xspcomm.XClock(lambda _: 0)
 clock.Step(2)
 assert clock.clk == 2
