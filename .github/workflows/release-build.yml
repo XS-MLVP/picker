@@ -201,7 +201,7 @@ jobs:
           test "$(uname -m)" = "$ARCH"
           test -x AppDir/usr/bin/picker
           test -d AppDir/usr/share/picker/template
-          test -e AppDir/usr/lib/libxspcomm.so.1
+          test -e AppDir/usr/lib/libxspcomm.so.2
           output="$(AppDir/usr/bin/picker --version)"
           [[ "$output" == *"$VERSION"* ]]
           mkdir -p release-assets
@@ -256,3 +256,17 @@ jobs:
           name: picker-release-bundle
           path: release-assets/*
           if-no-files-found: error
+
+  dispatch-release:
+    needs: bundle
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      - name: Start release for this Tagged CI run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref master \
+            --raw-field "run_id=$GITHUB_RUN_ID"
