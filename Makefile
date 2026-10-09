@@ -78,7 +78,7 @@ clean:
 	rm -rf temp build dist output app_image_build AppDir picker_out* picker_e203_ifu_ift2icb
 
 wheel:
-	cd dependence/xcomm && $(PYTHON) -m build --wheel
+	cd dependence/xcomm && CFLAGS="$(CFLAGS) -fno-strict-aliasing" $(PYTHON) -m build --wheel
 	NO_BUILD_XSPCOMM=1 $(PYTHON) -m build --wheel
 	mkdir -p dist && cp dependence/xcomm/dist/*.whl ./dist
 
