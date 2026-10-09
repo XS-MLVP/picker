@@ -1,4 +1,5 @@
 #include <cassert>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,13 @@ int main()
     std::vector<picker::sv_module_define> modules{mod};
     std::vector<picker::sv_signal_define> internal{
         {"sig0", "output", 7, 0},
+        {"sig$1", "output", -1, 0},
+        {"a.b$", "output", -1, 0},
+        {"a_b$", "output", -1, 0},
+        {"a$", "output", -1, 0},
+        {"b$", "output", -1, 0},
+        {"Picker_dpi.foo", "output", -1, 0},
+        {"Picker_dpi.bar", "output", -1, 0},
     };
 
     nlohmann::json signal_tree;
@@ -49,6 +57,13 @@ int main()
     assert(contains_line(dpi_export, "get_a"));
     assert(contains_line(dpi_export, "set_a"));
     assert(contains_line(dpi_export, "get_sig0"));
+    assert(contains_line(dpi_export, "function get_pickerdpix7369672431xxH;"));
+    assert(contains_line(dpi_export, "function get_pickerdpix612e6224xxH;"));
+    assert(contains_line(dpi_export, "function get_pickerdpix615f6224xxH;"));
+    const auto dpi_impl = data["__DPI_FUNCTION_IMPLEMENT__"].get<std::string>();
+    assert(contains_line(dpi_impl, "function void get_pickerdpix7369672431xxH;"));
+    assert(contains_line(dpi_impl, "function void get_pickerdpix612e6224xxH;"));
+    assert(contains_line(dpi_impl, "function void get_pickerdpix615f6224xxH;"));
 
     const auto sv_wave = data["__SV_DUMP_WAVE__"].get<std::string>();
     assert(contains_line(sv_wave, "wave.vcd"));
@@ -56,6 +71,18 @@ int main()
     const auto tree = data["__SIGNAL_TREE__"].get<std::string>();
     assert(contains_line(tree, "a"));
     assert(contains_line(tree, "b"));
+    assert(signal_tree.contains("pickerdpix6124"));
+    assert(signal_tree.contains("pickerdpix6224"));
+
+    // Encoded names stay leaf tokens rather than creating a shared
+    // underscore-delimited hierarchy. Go capitalizes cascaded XPort members,
+    // so every non-leaf root must remain unique after that normalization.
+    std::set<std::string> go_cascaded_roots;
+    for (const auto &[key, port] : signal_tree.items()) {
+        if (!port.contains("_")) {
+            assert(go_cascaded_roots.insert(picker::capitalize_first_letter(key)).second);
+        }
+    }
 
     // MEM_DIRECT adds public_flat markers
     nlohmann::json data2;
