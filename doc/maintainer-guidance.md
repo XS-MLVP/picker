@@ -89,12 +89,17 @@ in `.build-config.yml` (an explicit `XCOMM_SOURCE_REF` commit can override it)
 and never become release assets. Tagged builds use the selected published xcomm
 tag instead. The build refuses to switch an xcomm checkout with local changes.
 
-The `xspcomm>=0.2.0,<0.3` requirement in `pyproject.toml` selects the supported
-xcomm 0.2 series with native ABI 2. Development CI pins the v0.2.0 commit in
-`.build-config.yml`; wheel verification requires `xspcomm.abi_version() == 2`,
-and native release archives must contain `libxspcomm.so.2`. Change the range only
-after testing the corresponding xcomm ABI and baseline APIs. Release metadata,
-the installed Picker command and CMake receive their version from the same tag.
+The `xspcomm>=0.3.0.dev0,<0.4` requirement in `pyproject.toml` selects the xcomm
+0.3 series with native ABI 3 and coverage descriptor protocol 4. Development CI
+pins the tested coverage-v2 commit in `.build-config.yml` and builds an explicit
+`0.3.0.dev0` xcomm preview until the ABI 3 release is published. This avoids
+labeling an ABI 3 wheel as a development patch of the ABI 2 release. Wheel
+verification checks both versions, and native release archives must contain
+`libxspcomm.so.3`. Tagged CI requires a compatible published xcomm 0.3 release;
+it cannot use the development preview.
+Change the range only after testing the corresponding ABI and baseline APIs.
+Release metadata, the installed Picker command and CMake receive their version
+from the same tag.
 
 ## Building and installing locally
 
@@ -106,7 +111,8 @@ switch source repositories and does not remove existing packages.
 ```sh
 python3 -m venv /tmp/picker-package-build
 /tmp/picker-package-build/bin/python -m pip install build
-make wheel PYTHON=/tmp/picker-package-build/bin/python
+SETUPTOOLS_SCM_PRETEND_VERSION_FOR_XSPCOMM=0.3.0.dev0 \
+    make wheel PYTHON=/tmp/picker-package-build/bin/python
 
 python3 -m venv /tmp/picker-package-test
 /tmp/picker-package-test/bin/python -m pip install --no-index --find-links=dist picker
@@ -114,10 +120,28 @@ python3 -m venv /tmp/picker-package-test
 /tmp/picker-package-test/bin/picker --version
 ```
 
+Before xcomm 0.3 is tagged, set
+`SETUPTOOLS_SCM_PRETEND_VERSION_FOR_XSPCOMM=0.3.0.dev0` when running `make wheel`
+from this development branch. This affects only the xcomm preview; Picker
+continues to derive its version from its own Git history. Formal releases use
+the published xcomm wheel and its release version.
+
 Use a fresh checkout or empty `dist` directory for release builds; pip selects
 the highest matching version when several old wheels are present. `make
 wheel_install` intentionally only prints an installation command and never
 uninstalls packages from the current interpreter.
+
+Native xcomm builds and generated simulator libraries use
+`-fno-strict-aliasing` to keep optimization settings consistent across signal
+bindings and their consumers. Picker applies it to the pinned xcomm target,
+and `make wheel` passes it when building xcomm separately. Generated simulator
+libraries use the same option, including the C++ flags passed to
+Verilator/VCS/UVS. Native memory bindings also use typed, fixed-size `memcpy`
+accesses to respect object boundaries and alignment.
+Keep `-O3` and the complete signal-value checks enabled. This option changes
+type-based alias analysis; it does not fix out-of-bounds or unaligned accesses,
+invalid shifts, object lifetime errors, or thread synchronization. Use
+ASan/UBSan and explicit boundary tests when investigating those issues.
 
 Picker contains a compiled executable and xspcomm contains a SWIG/CPython
 extension plus a C++ shared library. A matching wheel avoids compilation on
@@ -140,11 +164,17 @@ generated DUT extensions. A package patch release alone must not change the
 SONAME. A Python wheel is also tied to its CPython ABI and platform tag;
 the SWIG module is not declared `abi3`.
 
-The xcomm 0.2 trigger engine changes the native layouts of `XClock`, `XData`,
-and `ExprNode`. Rebuild existing generated DUT extensions against the ABI 2
-headers and runtime; changing a library symlink cannot make an ABI 1 binary
-compatible. Keep each DUT extension and its xcomm runtime on the same native
-ABI. The coverage snapshot protocol version is separate from this ABI number.
+The xcomm 0.2 trigger engine changed the native layouts of `XClock`, `XData`,
+and `ExprNode` and required ABI 2. The coverage-v2 descriptors expand
+`XCoverageBin`, requiring ABI 3 for the xcomm 0.3 series. Rebuild native clients
+and generated DUT extensions against the matching headers and runtime;
+changing a library symlink cannot make incompatible binaries compatible. Keep
+each DUT extension and its xcomm runtime on the same native ABI. The coverage
+descriptor protocol version is separate from this ABI number.
+
+The TLM template uses the source SDK installed under `share/xspcomm/tlm` for
+its SWIG interface and bridge source. Set `XSP_COMM_TLM` to override that SDK
+location; the public C++ headers remain under `include/xspcomm/tlm`.
 
 Generated Python and UVM DUT signals are direct `XData` objects. Use
 `dut.signal.value` for signal values and pass `dut.signal` to backend APIs;

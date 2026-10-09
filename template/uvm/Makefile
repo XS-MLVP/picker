@@ -1,3 +1,5 @@
+XSP_COMM_TLM ?= $(XSP_COMM_INCLUDE)/../share/xspcomm/tlm
+
 PYTHON_INCLUDE:=$(firstword $(shell python3-config --includes))
 XSP_COMM_INCLUDE:=$(shell picker --show_xcom_lib_location_cpp | awk '/Include:/ {print $$2}')
 XSP_PYTHON:=$(shell picker --show_xcom_lib_location_python | sed -n '$$p')
@@ -79,9 +81,9 @@ comp:
 	@mkdir -p $(BUILD_DIR)
 	swig -D'MODULE_NAME="tlm_pbsb"' -python -c++ -DUSE_VCS -I${XSP_COMM_INCLUDE} \
 		-outdir $(PKG_DIR) -o $(BUILD_DIR)/tlmps.cpp \
-		${XSP_COMM_INCLUDE}/xspcomm/python_tlm_pbsb.i
+		${XSP_COMM_TLM}/python.i
 	$(SYSCAN) -Mdir=$(BUILD_DIR) \
-		${XSP_COMM_INCLUDE}/xspcomm/tlm_pbsb.cpp $(BUILD_DIR)/tlmps.cpp
+		${XSP_COMM_TLM}/pubsub.cpp $(BUILD_DIR)/tlmps.cpp
 	@if [ -f example-uvm.sv ]; then \
 		UVM_FILE=example-uvm.sv; \
 	elif [ -f example.sv ]; then \

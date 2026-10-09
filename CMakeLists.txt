@@ -42,6 +42,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 #dependencies
 if ("$ENV{NO_BUILD_XSPCOMM}" STREQUAL "")
 add_subdirectory(dependence/xcomm)
+# Cover pinned xcomm revisions as well as their SWIG consumers. Standalone
+# xcomm wheels are built separately by the wheel target in the Makefile.
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(xspcomm PUBLIC -fno-strict-aliasing)
+endif()
 endif()
 
 # Verilog/SystemVerilog frontend
