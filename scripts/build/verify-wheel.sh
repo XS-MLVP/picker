@@ -44,7 +44,25 @@ clock = xspcomm.XClock(lambda _: 0)
 clock.Step(2)
 assert clock.clk == 2
 assert xspcomm.abi_version() == 3
-assert xspcomm.XTriggerEngine.CoverageVersion() == 4
+assert xspcomm.XTriggerEngine.CoverageVersion() == 5
+assert xspcomm.XCoveragePoint().kind == xspcomm.XCoveragePointKind_Value
+assert xspcomm.XCoverageBin().point_id == 0
+engine = xspcomm.XTriggerEngine(clock)
+assert not clock.IsControlled()
+engine.AcquireClock()
+try:
+    try:
+        clock.Step(1)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("manual stepping bypassed native engine ownership")
+    assert clock.GetHalfTick() == 4
+    assert engine.RunUntil(2).advanced_ticks == 2
+finally:
+    engine.ReleaseClock()
+assert not clock.IsControlled()
+clock.Step(1)
 
 picker = os.path.join(os.path.dirname(sys.executable), "picker")
 output = subprocess.check_output([picker, "--version"], text=True)

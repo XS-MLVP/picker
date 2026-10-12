@@ -89,10 +89,10 @@ in `.build-config.yml` (an explicit `XCOMM_SOURCE_REF` commit can override it)
 and never become release assets. Tagged builds use the selected published xcomm
 tag instead. The build refuses to switch an xcomm checkout with local changes.
 
-The `xspcomm>=0.3.0.dev0,<0.4` requirement in `pyproject.toml` selects the xcomm
-0.3 series with native ABI 3 and coverage descriptor protocol 4. Development CI
+The `xspcomm>=0.3.0.dev2,<0.4` requirement in `pyproject.toml` selects the xcomm
+0.3 series with native ABI 3 and coverage descriptor protocol 5. Development CI
 pins the tested coverage-v2 commit in `.build-config.yml` and builds an explicit
-`0.3.0.dev0` xcomm preview until the ABI 3 release is published. This avoids
+`0.3.0.dev2` xcomm preview until the ABI 3 release is published. This avoids
 labeling an ABI 3 wheel as a development patch of the ABI 2 release. Wheel
 verification checks both versions, and native release archives must contain
 `libxspcomm.so.3`. Tagged CI requires a compatible published xcomm 0.3 release;
@@ -111,7 +111,7 @@ switch source repositories and does not remove existing packages.
 ```sh
 python3 -m venv /tmp/picker-package-build
 /tmp/picker-package-build/bin/python -m pip install build
-SETUPTOOLS_SCM_PRETEND_VERSION_FOR_XSPCOMM=0.3.0.dev0 \
+SETUPTOOLS_SCM_PRETEND_VERSION_FOR_XSPCOMM=0.3.0.dev2 \
     make wheel PYTHON=/tmp/picker-package-build/bin/python
 
 python3 -m venv /tmp/picker-package-test
@@ -121,7 +121,7 @@ python3 -m venv /tmp/picker-package-test
 ```
 
 Before xcomm 0.3 is tagged, set
-`SETUPTOOLS_SCM_PRETEND_VERSION_FOR_XSPCOMM=0.3.0.dev0` when running `make wheel`
+`SETUPTOOLS_SCM_PRETEND_VERSION_FOR_XSPCOMM=0.3.0.dev2` when running `make wheel`
 from this development branch. This affects only the xcomm preview; Picker
 continues to derive its version from its own Git history. Formal releases use
 the published xcomm wheel and its release version.
@@ -170,7 +170,18 @@ and `ExprNode` and required ABI 2. The coverage-v2 descriptors expand
 and generated DUT extensions against the matching headers and runtime;
 changing a library symlink cannot make incompatible binaries compatible. Keep
 each DUT extension and its xcomm runtime on the same native ABI. The coverage
-descriptor protocol version is separate from this ABI number.
+descriptor protocol version is separate from this ABI number. Unpublished
+changes on this branch share ABI 3 relative to master's ABI 2; intermediate
+branch commits do not each require another native ABI increment.
+
+The current coverage protocol is 5, with `XCoveragePoint` and `bin.point_id`.
+`XTriggerEngine` acquires the clock through `AcquireClock()` before registering
+or running work and releases it after disarming registrations. xreactor's
+Execution manages this scope. Generated `dut.Step()` already delegates to
+XClock and is rejected while an engine owns that clock; manual initialization
+before acquisition and stepping after release remain available. Releasing an
+engine preserves phase, so finish a remaining half-cycle with `StepHalf()`
+before resuming full-cycle `Step()`.
 
 The TLM template uses the source SDK installed under `share/xspcomm/tlm` for
 its SWIG interface and bridge source. Set `XSP_COMM_TLM` to override that SDK
