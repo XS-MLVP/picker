@@ -59,6 +59,16 @@ try:
         raise AssertionError("manual stepping bypassed native engine ownership")
     assert clock.GetHalfTick() == 4
     assert engine.RunUntil(2).advanced_ticks == 2
+    wide = xspcomm.XData(128, xspcomm.XData.InOut)
+    wide.Set((1 << 100) | 0xA5)
+    lhs = engine.ExprNewBitsSignal(wide, False)
+    rhs = engine.ExprNewBitsConst(128, False, (7).to_bytes(16, "little"))
+    total = engine.ExprNewBits(xspcomm.ExprOp_ADD, lhs, rhs, 128, False)
+    engine.ExprNewConst(0)  # Collection must remove this unused node.
+    remap = engine.CollectExpressions(xspcomm.XIntVector([total]))
+    total = remap[total]
+    assert total >= 0 and engine.ExpressionNodeCount() == 3
+    assert int.from_bytes(engine.ExprEvalBits(total), "little") == (1 << 100) | 0xAC
 finally:
     engine.ReleaseClock()
 assert not clock.IsControlled()

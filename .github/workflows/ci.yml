@@ -156,8 +156,8 @@ jobs:
       - name: Build Python wheels
         if: matrix.full_test
         env:
-          # ABI 3 is not released yet; keep its preview out of the ABI 2 series.
-          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_XSPCOMM: 0.3.0.dev2
+          # Match the planned xcomm 1.x release while it is still in development.
+          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_XSPCOMM: 1.0.0.dev0
         run: |
           python3 -m venv /tmp/picker-wheel-builder
           /tmp/picker-wheel-builder/bin/python -m pip install 'build>=1,<2'
