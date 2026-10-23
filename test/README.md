@@ -1,27 +1,25 @@
-Picker test suite
+# Picker tests / Picker 测试
 
-Overview
-- Provides lightweight scripts to validate picker CLI and core flows.
-- Focuses on Verilator + Python by default to minimize toolchain needs.
+[English testing guide](../doc/en/development/contributing.md) | [中文测试指南](../doc/zh/development/contributing.md)
 
-Prerequisites
-- Built picker binary at `./build/bin/picker` (or installed `picker` in PATH).
-- Verilator (>=4.218), CMake (>=3.11), a C++ compiler, Python3.
+These scripts check the CLI and export/pack flows. Verilator and Python are the default integration path. Prepare a built Picker, CMake, a C++20 compiler, SWIG and matching Python development tools; see [installation](../doc/en/guides/installation.md).
 
-Usage
-- Run all: `make -C test all`
-- Smoke only (no builds): `make -C test smoke`
-- Individual:
-  - `make -C test export_python`
-  - `make -C test export_vpi_python`
-  - `make -C test export_filelist`
-  - `make -C test export_complex_port`
-  - `make -C test pack_transaction`
-  - `make -C test pack_from_rtl`
-  - `make -C test pack_unsupported_type`
-  - `make -C test pack_multiple_classes`
-  - `make -C test pack_python`
+这里验证 CLI 和 export/pack 流程，默认集成为 Verilator + Python。先准备 Picker、CMake、C++20 编译器、SWIG 和匹配的 Python 开发环境，见[安装](../doc/zh/guides/installation.md)。
 
-Notes
-- Tests write to subfolders in the repo (e.g. `picker_out_*`, `pack_example`).
-- Clean with `make -C test clean`.
+| Command / 命令 | Scope / 范围 |
+| --- | --- |
+| `make -C test all` | Integration suite / 集成测试 |
+| `make -C test smoke` | CLI smoke, without DUT builds / CLI 冒烟，不构建 DUT |
+| `make -C test export_python` | Python Adder export / Python 加法器 |
+| `make -C test export_vpi_python` | VPI export / VPI 导出 |
+| `make -C test export_filelist` | File lists / 文件列表 |
+| `make -C test export_complex_port` | Complex ports / 复杂端口 |
+| `make -C test pack_transaction` | UVM transactions / UVM 事务 |
+| `make -C test pack_from_rtl` | Transactions from RTL / 从 RTL 生成事务 |
+| `make -C test pack_unsupported_type` | Unsupported types / 不支持的类型 |
+| `make -C test pack_multiple_classes` | Multiple classes / 多类事务 |
+| `make -C test pack_python` | Python packaging / Python 包装 |
+
+Tests write generated directories such as picker_out_* and pack_example. `make -C test clean` removes test outputs. The preflight may rebuild missing bindings; use a separate checkout when preserving other build artifacts.
+
+测试会生成 picker_out_*、pack_example 等目录；`make -C test clean` 清理测试产物。preflight 可能重建缺失绑定；需保留其他构建产物时使用独立 checkout。

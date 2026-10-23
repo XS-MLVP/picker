@@ -1,0 +1,61 @@
+name: Documentation
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "doc/**"
+      - "README*"
+      - "CONTRIBUTING.md"
+      - "test/README.md"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+      - "scripts/docs.py"
+      - ".github/workflows/docs.yml"
+  push:
+    branches: [master, "docs/**"]
+    paths:
+      - "doc/**"
+      - "README*"
+      - "CONTRIBUTING.md"
+      - "test/README.md"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+      - "scripts/docs.py"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  documentation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+      - name: Install documentation tools
+        run: python -m pip install -r requirements-docs.txt
+      - name: Check translations, links and example syntax
+        run: python scripts/docs.py check
+      - name: Build documentation site
+        run: python -m mkdocs build --strict
+      - name: Export Wiki pages
+        run: python scripts/docs.py wiki --output build/wiki-export
+      - name: Upload documentation preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: picker-documentation
+          if-no-files-found: error
+          path: |
+            build/docs-site
+            build/wiki-export
