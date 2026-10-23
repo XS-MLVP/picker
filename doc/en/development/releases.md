@@ -54,7 +54,8 @@ The release wheel is built in the pinned manylinux 2.28 x86-64 image, with gener
 CPU flags and static C++ runtime linking, then audited before upload. It uses
 `py3-none-manylinux_2_28_x86_64`: Picker does not bind to a Python minor version,
 but its `uc-xcomm` dependency does. A wheel always omits bundled xcomm bindings;
-raw CMake builds can still build them. AppImages and native archives retain their
+raw CMake builds can still build them. Tagged native releases also disable
+`XSPCOMM_NATIVE` for the bundled runtime. AppImages and native archives retain their
 existing architectures and filenames. Development wheels retain their host tags.
 
 Create a pending GitHub publisher in [PyPI Publishing](https://pypi.org/manage/account/publishing/):

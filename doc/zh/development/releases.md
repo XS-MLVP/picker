@@ -41,7 +41,7 @@ bash scripts/build/verify-wheel.sh
 
 wheel 检查需要 `dist/` 中有构建产物，也可通过 `PICKER_WHEEL_DIR` 和 `XCOMM_WHEEL_DIR` 指定目录。脚本在独立环境安装并检查包和接口。
 
-当前发行产物发布到 GitHub Releases。文档 CI 的站点和 Wiki 预览可从构建 artifacts 下载，见[文档维护](documentation.md)。
+发行产物先发布到 GitHub Releases，已验证的 Python wheel 随后发布到 PyPI。文档 CI 的站点和 Wiki 预览可从构建 artifacts 下载，见[文档维护](documentation.md)。
 
 ## Python 分发包与 PyPI 配置
 
@@ -52,7 +52,7 @@ wheel 检查需要 `dist/` 中有构建产物，也可通过 `PICKER_WHEEL_DIR` 
 发行 wheel 在固定的 manylinux 2.28 x86-64 镜像中构建，使用通用 CPU 参数并静态链接
 C++ 运行库，通过审计后上传。标签为 `py3-none-manylinux_2_28_x86_64`：Picker 本身
 不绑定 Python 小版本，但依赖 `uc-xcomm` 仍绑定。wheel 不再内置 xcomm 绑定，原始
-CMake 构建仍可编译它。AppImage 与原生压缩包保留现有架构和文件名；开发 wheel
+CMake 构建仍可编译它。正式原生发行也会关闭所带 runtime 的 `XSPCOMM_NATIVE`。AppImage 与原生压缩包保留现有架构和文件名；开发 wheel
 保留构建主机的平台标签。
 
 在 [PyPI Publishing](https://pypi.org/manage/account/publishing/) 登记 pending GitHub publisher：
