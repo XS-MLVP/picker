@@ -4,6 +4,8 @@ English | [中文](README.zh.md)
 
 Picker exports Verilog/SystemVerilog designs as Python, C++, Java, Scala, Go, or Lua modules, so you can write hardware tests in a familiar language. Tests can read and write signals, advance clocks, check results, and save waveforms. Picker also generates transaction bridges between Python and UVM.
 
+The Python distribution is `uc-picker`; the command remains `picker`. It depends on `uc-xcomm` and SWIG.
+
 ## Get started
 
 [Install Picker](doc/en/guides/installation.md), then follow the [adder tutorial](doc/en/tutorials/first-dut.md) to run your first test. From the repository root, export a Python module:

@@ -4,6 +4,8 @@
 
 Picker 将 Verilog/SystemVerilog 设计导出为 Python、C++、Java、Scala、Go 或 Lua 模块，方便你用熟悉的语言编写硬件测试。测试代码可以读写信号、推进时钟、检查结果和保存波形。Picker 也支持生成连接 Python 与 UVM 的事务桥。
 
+Python 发行包名为 `uc-picker`，命令仍为 `picker`，依赖 `uc-xcomm` 和 SWIG。
+
 ## 开始使用
 
 先[安装 Picker](doc/zh/guides/installation.md)，再跟随[加法器教程](doc/zh/tutorials/first-dut.md)完成第一次验证。在仓库根目录导出 Python 模块：

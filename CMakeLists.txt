@@ -40,7 +40,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 #dependencies
-if ("$ENV{NO_BUILD_XSPCOMM}" STREQUAL "")
+if (NOT SKBUILD AND "$ENV{NO_BUILD_XSPCOMM}" STREQUAL "")
 add_subdirectory(dependence/xcomm)
 # Cover pinned xcomm revisions as well as their SWIG consumers. Standalone
 # xcomm wheels are built separately by the wheel target in the Makefile.

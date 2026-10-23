@@ -83,7 +83,7 @@ wheel:
 	mkdir -p dist && cp dependence/xcomm/dist/*.whl ./dist
 
 wheel_install: wheel
-	@echo "Install in a fresh virtual environment: $(PYTHON) -m pip install --no-index --find-links=dist picker"
+	@echo "Install in a fresh virtual environment: $(PYTHON) -m pip install --find-links=dist uc-picker"
 
 # Run test suite
 tests:

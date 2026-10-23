@@ -41,4 +41,32 @@ bash scripts/build/verify-wheel.sh
 
 Wheel checks need build outputs in `dist/`. Use `PICKER_WHEEL_DIR` and `XCOMM_WHEEL_DIR` to select other directories. The script installs packages and checks interfaces in a separate environment.
 
-Release artifacts are published to GitHub Releases. Documentation CI provides site and Wiki previews as build artifacts; see [documentation maintenance](documentation.md).
+Release artifacts are published to GitHub Releases. The verified Python wheel is then published to PyPI as `uc-picker`. Documentation CI provides site and Wiki previews as build artifacts; see [documentation maintenance](documentation.md).
+
+## Python distribution and PyPI setup
+
+The distribution is `uc-picker`; the executable remains `picker`. It requires
+`uc-xcomm>=1.1,<2` and SWIG 4.5.1. Publish `uc-xcomm` first: Tagged CI selects a
+compatible stable release available on both GitHub and PyPI. Development CI pins
+the corresponding xcomm source and uses a test-only version matching this range.
+
+The release wheel is built in the pinned manylinux 2.28 x86-64 image, with generic
+CPU flags and static C++ runtime linking, then audited before upload. It uses
+`py3-none-manylinux_2_28_x86_64`: Picker does not bind to a Python minor version,
+but its `uc-xcomm` dependency does. A wheel always omits bundled xcomm bindings;
+raw CMake builds can still build them. AppImages and native archives retain their
+existing architectures and filenames. Development wheels retain their host tags.
+
+Create a pending GitHub publisher in [PyPI Publishing](https://pypi.org/manage/account/publishing/):
+
+| Field | Value |
+| --- | --- |
+| Project name | `uc-picker` |
+| Owner | `XS-MLVP` |
+| Repository | `picker` |
+| Workflow filename | `release.yml` |
+| Environment | `pypi` |
+
+Create the matching GitHub environment, allowing releases from `master`. No PyPI
+API token is needed. If the initial PyPI job fails before setup is complete,
+configure the publisher and rerun that job with the same verified CI bundle.

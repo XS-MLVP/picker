@@ -42,3 +42,28 @@ bash scripts/build/verify-wheel.sh
 wheel 检查需要 `dist/` 中有构建产物，也可通过 `PICKER_WHEEL_DIR` 和 `XCOMM_WHEEL_DIR` 指定目录。脚本在独立环境安装并检查包和接口。
 
 当前发行产物发布到 GitHub Releases。文档 CI 的站点和 Wiki 预览可从构建 artifacts 下载，见[文档维护](documentation.md)。
+
+## Python 分发包与 PyPI 配置
+
+分发包名为 `uc-picker`，命令仍是 `picker`，依赖 `uc-xcomm>=1.1,<2` 和 SWIG 4.5.1。
+先发布 `uc-xcomm`；Tagged CI 选择同时存在于 GitHub 与 PyPI 的兼容稳定版本。
+开发 CI 固定对应 xcomm 提交，仅在测试构建中使用满足目标范围的版本号。
+
+发行 wheel 在固定的 manylinux 2.28 x86-64 镜像中构建，使用通用 CPU 参数并静态链接
+C++ 运行库，通过审计后上传。标签为 `py3-none-manylinux_2_28_x86_64`：Picker 本身
+不绑定 Python 小版本，但依赖 `uc-xcomm` 仍绑定。wheel 不再内置 xcomm 绑定，原始
+CMake 构建仍可编译它。AppImage 与原生压缩包保留现有架构和文件名；开发 wheel
+保留构建主机的平台标签。
+
+在 [PyPI Publishing](https://pypi.org/manage/account/publishing/) 登记 pending GitHub publisher：
+
+| 字段 | 值 |
+| --- | --- |
+| Project name | `uc-picker` |
+| Owner | `XS-MLVP` |
+| Repository | `picker` |
+| Workflow filename | `release.yml` |
+| Environment | `pypi` |
+
+创建同名 GitHub 环境，允许从 `master` 发行。无需 PyPI API token。若首次 PyPI 任务
+因配置未完成而失败，补齐发布者后重跑该任务，复用同一份已验证 CI 产物。
