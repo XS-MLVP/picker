@@ -45,7 +45,7 @@ wheel 检查需要 `dist/` 中有构建产物，也可通过 `PICKER_WHEEL_DIR` 
 
 ## Python 分发包与 PyPI 配置
 
-分发包名为 `uc-picker`，命令仍是 `picker`，依赖 `uc-xcomm>=1.1,<2` 和 SWIG 4.5.1。
+分发包名为 `uc-picker`，命令仍是 `picker`，依赖 `uc-xcomm>=1.1,<2` 和 `swig>=4.2.1,<5`。
 先发布 `uc-xcomm`；Tagged CI 选择同时存在于 GitHub 与 PyPI 的兼容稳定版本。
 开发 CI 固定对应 xcomm 提交，仅在测试构建中使用满足目标范围的版本号。
 

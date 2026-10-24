@@ -4,6 +4,7 @@ set -euo pipefail
 picker_wheel_dir=${PICKER_WHEEL_DIR:-dist}
 xcomm_wheel_dir=${XCOMM_WHEEL_DIR:-dist}
 verify_python=${VERIFY_PYTHON:-python3}
+swig_spec=${SWIG_SPEC:-'swig>=4.2.1,<5'}
 picker_spec=uc-picker
 xcomm_spec=uc-xcomm
 if [[ -n "${PICKER_VERSION_EXPECTED:-}" ]]; then
@@ -18,12 +19,12 @@ trap 'rm -rf -- "${test_dir}"' EXIT
 swig_wheel_dir=${SWIG_WHEEL_DIR:-${test_dir}/tools}
 if [[ -z "${SWIG_WHEEL_DIR:-}" ]]; then
   "${verify_python}" -m pip download --only-binary=:all: --no-deps \
-    --dest "${swig_wheel_dir}" 'swig==4.5.1'
+    --dest "${swig_wheel_dir}" "${swig_spec}"
 fi
 "${verify_python}" -m venv "${test_dir}/venv"
 "${test_dir}/venv/bin/python" -m pip install --no-index \
   --find-links="${picker_wheel_dir}" --find-links="${xcomm_wheel_dir}" --find-links="${swig_wheel_dir}" \
-  "${picker_spec}" "${xcomm_spec}"
+  "${picker_spec}" "${xcomm_spec}" "${swig_spec}"
 "${test_dir}/venv/bin/python" -m pip check
 
 export PATH="${test_dir}/venv/bin:${PATH}"
@@ -41,7 +42,7 @@ import xspcomm
 swig = shutil.which("swig")
 assert swig and Path(swig).parent == Path(sys.executable).parent, swig
 subprocess.run([swig, "-version"], check=True)
-Path("CMakeLists.txt").write_text('cmake_minimum_required(VERSION 3.15)\nproject(InstalledSWIG NONE)\nfind_package(SWIG 4.5 REQUIRED)\n')
+Path("CMakeLists.txt").write_text('cmake_minimum_required(VERSION 3.15)\nproject(InstalledSWIG NONE)\nfind_package(SWIG 4.2.1 REQUIRED)\n')
 subprocess.run(["cmake", "-S", ".", "-B", "swig-check"], check=True)
 
 picker_version = version("uc-picker")

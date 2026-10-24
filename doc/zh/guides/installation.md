@@ -88,7 +88,7 @@ python -m pip check
 picker --check
 ```
 
-Python 依赖包含 `uc-xcomm>=1.1,<2` 与 SWIG 4.5.1；离线安装时也要把它们的 wheel 放入 `wheels/`。导出新模型仍需系统提供仿真器、CMake 与 C++ 编译器。
+Python 依赖包含 `uc-xcomm>=1.1,<2` 与 `swig>=4.2.1,<5`；离线安装时也要把它们的 wheel 放入 `wheels/`。导出新模型仍需系统提供仿真器、CMake 与 C++ 编译器。
 
 ## 自行构建 wheel
 

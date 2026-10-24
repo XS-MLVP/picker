@@ -89,7 +89,7 @@ python -m pip check
 picker --check
 ```
 
-The Python dependencies include `uc-xcomm>=1.1,<2` and SWIG 4.5.1. For offline installation, include their wheels in `wheels/` too. Exporting new models still requires a system simulator, CMake and a C++ compiler.
+The Python dependencies include `uc-xcomm>=1.1,<2` and `swig>=4.2.1,<5`. For offline installation, include their wheels in `wheels/` too. Exporting new models still requires a system simulator, CMake and a C++ compiler.
 
 ## Build wheels locally
 

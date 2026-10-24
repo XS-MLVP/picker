@@ -70,7 +70,7 @@ jobs:
           gh release download "v${XCOMM_VERSION}" -R XS-MLVP/xcomm \
             --pattern 'uc_xcomm-*.whl' --dir dependencies
           python3 -m pip download --only-binary=:all: --no-deps \
-            --dest dependencies 'swig==4.5.1'
+            --dest dependencies 'swig>=4.2.1,<5'
       - name: Install and exercise the same wheel on the target platform
         env:
           TEST_IMAGE: ${{ matrix.image }}

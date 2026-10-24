@@ -12,7 +12,7 @@ license = "MulanPSL-2.0"
 license-files = ["LICENSE"]
 dependencies = [
     "uc-xcomm>=1.1,<2",
-    "swig==4.5.1",
+    "swig>=4.2.1,<5",
 ]
 
 [[tool.dynamic-metadata]]
