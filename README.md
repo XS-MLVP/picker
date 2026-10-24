@@ -1,6 +1,6 @@
 # Picker
 
-[![PyPI: not published](https://img.shields.io/badge/pypi-not%20published-lightgrey?style=flat-square&logo=pypi&logoColor=white)](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/guides/installation.md)
+[![PyPI](https://img.shields.io/pypi/v/uc-picker?style=flat-square&logo=pypi&logoColor=white)](https://pypi.org/project/uc-picker/)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue?style=flat-square&logo=python&logoColor=white)](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/guides/installation.md)
 [![PR CI](https://img.shields.io/github/actions/workflow/status/XS-MLVP/picker/ci.yml?event=pull_request&style=flat-square&label=PR%20CI&logo=github)](https://github.com/XS-MLVP/picker/actions/workflows/ci.yml?query=event%3Apull_request)
 [![License](https://img.shields.io/badge/license-MulanPSL--2.0-blue?style=flat-square)](https://github.com/XS-MLVP/picker/blob/master/LICENSE)
