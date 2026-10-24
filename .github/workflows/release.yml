@@ -66,7 +66,7 @@ jobs:
           archives = [name for name in assets if name.endswith(".tar.gz")]
           assert len(wheels) == 1 and len(appimages) == 2 and len(archives) == 2
           assert assets == set(wheels + appimages + archives + ["RELEASE-MANIFEST.json", "SHA256SUMS"])
-          assert wheels[0].startswith(f"picker-{tag[1:]}-")
+          assert wheels[0].startswith(f"uc_picker-{tag[1:]}-")
           assert set(appimages) == {f"picker-{tag}-linux-{arch}.AppImage" for arch in ("x86_64", "aarch64")}
           assert set(archives) == {f"picker-{tag}-linux-{arch}.tar.gz" for arch in ("x86_64", "aarch64")}
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
@@ -92,3 +92,30 @@ jobs:
           files: release-assets/*
           fail_on_unmatched_files: true
           overwrite_files: true
+
+  pypi:
+    needs: publish
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/uc-picker
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: picker-release-bundle
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: verified-assets
+      - name: Select the verified Python distribution
+        run: |
+          (cd verified-assets && sha256sum --check SHA256SUMS)
+          mkdir dist
+          cp verified-assets/*.whl dist/
+      - name: Publish with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true

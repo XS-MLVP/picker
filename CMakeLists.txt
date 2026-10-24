@@ -31,6 +31,7 @@ if(is_top_level_project)
 endif()
 
 # options
+option(PICKER_REQUIRE_STATIC "Require a fully static Picker executable" OFF)
 option(CPPAST_BUILD_TEST "whether or not to build the tests" OFF)
 option(CPPAST_BUILD_EXAMPLE "whether or not to build the examples" OFF)
 option(CPPAST_BUILD_TOOL "whether or not to build the tool" OFF)
@@ -40,7 +41,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 #dependencies
-if ("$ENV{NO_BUILD_XSPCOMM}" STREQUAL "")
+if (NOT SKBUILD AND "$ENV{NO_BUILD_XSPCOMM}" STREQUAL "")
 add_subdirectory(dependence/xcomm)
 # Cover pinned xcomm revisions as well as their SWIG consumers. Standalone
 # xcomm wheels are built separately by the wheel target in the Makefile.

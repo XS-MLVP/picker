@@ -1,0 +1,93 @@
+name: Portable Picker wheel
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ''
+      artifact-name:
+        type: string
+        default: picker-portable-wheel
+      xcomm-version:
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build and audit the fully static wheel
+        run: |
+          python -m pip install 'cibuildwheel==3.4.1' 'twine>=6,<7'
+          XCOMM_SKIP_ALIGN=1 make init
+          python -m cibuildwheel --only cp312-manylinux_x86_64 --output-dir dist
+          python scripts/release/check_static_wheel.py dist/*.whl
+          python -m twine check --strict dist/*.whl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  compatibility:
+    needs: build
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: [cp311-cp311, cp312-cp312]
+        glibc: ['2.17', '2.28']
+        include:
+          - glibc: '2.17'
+            image: quay.io/pypa/manylinux2014_x86_64@sha256:3a591c1109773dbd79f16c038588fd1867d9f2f708b360dab5715852c7f96ef0
+          - glibc: '2.28'
+            image: quay.io/pypa/manylinux_2_28_x86_64@sha256:076b19ef6e698f28649fa817c49d14443201e01da85240e8e52f93e8daa49bff
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: dist
+      - name: Fetch the released runtime and SWIG for integration checks
+        if: inputs.xcomm-version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          XCOMM_VERSION: ${{ inputs.xcomm-version }}
+        run: |
+          mkdir -p dependencies
+          gh release download "v${XCOMM_VERSION}" -R XS-MLVP/xcomm \
+            --pattern 'uc_xcomm-*.whl' --dir dependencies
+          python3 -m pip download --only-binary=:all: --no-deps \
+            --dest dependencies 'swig>=4.2.1,<5'
+      - name: Install and exercise the same wheel on the target platform
+        env:
+          TEST_IMAGE: ${{ matrix.image }}
+          TEST_PYTHON: ${{ matrix.python }}
+          EXPECTED_GLIBC: ${{ matrix.glibc }}
+          CHECK_PICKER_RUNTIME: ${{ inputs.xcomm-version != '' && '1' || '' }}
+        run: |
+          docker run --rm --network none \
+            -v "$PWD:/project:ro" -e EXPECTED_GLIBC -e TEST_PYTHON -e CHECK_PICKER_RUNTIME \
+            "$TEST_IMAGE" bash -euo pipefail -c '
+              /opt/python/$TEST_PYTHON/bin/python -m venv /tmp/picker-test
+              export PATH="/tmp/picker-test/bin:$PATH"
+              if [[ "$CHECK_PICKER_RUNTIME" == 1 ]]; then
+                python -m pip install --no-index --find-links /project/dependencies /project/dist/*.whl
+                python -m pip check
+              else
+                python -m pip install --no-index --no-deps /project/dist/*.whl
+              fi
+              /tmp/picker-test/bin/python /project/scripts/release/check_installed_picker.py
+            '

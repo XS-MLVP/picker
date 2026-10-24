@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       xcomm_version:
-        description: "Optional compatible xspcomm release; latest compatible is selected by default"
+        description: "Optional compatible uc-xcomm release; latest compatible is selected by default"
         required: false
         type: string
 
@@ -56,7 +56,7 @@ jobs:
           python scripts/release/tag_policy.py verify HEAD
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Select compatible xspcomm release
+      - name: Select compatible uc-xcomm release
         id: xcomm
         env:
           GH_TOKEN: ${{ github.token }}
@@ -70,11 +70,13 @@ jobs:
           import os
           import re
           import tomllib
+          from urllib.error import HTTPError
+          from urllib.request import urlopen
           from packaging.requirements import Requirement
 
           with open("pyproject.toml", "rb") as config:
               dependencies = tomllib.load(config)["project"]["dependencies"]
-          requirement = next(Requirement(dependency) for dependency in dependencies if Requirement(dependency).name == "xspcomm")
+          requirement = next(Requirement(dependency) for dependency in dependencies if Requirement(dependency).name == "uc-xcomm")
           with open("/tmp/xspcomm-releases.json") as source:
               releases = json.load(source)
           compatible = []
@@ -84,22 +86,38 @@ jobs:
                   continue
               version = tag[1:]
               if requirement.specifier.contains(version):
-                  compatible.append((tuple(map(int, version.split("."))), version))
+                  try:
+                      with urlopen(f"https://pypi.org/pypi/uc-xcomm/{version}/json", timeout=30) as response:
+                          published = json.load(response)
+                  except HTTPError as error:
+                      if error.code == 404:
+                          continue
+                      raise
+                  if any(not artifact["yanked"] for artifact in published["urls"]):
+                      compatible.append((tuple(map(int, version.split("."))), version))
           requested = os.environ["REQUESTED_VERSION"]
           if requested:
               if requested not in {version for _, version in compatible}:
-                  raise SystemExit(f"xspcomm v{requested} is not a compatible published release")
+                  raise SystemExit(f"uc-xcomm v{requested} is not a compatible published release")
               version = requested
           elif compatible:
               version = max(compatible)[1]
           else:
-              raise SystemExit(f"No published xspcomm release satisfies {requirement}")
+              raise SystemExit(f"No published uc-xcomm release satisfies {requirement}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               print(f"version={version}", file=output)
-          print(f"Using xspcomm v{version}")
+          print(f"Using uc-xcomm v{version}")
           PY
-  wheel:
+  portable-wheel:
     needs: resolve
+    uses: ./.github/workflows/portable-wheel.yml
+    with:
+      ref: ${{ github.event.client_payload.tag || inputs.tag }}
+      artifact-name: picker-release-wheel
+      xcomm-version: ${{ needs.resolve.outputs.xcomm_version }}
+
+  wheel:
+    needs: [resolve, portable-wheel]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -109,24 +127,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Build Picker wheel
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build bison flex gperf zlib1g-dev liblz4-dev
-          python -m pip install 'build>=1,<2'
-          XCOMM_SKIP_ALIGN=1 make init
-          export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)"
-          NO_BUILD_XSPCOMM=1 python -m build --wheel
-      - name: Download released xspcomm wheel
+      - uses: actions/download-artifact@v4
+        with:
+          name: picker-release-wheel
+          path: dist
+      - name: Download released uc-xcomm wheels
         env:
           GH_TOKEN: ${{ github.token }}
           XCOMM_VERSION: ${{ needs.resolve.outputs.xcomm_version }}
         run: |
           mkdir -p wheelhouse
           gh release download "v${XCOMM_VERSION}" \
-            -R XS-MLVP/xcomm --pattern '*.whl' --dir wheelhouse
+            -R XS-MLVP/xcomm --pattern 'uc_xcomm-*.whl' --dir wheelhouse
       - name: Install and verify released wheels
         env:
           PICKER_WHEEL_DIR: dist
@@ -135,11 +147,6 @@ jobs:
           XCOMM_VERSION_EXPECTED: ${{ needs.resolve.outputs.xcomm_version }}
           VERIFY_PYTHON: python
         run: bash scripts/build/verify-wheel.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: picker-release-wheel
-          path: dist/*.whl
-          if-no-files-found: error
 
   native:
     needs: resolve
