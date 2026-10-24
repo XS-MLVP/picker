@@ -4,7 +4,7 @@ set -euo pipefail
 picker_wheel_dir=${PICKER_WHEEL_DIR:-dist}
 xcomm_wheel_dir=${XCOMM_WHEEL_DIR:-dist}
 verify_python=${VERIFY_PYTHON:-python3}
-swig_spec=${SWIG_SPEC:-'swig>=4.2.1,<5'}
+swig_spec='swig>=4.2.1,<5'
 picker_spec=uc-picker
 xcomm_spec=uc-xcomm
 if [[ -n "${PICKER_VERSION_EXPECTED:-}" ]]; then

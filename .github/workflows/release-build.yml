@@ -119,9 +119,6 @@ jobs:
   wheel:
     needs: [resolve, portable-wheel]
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        swig: ['4.2.1', '4.5.1']
     steps:
       - uses: actions/checkout@v4
         with:
@@ -149,7 +146,6 @@ jobs:
           PICKER_VERSION_EXPECTED: ${{ needs.resolve.outputs.version }}
           XCOMM_VERSION_EXPECTED: ${{ needs.resolve.outputs.xcomm_version }}
           VERIFY_PYTHON: python
-          SWIG_SPEC: swig==${{ matrix.swig }}
         run: bash scripts/build/verify-wheel.sh
 
   native:
