@@ -68,7 +68,7 @@ python -m pip check
 picker --version
 ```
 
-pip 自动安装 `uc-xcomm` 和 SWIG。官方 Picker wheel 面向 GLIBC 2.28 或更新的 Linux
+pip 自动安装 `uc-xcomm` 和 SWIG。官方 Picker wheel 面向 GLIBC 2.17 或更新的 Linux
 x86-64 环境，不绑定 Python 小版本。CMake、C++ 编译器和仿真器由系统提供。
 其他环境可使用匹配的原生压缩包或从源码构建。
 

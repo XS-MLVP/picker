@@ -52,6 +52,11 @@ jobs:
             echo 'run_build=false' >> "$GITHUB_OUTPUT"
           fi
 
+  portable-wheel:
+    needs: branch-or-pr
+    if: needs.branch-or-pr.outputs.run_build == 'true'
+    uses: ./.github/workflows/portable-wheel.yml
+
   build-and-test:
     needs: branch-or-pr
     if: needs.branch-or-pr.outputs.run_build == 'true'

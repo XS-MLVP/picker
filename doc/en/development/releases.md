@@ -50,13 +50,28 @@ The distribution is `uc-picker`; the executable remains `picker`. It requires
 compatible stable release available on both GitHub and PyPI. Development CI pins
 the corresponding xcomm source and uses a test-only version matching this range.
 
-The release wheel is built in the pinned manylinux 2.28 x86-64 image, with generic
-CPU flags and static C++ runtime linking, then audited before upload. It uses
-`py3-none-manylinux_2_28_x86_64`: Picker does not bind to a Python minor version,
-but its `uc-xcomm` dependency does. A wheel always omits bundled xcomm bindings;
-raw CMake builds can still build them. Tagged native releases also disable
-`XSPCOMM_NATIVE` for the bundled runtime. AppImages and native archives retain their
-existing architectures and filenames. Development wheels retain their host tags.
+The release wheel is built with a modern compiler in the pinned manylinux 2.28
+x86-64 image, with generic CPU flags and **fully static linking**, including libc.
+`PICKER_REQUIRE_STATIC=ON` makes missing static libraries a build error. The wheel
+check rejects an ELF interpreter, shared-library dependencies, or bundled native
+bindings before auditwheel assigns `py3-none-manylinux_2_17_x86_64` (also carrying
+the equivalent `manylinux2014_x86_64` tag). The tag describes the supported runtime,
+not the build image.
+
+The same reusable workflow runs in PR CI and Tagged CI. It installs the same
+wheel on Python 3.11 and 3.12 in both GLIBC 2.17 and 2.28 containers, then checks
+CLI behavior and installed templates. For tagged releases, these checks also
+install the selected published xcomm and SWIG wheels, import the runtime, parse
+RTL into a UVM package and export a Python DUT without compiling the simulator.
+These container tests exercise the target userspace; they share the runner's
+kernel and do not independently establish an old-kernel support guarantee.
+Tagged CI also verifies the installed `uc-xcomm` and SWIG dependency chain.
+
+Picker does not bind to a Python minor version, but its `uc-xcomm` dependency
+does. A wheel always omits bundled xcomm bindings; raw CMake builds can still
+build them. Tagged native releases disable `XSPCOMM_NATIVE` for the bundled
+runtime. AppImages and native archives retain their existing architectures and
+filenames. Development wheels built outside this workflow retain their host tags.
 
 Create a pending GitHub publisher in [PyPI Publishing](https://pypi.org/manage/account/publishing/):
 

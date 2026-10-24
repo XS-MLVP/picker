@@ -19,7 +19,9 @@ install(
 
 search_libs(ALL_FOUND LIBS libm.a libc.a)
 if (ALL_FOUND)
-     target_link_options(${PROJECT_NAME} PRIVATE "-static")
+    target_link_options(${PROJECT_NAME} PRIVATE "-static")
+elseif(PICKER_REQUIRE_STATIC)
+    message(FATAL_ERROR "PICKER_REQUIRE_STATIC needs libc.a and libm.a; install the static C library development package")
 else()
     message(WARNING "picker cannot be built statically")
 endif()
@@ -27,4 +29,3 @@ endif()
 
 # # Add AppImage target
 # add_custom_target(appimage
-    

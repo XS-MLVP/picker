@@ -31,6 +31,7 @@ if(is_top_level_project)
 endif()
 
 # options
+option(PICKER_REQUIRE_STATIC "Require a fully static Picker executable" OFF)
 option(CPPAST_BUILD_TEST "whether or not to build the tests" OFF)
 option(CPPAST_BUILD_EXAMPLE "whether or not to build the examples" OFF)
 option(CPPAST_BUILD_TOOL "whether or not to build the tool" OFF)

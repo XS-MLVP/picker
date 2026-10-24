@@ -108,8 +108,16 @@ jobs:
               print(f"version={version}", file=output)
           print(f"Using uc-xcomm v{version}")
           PY
-  wheel:
+  portable-wheel:
     needs: resolve
+    uses: ./.github/workflows/portable-wheel.yml
+    with:
+      ref: ${{ github.event.client_payload.tag || inputs.tag }}
+      artifact-name: picker-release-wheel
+      xcomm-version: ${{ needs.resolve.outputs.xcomm_version }}
+
+  wheel:
+    needs: [resolve, portable-wheel]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -119,13 +127,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Build Picker wheel
-        run: |
-          set -euo pipefail
-          python -m pip install 'cibuildwheel==3.4.1' 'twine>=6,<7'
-          XCOMM_SKIP_ALIGN=1 make init
-          python -m cibuildwheel --only cp312-manylinux_x86_64 --output-dir dist
-          python -m twine check --strict dist/*.whl
+      - uses: actions/download-artifact@v4
+        with:
+          name: picker-release-wheel
+          path: dist
       - name: Download released uc-xcomm wheels
         env:
           GH_TOKEN: ${{ github.token }}
@@ -142,11 +147,6 @@ jobs:
           XCOMM_VERSION_EXPECTED: ${{ needs.resolve.outputs.xcomm_version }}
           VERIFY_PYTHON: python
         run: bash scripts/build/verify-wheel.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: picker-release-wheel
-          path: dist/*.whl
-          if-no-files-found: error
 
   native:
     needs: resolve

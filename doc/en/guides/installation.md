@@ -69,7 +69,7 @@ picker --version
 ```
 
 Pip installs `uc-xcomm` and SWIG automatically. The official Picker wheel targets
-Linux x86-64 with GLIBC 2.28 or newer and is independent of the Python minor
+Linux x86-64 with GLIBC 2.17 or newer and is independent of the Python minor
 version. CMake, the C++ compiler and the simulator remain system dependencies.
 For other environments, use a matching native archive or build from source.
 

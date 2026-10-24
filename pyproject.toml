@@ -38,6 +38,10 @@ build = ["cp312-manylinux_x86_64"]
 build-frontend = "build"
 environment = { CMAKE_GENERATOR = "Unix Makefiles", CMAKE_BUILD_PARALLEL_LEVEL = "4", CXXFLAGS = "-march=x86-64 -mtune=generic", LDFLAGS = "-static-libstdc++ -static-libgcc" }
 
+[tool.cibuildwheel.config-settings]
+"cmake.define.PICKER_REQUIRE_STATIC" = "ON"
+
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "quay.io/pypa/manylinux_2_28_x86_64@sha256:076b19ef6e698f28649fa817c49d14443201e01da85240e8e52f93e8daa49bff"
-repair-wheel-command = "auditwheel repair --only-plat --plat manylinux_2_28_x86_64 -w {dest_dir} {wheel}"
+before-all = "dnf install -y glibc-static"
+repair-wheel-command = "python {project}/scripts/release/check_static_wheel.py {wheel} && auditwheel repair --only-plat --plat manylinux_2_17_x86_64 -w {dest_dir} {wheel}"

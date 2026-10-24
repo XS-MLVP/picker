@@ -49,11 +49,22 @@ wheel 检查需要 `dist/` 中有构建产物，也可通过 `PICKER_WHEEL_DIR` 
 先发布 `uc-xcomm`；Tagged CI 选择同时存在于 GitHub 与 PyPI 的兼容稳定版本。
 开发 CI 固定对应 xcomm 提交，仅在测试构建中使用满足目标范围的版本号。
 
-发行 wheel 在固定的 manylinux 2.28 x86-64 镜像中构建，使用通用 CPU 参数并静态链接
-C++ 运行库，通过审计后上传。标签为 `py3-none-manylinux_2_28_x86_64`：Picker 本身
-不绑定 Python 小版本，但依赖 `uc-xcomm` 仍绑定。wheel 不再内置 xcomm 绑定，原始
-CMake 构建仍可编译它。正式原生发行也会关闭所带 runtime 的 `XSPCOMM_NATIVE`。AppImage 与原生压缩包保留现有架构和文件名；开发 wheel
-保留构建主机的平台标签。
+发行 wheel 在固定的 manylinux 2.28 x86-64 镜像中使用较新编译器构建，采用通用
+CPU 参数并**完全静态链接**，包括 libc。`PICKER_REQUIRE_STATIC=ON` 让缺少静态库
+直接导致构建失败。wheel 检查拒绝 ELF 动态解释器、共享库依赖和内置原生绑定，
+随后由 auditwheel 标记为 `py3-none-manylinux_2_17_x86_64`，同时携带等价的
+`manylinux2014_x86_64` 标签。标签表示运行兼容范围，与构建镜像版本无须一致。
+
+PR CI 与 Tagged CI 复用同一工作流，将同一份 wheel 分别安装到 GLIBC 2.17、2.28
+容器中的 Python 3.11、3.12，检查 CLI 行为和安装的模板。正式发行还会安装选定的
+xcomm、SWIG 已发布 wheel，导入 runtime，将 RTL 解析为 UVM 包，并导出 Python
+DUT，不编译仿真器。容器测试覆盖对应用户态环境，但共享 runner 的内核，不能单独证明旧内核
+兼容性。Tagged CI 还会验证安装后的 `uc-xcomm` 和 SWIG 依赖链。
+
+Picker 本身不绑定 Python 小版本，但依赖 `uc-xcomm` 仍绑定。wheel 不内置 xcomm
+绑定，原始 CMake 构建仍可编译它。正式原生发行关闭所带 runtime 的
+`XSPCOMM_NATIVE`。AppImage 与原生压缩包保留现有架构和文件名；未使用此工作流
+构建的开发 wheel 保留主机平台标签。
 
 在 [PyPI Publishing](https://pypi.org/manage/account/publishing/) 登记 pending GitHub publisher：
 
