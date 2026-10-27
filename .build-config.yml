@@ -1,7 +1,7 @@
 tools:
   verilator: v5.052
-  swig: v4.2.1
+  swig: v4.5.1
   node: 20.12.2
   python: 3.11
 dependencies:
-  xcomm: c39db6652cd08d46df05d08f0bb5a033b83e4d2f
+  xcomm: b3f48f40d3aa362b021fb8e4955ebd3765d56705

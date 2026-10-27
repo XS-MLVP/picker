@@ -1,0 +1,99 @@
+site_name: Picker
+repo_url: https://github.com/XS-MLVP/picker
+edit_uri: edit/master/doc/
+docs_dir: doc
+site_dir: build/docs-site
+theme:
+  name: material
+  language: zh
+  font: false
+  palette:
+    primary: indigo
+  features:
+  - navigation.tabs
+  - navigation.sections
+  - navigation.top
+  - toc.follow
+  - content.code.copy
+  - content.action.edit
+  - search.suggest
+  - search.highlight
+plugins:
+- i18n:
+    docs_structure: folder
+    fallback_to_default: false
+    languages:
+    - locale: zh
+      default: true
+      name: 中文
+      build: true
+    - locale: en
+      name: English
+      build: true
+      nav_translations:
+        文档首页: Overview
+        入门教程: Tutorials
+        第一个 DUT: Your first DUT
+        使用指南: How-to guides
+        安装: Installation
+        导出工程: Export projects
+        驱动仿真: Drive simulation
+        内部信号: Internal signals
+        多语言: Languages
+        UVM 事务桥: UVM transaction bridges
+        接口参考: Reference
+        命令行: CLI
+        DUT API: DUT API
+        模拟器与语言支持: Simulator and language support
+        故障排查: Troubleshooting
+        原理与设计: Design
+        生成与运行原理: Generation and simulation
+        开发与贡献: Development
+        贡献与测试: Contribute and test
+        维护发行: Maintain releases
+        文档与 Wiki: Documentation and Wiki
+- search: {}
+nav:
+- 文档首页: index.md
+- 入门教程:
+  - 第一个 DUT: tutorials/first-dut.md
+- 使用指南:
+  - 安装: guides/installation.md
+  - 导出工程: guides/export.md
+  - 驱动仿真: guides/simulation.md
+  - 内部信号: guides/internal-signals.md
+  - 多语言: guides/languages.md
+  - UVM 事务桥: guides/uvm-tlm.md
+- 接口参考:
+  - 命令行: reference/cli.md
+  - DUT API: reference/dut-api.md
+  - 模拟器与语言支持: reference/compatibility.md
+  - 故障排查: reference/troubleshooting.md
+- 原理与设计:
+  - 生成与运行原理: explanation/architecture.md
+- 开发与贡献:
+  - 贡献与测试: development/contributing.md
+  - 维护发行: development/releases.md
+  - 文档与 Wiki: development/documentation.md
+validation:
+  nav:
+    not_found: warn
+    omitted_files: warn
+  links:
+    not_found: warn
+    anchors: warn
+    unrecognized_links: warn
+exclude_docs: |
+  /API.zh.md
+  /install-macos.en.md
+  /install-macos.zh.md
+  /maintainer-guidance.md
+markdown_extensions:
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format

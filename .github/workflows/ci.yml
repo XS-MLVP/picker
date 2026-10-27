@@ -52,6 +52,11 @@ jobs:
             echo 'run_build=false' >> "$GITHUB_OUTPUT"
           fi
 
+  portable-wheel:
+    needs: branch-or-pr
+    if: needs.branch-or-pr.outputs.run_build == 'true'
+    uses: ./.github/workflows/portable-wheel.yml
+
   build-and-test:
     needs: branch-or-pr
     if: needs.branch-or-pr.outputs.run_build == 'true'
@@ -87,6 +92,10 @@ jobs:
           echo "SWIG_VERSION=$(sed -n 's/^  swig:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
           echo "NODE_VERSION=$(sed -n 's/^  node:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
           echo "PYTHON_VERSION=$(sed -n 's/^  python:[[:space:]]*//p' .build-config.yml)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install native build toolchain
         run: bash scripts/build/setup-native-toolchain.sh
@@ -156,8 +165,8 @@ jobs:
       - name: Build Python wheels
         if: matrix.full_test
         env:
-          # Match the planned xcomm 1.x release while it is still in development.
-          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_XSPCOMM: 1.0.0.dev0
+          # Exercise the dependency range with the pinned upcoming uc-xcomm release.
+          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_UC_XCOMM: 1.1.0
         run: |
           python3 -m venv /tmp/picker-wheel-builder
           /tmp/picker-wheel-builder/bin/python -m pip install 'build>=1,<2'

@@ -1,268 +1,56 @@
-# <image src="/image/picker-logo.png" width="32px" height="32px" />Picker: Pick your favorite language to verify your chip.
+# Picker
 
-> A codegen tool for chip verification, which can provide C++/Python interfaces for the RTL designs.
+[![PyPI](https://img.shields.io/pypi/v/uc-picker?style=flat-square&logo=pypi&logoColor=white)](https://pypi.org/project/uc-picker/)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue?style=flat-square&logo=python&logoColor=white)](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/guides/installation.md)
+[![PR CI](https://img.shields.io/github/actions/workflow/status/XS-MLVP/picker/ci.yml?event=pull_request&style=flat-square&label=PR%20CI&logo=github)](https://github.com/XS-MLVP/picker/actions/workflows/ci.yml?query=event%3Apull_request)
+[![License](https://img.shields.io/badge/license-MulanPSL--2.0-blue?style=flat-square)](https://github.com/XS-MLVP/picker/blob/master/LICENSE)
+[![Docs](https://img.shields.io/badge/docs-Guide-0A7EA4?style=flat-square)](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/index.md)
+[![GitHub Stars](https://img.shields.io/github/stars/XS-MLVP/picker?style=social)](https://github.com/XS-MLVP/picker)
 
-English | [中文](README.zh.md)
+English | [中文](https://github.com/XS-MLVP/picker/blob/master/README.zh.md)
 
-## Introduction
+Picker exports Verilog/SystemVerilog designs as Python, C++, Java, Scala, Go, or Lua modules, so you can write hardware tests in a familiar language. Tests can read and write signals, advance clocks, check results, and save waveforms. Picker also generates transaction bridges between Python and UVM.
 
-**picker** is a chip verification auxiliary tool with two main functions:
+The Python distribution is `uc-picker`; the command remains `picker`. It depends on `uc-xcomm` and SWIG.
 
-1. **Export RTL designs into verification modules:** Picker can convert RTL design verification modules (.v/.scala/.sv) into dynamic libraries and provide programming interfaces in multiple high-level languages (currently supporting C++, Python, Java, Scala, Golang, Lua) to drive the circuits.
-1. **Pack UVM-TLM transaction with other languages:** Picker can automatically encapsulate TLM code based on user-provided UVM sequence_items, providing communication interfaces between UVM and other high-level languages (such as Python).
+## Get started
 
-This tool allows users to perform chip unit testing based on existing software testing frameworks, such as pytest, junit, TestNG, go test, etc.
+[Install Picker](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/guides/installation.md), then follow the [adder tutorial](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/tutorials/first-dut.md) to run your first test. From the repository root, export a Python module:
 
-Advantages of verification based on picker:
-
-1. No RTL design leakage: After conversion by picker, the original design files (.v) are transformed into binary files (.so). Verification can still be performed without the original design files, and the verifier cannot access the RTL source code.
-1. Reduced compilation time: When the DUT (Design Under Test) is stable, it only needs to be compiled once (packaged into a .so file).
-1. Wide user range: Provides multiple programming interfaces, covering developers of different languages.
-1. Utilizes rich software ecosystems: Supports ecosystems such as Python3, Java, Golang.
-1. Automated UVM transaction encapsulation: Achieves communication between UVM and Python through automated UVM transaction encapsulation.
-
-Currently supported RTL simulators by picker:
-
-1. Verilator
-1. Synopsys VCS
-1. [GSIM](https://github.com/OpenXiangShan/gsim)
-1. [UniVista Simulator (UVS)](https://www.univista-isg.com/site/product_detail/441)
-
-## How to Use
-
-Generated Python DUT classes expose `SIMULATOR`, the backend selected by `picker export --sim`
-(for example, `DUTAdder.SIMULATOR == "vcs"`). Instances inherit the same value. This is
-build metadata, not a runtime backend switch. Regenerate existing DUT packages to obtain it.
-
-VCS `Finish()` finalizes simulation and coverage in a forked child and waits for it,
-so the host Python process can finish pytest teardown and write its report. Rebuild
-existing DUT packages to use this behavior; installing picker alone does not update
-their compiled libraries. VCS waveform paths must use `.fsdb`; use
-`--verdi-mode modern` with current Verdi releases.
-
-### Dependency Installation
-
-1. [CMake](https://cmake.org/download/) (>=3.11)
-2. [GCC](https://gcc.gnu.org/) (needs to support C++20, at least version 10, **recommended version 11 or above**)
-3. [Python3](https://www.python.org/downloads/) (>=3.8)
-4. [Verilator](https://verilator.org/guide/latest/install.html#git-quick-install) (>=5.020)
-5. [SWIG](http://www.swig.org/) (>=**4.2.0**, multi-language support)
-
-### Source Code Download
-
-```bash
-git clone https://github.com/XS-MLVP/picker.git --depth=1
-cd picker
-make init
+```sh
+picker export example/Adder/Adder.v --sname Adder --lang python \
+    --sim verilator --tdir build/docs-adder/Adder --autobuild false
+make -C build/docs-adder/Adder -j4
 ```
 
-`make init` fetches the git-based dependencies under `dependence/`, including `xcomm`, `slang`, and `fmt`.
+Create a test in the generated package's parent directory to assign inputs by port name and check outputs. The tutorial includes a complete script and expected results.
 
-### Build and Install
+## VCS integration
 
-```bash
-cd picker
-make
-# You can enable support for other languages by
-#   using `make BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua`.
-# Each language requires its own development environment,
-#   which needs to be configured separately, such as `javac` for Java.
-# Install to the default prefix (/usr/local)
-sudo -E make install
+Generated Python DUT classes expose `SIMULATOR` (for example, `DUTAdder.SIMULATOR == "vcs"`)
+and `GetSimulator()`. This identifies the export backend, not a runtime backend switch.
 
-# Or install to a custom prefix, for example:
-# make install ARGS="-DCMAKE_INSTALL_PREFIX=$HOME/picker"
-```
+VCS waveform paths must use `.fsdb`; use `--verdi-mode modern` with current Verdi releases.
+`Finish()` finalizes simulation and coverage in a forked child and waits for it, allowing
+Python to continue pytest teardown and report generation.
 
-#### Install Prefix
+Coverage-enabled VCS exports include `coverage/coverage`, a standalone UCAPI query
+executable using schema version 1, without xcomm coverage-client bindings.
+`GetCoveragePath()` returns the actual VDB; `SetCoverage()` selects a testdata name.
+Finalization uses a database lock before the snapshot can be queried. Regenerate and
+rebuild existing DUT packages after upgrading; installing Picker or updating only the
+Python reporter does not update their compiled libraries.
 
-The default installation prefix is `/usr/local`.
+## Documentation
 
-To install picker somewhere else, pass `ARGS` to the `install` target:
+[English documentation](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/index.md) · [完整中文文档](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/zh/index.md)
 
-```bash
-make install ARGS="-DCMAKE_INSTALL_PREFIX=$HOME/picker"
-```
+- Use Picker: [export RTL](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/guides/export.md), [clocks and waveforms](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/guides/simulation.md), [internal signals](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/guides/internal-signals.md), [languages](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/guides/languages.md), [UVM](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/guides/uvm-tlm.md).
+- Look up an interface: [CLI](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/reference/cli.md), [DUT API](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/reference/dut-api.md), [troubleshooting](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/reference/troubleshooting.md).
+- Develop Picker: [how it works](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/explanation/architecture.md), [contributing and tests](https://github.com/XS-MLVP/picker/blob/master/CONTRIBUTING.md), [documentation and Wiki](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/development/documentation.md).
 
-Installed files follow the selected prefix:
+## Community
 
-- `<prefix>/bin/picker`
-- `<prefix>/share/picker`
-- `<prefix>/lib/libxspcomm.so`
+Report issues and suggestions through [GitHub Issues](https://github.com/XS-MLVP/picker/issues). The community QQ group is 600480230. More verification resources are available in the [MLVP documentation](https://open-verify.cc/mlvp/docs/).
 
-If you are installing on macOS and want a complete example that uses a user-owned prefix, see [doc/install-macos.en.md](doc/install-macos.en.md).
-
-Use `sudo -E make install` only when the target prefix requires elevated permissions. If you install under a user-owned directory such as `$HOME/picker`, `sudo` is usually unnecessary.
-
-The installation will also install the `xspcomm` base library (https://github.com/XS-MLVP/xcomm), which is used to encapsulate the basic types of `RTL` modules. If you compile against it manually, you may need to add the corresponding library search path, such as `-L<prefix>/lib`.
-
-If support for languages such as Java is enabled, the corresponding `xspcomm` multi-language packages are installed under the same prefix.
-
-**picker can also be compiled into a wheel file and installed via pip**
-
-To package picker into a wheel installation package, use the following command:
-
-```bash
-pip install pipx==1.10.0 # install dependency
-make wheel # or BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua make wheel
-```
-
-After compilation, the wheel file will be located in the dist directory. You can then install it via pip, for example:
-
-```bash
-# Manually install whl packages
-pip install dist/xspcomm-0.0.1-cp311-cp311-linux_x86_64.whl
-pip install dist/picker-0.0.1-cp311-cp311-linux_x86_64.whl
-# Or install using the following make command
-make wheel_install
-```
-
-After installation, execute the `picker` command to expect the following output:
-
-```
-XDut Generate.
-Convert DUT(*.v/*.sv) to C++ DUT libs.
-
-Usage: ./build/bin/picker [OPTIONS] [SUBCOMMAND]
-
-Options:
-  -h,--help                   Print this help message and exit
-  -v,--version                Print version
-  --show_default_template_path
-                              Print default template path
-  --show_xcom_lib_location_cpp
-                              Print xspcomm lib and include location
-  --show_xcom_lib_location_java
-                              Print xspcomm-java.jar location
-  --show_xcom_lib_location_scala
-                              Print xspcomm-scala.jar location
-  --show_xcom_lib_location_python
-                              Print python module xspcomm location
-  --show_xcom_lib_location_golang
-                              Print golang module xspcomm location
-  --show_xcom_lib_location_lua
-                              Print lua module xspcomm location
-  --check                     check install location and supported languages
-
-Subcommands:
-  export                      Export RTL Projects Sources as Software libraries such as C++/Python
-  pack                        Pack UVM transaction as a UVM agent and Python class
-```
-
-### Installation Test
-
-picker currently has two subcommands: `export` and `pack`.
-
-The `export` subcommand is used to convert RTL designs into "libraries" corresponding to other high-level programming languages, which can be driven through software.
-
-> $picker export --help
-
-```bash
-Export RTL Projects Sources as Software libraries such as C++/Python
-Usage: picker export [OPTIONS] file...
-
-Positionals:
-  file TEXT ... REQUIRED      DUT .v/.sv source file, contain the top module
-
-Options:
-  -h,--help                   Print this help message and exit
-  --fs,--filelist TEXT ...    DUT .v/.sv source files, contain the top module, split by comma.
-                              Or use '*.txt' file  with one RTL file path per line to specify the file list
-  --sim TEXT [verilator]      vcs, gsim or verilator as simulator, default is verilator
-  --lang,--language TEXT:{python,cpp,java,scala,golang,lua} [python]
-                              Build target project with assigned language, default python
-  --sdir,--source_dir TEXT [/home/yaozhicheng/workspace/picker/template]
-                              Template Files Dir, default is ${picker_install_path}/../picker/template
-  --sname,--source_module_name TEXT ...
-                              Pick the module in DUT .v file, default is the last module in the -f marked file
-  --tname,--target_module_name TEXT
-                              Set the module name and file name of target DUT, default is the same as source.
-                              For example, -T top, will generate UTtop.cpp and UTtop.hpp with UTtop class
-  --tdir,--target_dir TEXT    Target directory to store all the results. If it ends with '/' or is empty,
-                              the directory name will be the same as the target module name
-  --internal TEXT             Exported internal signal config file, default is empty, means no internal pin
-  --checkpoints               Enable checkpoints, save/restore , default is OFF
-  --vpi                       Enable VPI, for flexible internal signal access default is OFF
-  -F,--frequency TEXT [100MHz]
-                              Set the frequency of the **only VCS** DUT, default is 100MHz, use Hz, KHz, MHz, GHz as unit
-  -w,--wave_file_name TEXT    Wave file name, empty means don't dump wave
-  -c,--coverage               Enable coverage, default is not selected as OFF
-  --cp_lib,--copy_xspcomm_lib BOOLEAN [1]
-                              Copy xspcomm lib to generated DUT dir, default is true
-  -V,--vflag TEXT             User defined simulator compile args, passthrough.
-                              Eg: Using vcs simulator for exporting line coverage, -V '"-cm line -cm_dir /abs_path_to_store_coverage_data"'
-  -S,--sflag TEXT ...         User defined slang RTL parser args, passthrough.
-                              Eg: '--cmd-ignore=-myflag,1'
-  -C,--cflag TEXT             User defined gcc/clang compile command, passthrough.
-                              Eg: -C '"-O3 -std=c++17 -I./include"'
-  --verbose                   Verbose mode
-  -e,--example                Build example project, default is OFF
-  --autobuild BOOLEAN [1]     Auto build the generated project, default is true
-  -j,--build-threads INT [0]  Maximum parallel build threads; 0 uses all available CPU cores
-```
-
-Static Multi-Module Support:
-
-When generating the wrapper for `dut_top.sv/v`, picker allows specifying multiple module names and their corresponding quantities using the `--sname` parameter. For example, if there are modules A and B in the design files `a.v` and `b.v` respectively, and you need 2 instances of A and 3 instances of B in the generated DUT, and the combined module name is C (if not specified, the default name will be A_B). This can be achieved using the following command:
-
-```bash
-picker export path/a.v,path/b.v --sname A,2,B,3 --tname C
-```
-
-Environment Variables:
-
-- `DUMPVARS_OPTION`: Sets the option parameter for `$dumpvars`. For example, `DUMPVARS_OPTION="+mda" picker ....` enables array waveform support in VCS.
-
-The `pack` subcommand is used to convert UVM `sequence_item` into other languages and then communicate through TLM (currently supports Python, other languages are under development).
-
-> $picker pack --help
-
-```bash
-Pack uvm transaction as a uvm agent and python class
-Usage: picker pack [OPTIONS] file...
-
-Positionals:
-  file TEXT ... REQUIRED      Sv source file, contain the transaction define
-
-Options:
-  -h,--help                   Print this help message and exit
-  -e,--example                Generate example project based on transaction, default is OFF
-  -c,--force                  Force delete folder when the code has already generated by picker
-  -r,--rename TEXT ...        Rename transaction name in picker generate code
-  -d,--generate-dut           Generate DUT abstraction class with pin-level interface
-  -f,--filelist TEXT ...      File list containing transaction files
-  --from-rtl TEXT             RTL source file (.v/.sv) to auto-generate transaction from module ports
-
-```
-
-### Test Examples
-
-After picker compilation, execute the following commands in the picker directory to test the examples:
-
-```
-bash example/Adder/release-verilator.sh --lang cpp
-bash example/Adder/release-verilator.sh --lang python
-
-# Default enable cpp and python
-#  for other languages support：make BUILD_XSPCOMM_SWIG=python,java,scala,golang,lua
-bash example/Adder/release-verilator.sh --lang java
-bash example/Adder/release-verilator.sh --lang scala
-bash example/Adder/release-verilator.sh --lang golang
-bash example/Adder/release-verilator.sh --lang lua
-
-bash example/RandomGenerator/release-verilator.sh --lang cpp
-bash example/RandomGenerator/release-verilator.sh --lang python
-bash example/RandomGenerator/release-verilator.sh --lang java
-```
-
-### More Documents
-
-VCS exports built with coverage include `coverage/coverage`, a standalone UCAPI
-query executable (schema version 1). Python DUTs expose `GetCoveragePath()` for
-the actual VDB and `GetSimulator()` for backend identification. `SetCoverage()`
-selects a testdata name; `Finish()` finalizes it in a child process under a database
-lock so Python can continue teardown and query the finalized snapshot. The helper
-uses VCS libraries and does not require xcomm coverage-client bindings. Regenerate
-existing DUT packages after upgrading; changing only the Python reporter is insufficient.
-
-For guidance on chip verification with picker, please refer to: [https://open-verify.cc/mlvp/en/docs/](https://open-verify.cc/mlvp/en/docs/)
+[Code of conduct](https://github.com/XS-MLVP/picker/blob/master/CODE_OF_CONDUCT.md) · [Security reports](https://github.com/XS-MLVP/picker/blob/master/SECURITY.md) · [License](https://github.com/XS-MLVP/picker/blob/master/LICENSE)

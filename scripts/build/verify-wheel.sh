@@ -4,34 +4,49 @@ set -euo pipefail
 picker_wheel_dir=${PICKER_WHEEL_DIR:-dist}
 xcomm_wheel_dir=${XCOMM_WHEEL_DIR:-dist}
 verify_python=${VERIFY_PYTHON:-python3}
-picker_spec=picker
-xcomm_spec=xspcomm
+swig_spec='swig>=4.2.1,<5'
+picker_spec=uc-picker
+xcomm_spec=uc-xcomm
 if [[ -n "${PICKER_VERSION_EXPECTED:-}" ]]; then
-  picker_spec="picker==${PICKER_VERSION_EXPECTED}"
+  picker_spec="uc-picker==${PICKER_VERSION_EXPECTED}"
 fi
 if [[ -n "${XCOMM_VERSION_EXPECTED:-}" ]]; then
-  xcomm_spec="xspcomm==${XCOMM_VERSION_EXPECTED}"
+  xcomm_spec="uc-xcomm==${XCOMM_VERSION_EXPECTED}"
 fi
 
 test_dir=$(mktemp -d /tmp/picker-wheel-test.XXXXXX)
 trap 'rm -rf -- "${test_dir}"' EXIT
+swig_wheel_dir=${SWIG_WHEEL_DIR:-${test_dir}/tools}
+if [[ -z "${SWIG_WHEEL_DIR:-}" ]]; then
+  "${verify_python}" -m pip download --only-binary=:all: --no-deps \
+    --dest "${swig_wheel_dir}" "${swig_spec}"
+fi
 "${verify_python}" -m venv "${test_dir}/venv"
 "${test_dir}/venv/bin/python" -m pip install --no-index \
-  --find-links="${picker_wheel_dir}" --find-links="${xcomm_wheel_dir}" \
-  "${picker_spec}" "${xcomm_spec}"
+  --find-links="${picker_wheel_dir}" --find-links="${xcomm_wheel_dir}" --find-links="${swig_wheel_dir}" \
+  "${picker_spec}" "${xcomm_spec}" "${swig_spec}"
 "${test_dir}/venv/bin/python" -m pip check
 
+export PATH="${test_dir}/venv/bin:${PATH}"
 cd "${test_dir}"
 "${test_dir}/venv/bin/python" - <<'PY'
 import os
+from pathlib import Path
+import shutil
 import subprocess
 import sys
 from importlib.metadata import version
 
 import xspcomm
 
-picker_version = version("picker")
-xcomm_version = version("xspcomm")
+swig = shutil.which("swig")
+assert swig and Path(swig).parent == Path(sys.executable).parent, swig
+subprocess.run([swig, "-version"], check=True)
+Path("CMakeLists.txt").write_text('cmake_minimum_required(VERSION 3.15)\nproject(InstalledSWIG NONE)\nfind_package(SWIG 4.2.1 REQUIRED)\n')
+subprocess.run(["cmake", "-S", ".", "-B", "swig-check"], check=True)
+
+picker_version = version("uc-picker")
+xcomm_version = version("uc-xcomm")
 if os.environ.get("PICKER_VERSION_EXPECTED"):
     assert picker_version == os.environ["PICKER_VERSION_EXPECTED"]
 if os.environ.get("XCOMM_VERSION_EXPECTED"):
