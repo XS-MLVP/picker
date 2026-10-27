@@ -30,6 +30,16 @@ Currently supported RTL simulators by picker:
 
 ## How to Use
 
+Generated Python DUT classes expose `SIMULATOR`, the backend selected by `picker export --sim`
+(for example, `DUTAdder.SIMULATOR == "vcs"`). Instances inherit the same value. This is
+build metadata, not a runtime backend switch. Regenerate existing DUT packages to obtain it.
+
+VCS `Finish()` finalizes simulation and coverage in a forked child and waits for it,
+so the host Python process can finish pytest teardown and write its report. Rebuild
+existing DUT packages to use this behavior; installing picker alone does not update
+their compiled libraries. VCS waveform paths must use `.fsdb`; use
+`--verdi-mode modern` with current Verdi releases.
+
 ### Dependency Installation
 
 1. [CMake](https://cmake.org/download/) (>=3.11)
@@ -246,5 +256,13 @@ bash example/RandomGenerator/release-verilator.sh --lang java
 ```
 
 ### More Documents
+
+VCS exports built with coverage include `coverage/coverage`, a standalone UCAPI
+query executable (schema version 1). Python DUTs expose `GetCoveragePath()` for
+the actual VDB and `GetSimulator()` for backend identification. `SetCoverage()`
+selects a testdata name; `Finish()` finalizes it in a child process under a database
+lock so Python can continue teardown and query the finalized snapshot. The helper
+uses VCS libraries and does not require xcomm coverage-client bindings. Regenerate
+existing DUT packages after upgrading; changing only the Python reporter is insufficient.
 
 For guidance on chip verification with picker, please refer to: [https://open-verify.cc/mlvp/en/docs/](https://open-verify.cc/mlvp/en/docs/)

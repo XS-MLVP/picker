@@ -33,9 +33,11 @@ namespace picker { namespace codegen {
             "  endfunction\n";
 
         static const std::string vcs_fsdb_control_sv_template =
+            "  bit picker_fsdb_configured = 0;\n"
             "  export \"DPI-C\" function vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
             "  function void vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
             "    input string filename;\n"
+            "    picker_fsdb_configured = 1;\n"
             "    $fsdbDumpFinish;\n"
             "    $fsdbDumpfile(filename);\n"
             "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
@@ -200,8 +202,10 @@ namespace picker { namespace codegen {
                     if (wave_file_name.ends_with(".fsdb") == false) PK_FATAL("VCS trace file must be .fsdb format.\n");
                     sv_dump_wave =
                         env.render("  initial begin\n"
+                                   "    if (!picker_fsdb_configured) begin\n"
                                    "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
                                    "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
+                                   "    end\n"
                                    "  end\n\n",
                                    data);
                 }
@@ -222,7 +226,7 @@ namespace picker { namespace codegen {
             data["__TRACE__"] = sv_dump_wave.length() > 0 ? wave_file_name.substr(wave_file_name.find_last_of(".") + 1,
                                                                                   wave_file_name.length()) :
                                                             "OFF";
-            data["__SV_DUMP_WAVE__"] = sv_dump_wave + sv_waveform_control;
+            data["__SV_DUMP_WAVE__"] = sv_waveform_control + sv_dump_wave;
         }
 
         void render_signal_tree(const std::vector<picker::sv_signal_define> &external_pin,

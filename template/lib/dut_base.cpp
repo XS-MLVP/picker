@@ -9,6 +9,12 @@
 #include <map>
 #include <functional>
 #include <filesystem>
+#include <cerrno>
+#if defined(USE_VCS)
+#include <sys/wait.h>
+#include <sys/file.h>
+#include <fcntl.h>
+#endif
 #if defined(USE_VCS) || defined(__linux__)
 #include <sys/personality.h>
 #endif
@@ -144,18 +150,69 @@ int DutVcsBase::Step(uint64_t ncycle, bool dump)
 
 int DutVcsBase::Finish()
 {
+{% if __COVERAGE__ == "ON" %}
+    std::filesystem::path database = std::filesystem::path(vcs_so_dir()) / "{{__TOP_MODULE_NAME__}}.vdb";
+    std::string runtime_name = "{{__TOP_MODULE_NAME__}}";
+    for (int index = 1; index + 1 < this->argc; ++index) {
+        if (std::strcmp(this->argv[index], "-cm_dir") == 0) database = this->argv[index + 1];
+        if (std::strcmp(this->argv[index], "-cm_name") == 0) runtime_name = this->argv[index + 1];
+    }
+    struct DatabaseLock {
+        int descriptor;
+        ~DatabaseLock() { if (descriptor >= 0) { flock(descriptor, LOCK_UN); close(descriptor); } }
+    } lock{open((database.string() + ".lock").c_str(), O_CREAT | O_RDWR, 0666)};
+    if (lock.descriptor < 0 || flock(lock.descriptor, LOCK_EX) != 0) return -1;
+{% endif %}
 {% if __TRACE__ == "fsdb" %}
     vcs_fsdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 {% endif %}
+    std::fflush(nullptr);
+    const pid_t child = fork();
+    if (child < 0) {
+        XWarning("fork failed while finalizing VCS simulation");
+        return -1;
+    }
+    if (child == 0) {
 {% if __COVERAGE__ == "ON" %}
-    if (this->coverage_file_path.size() > 0)
-        vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(vcs_coverage_test_name(this->coverage_file_path).c_str());
-    else
-        vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}("{{__TOP_MODULE_NAME__}}");
-    vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+        if (this->coverage_file_path.size() > 0)
+            vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}(vcs_coverage_test_name(this->coverage_file_path).c_str());
+        else
+            vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}}("{{__TOP_MODULE_NAME__}}");
+        vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 {% endif %}
-    finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
-    return 0;
+        finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+        _exit(0);
+    }
+    int status = 0;
+    pid_t waited;
+    do {
+        waited = waitpid(child, &status, 0);
+    } while (waited < 0 && errno == EINTR);
+    if (waited < 0) {
+        XWarning("waitpid failed while finalizing VCS simulation");
+        return -1;
+    }
+    if (WIFEXITED(status)) {
+{% if __COVERAGE__ == "ON" %}
+        if (WEXITSTATUS(status) == 0 && !this->coverage_file_path.empty()) {
+            const std::string test_name = vcs_coverage_test_name(this->coverage_file_path);
+            if (test_name != runtime_name) {
+                const auto testdata = database / "snps/coverage/db/testdata";
+                std::error_code error;
+                std::filesystem::remove_all(testdata / test_name, error);
+                if (error) return -1;
+                std::filesystem::rename(testdata / runtime_name, testdata / test_name, error);
+                if (error) {
+                    XWarning("failed to finalize VCS coverage testdata: %s", error.message().c_str());
+                    return -1;
+                }
+            }
+        }
+{% endif %}
+        return WEXITSTATUS(status);
+    }
+    if (WIFSIGNALED(status)) return 128 + WTERMSIG(status);
+    return -1;
 };
 
 void DutVcsBase::SetWaveform(const char *filename)
@@ -763,6 +820,18 @@ bool DutUnifiedBase::main_ns_flag = false;
 const char DutUnifiedBase::waveform_format[] = "{% if __TRACE__ == "OFF" %}{% else %}{{__TRACE__}}{% endif %}";
 const int DutUnifiedBase::coverage_metrics = {{__COVERAGE_METRICS__}};
 
+std::string DutUnifiedBase::GetCoveragePath()
+{
+    if (!this->dut) return this->coverage_database;
+#if defined(USE_VCS)
+    for (int index = 1; index + 1 < this->argc; ++index) {
+        if (std::strcmp(this->argv[index], "-cm_dir") == 0)
+            return this->coverage_database = std::filesystem::absolute(this->argv[index + 1]).string();
+    }
+#endif
+    return "";
+}
+
 DutUnifiedBase::DutUnifiedBase()
 {
     this->init(0, nullptr);
@@ -1154,7 +1223,8 @@ int DutUnifiedBase::RefreshComb()
 int DutUnifiedBase::Finish()
 {
     if (!this->dut) { return 0; }
-    this->dut->Finish();
+    this->coverage_database = this->GetCoveragePath();
+    const int status = this->dut->Finish();
     delete this->dut;
     this->dut = nullptr;
     // this class maintain the other namespace
@@ -1168,7 +1238,7 @@ int DutUnifiedBase::Finish()
     free(this->argv);
     this->argv = nullptr;
 
-    return 0;
+    return status;
 }
 void DutUnifiedBase::SetCoverage(const std::string filename)
 {

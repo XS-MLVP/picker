@@ -9,6 +9,8 @@ Prerequisites
 - Verilator (>=4.218), CMake (>=3.11), a C++ compiler, Python3.
 
 Usage
+- Native VCS coverage and relocated-package regression: in the VCS environment, set `PICKER_VCS_DUT_DIR` to a freshly compiled coverage-enabled Adder package and run `python3 test/scripts/test_vcs_coverage_runtime.py`. It checks two independent snapshots, FSDB output, post-Finish execution and standalone helper queries.
+- Simulator metadata (generation only, VCS and Verilator): `python3 test/scripts/test_python_simulator_metadata.py` from the repository root. Override the binary with `PICKER_BIN`; outputs use temporary directories and no simulator license is required.
 - Run all: `make -C test all`
 - Smoke only (no builds): `make -C test smoke`
 - Individual:
