@@ -1,5 +1,8 @@
- .PHONY: default
+.PHONY: default
 default: export.bin
+
+# gen_addr.cpp uses std::filesystem, which requires C++17 or newer.
+CXXFLAGS += -std=c++17
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S), Darwin)

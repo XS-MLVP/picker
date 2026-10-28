@@ -44,3 +44,11 @@ add_test(NAME test_codegen_filelist COMMAND test_codegen_filelist)
 add_test(NAME test_codegen_sv_param COMMAND test_codegen_sv_param)
 add_test(NAME test_codegen_recursive_render COMMAND test_codegen_recursive_render)
 add_test(NAME test_codegen_sv_param_multi COMMAND test_codegen_sv_param_multi)
+
+add_test(NAME test_parser_verilator_trace_dtype_scope
+    COMMAND test_parser_verilator_trace_dtype_unit "${PICKER_TEST_DATA_DIR}/verilator_trace/dtype")
+add_test(NAME test_parser_verilator_trace_dtype_array
+    COMMAND test_parser_verilator_trace_dtype_array_unit "${PICKER_TEST_DATA_DIR}/verilator_trace/dtype_array")
+add_test(NAME test_parser_verilator_trace_dtype_array_v5_026
+    COMMAND test_parser_verilator_trace_dtype_array_unit "${PICKER_TEST_DATA_DIR}/verilator_trace/dtype_array_v5_026" 1)
+add_test(NAME test_parser_verilator_trace_structure COMMAND test_parser_verilator_trace_structure_unit)

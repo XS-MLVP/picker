@@ -92,16 +92,4 @@ verilator_version detect_version(const std::string &rootHeaderFile)
     return parse_version_output(command_output(""), "verilator");
 }
 
-bool trace_uses_v5_048_macros(const std::vector<std::string> &traceFiles)
-{
-    for (const auto &traceFile : traceFiles) {
-        auto content = read_file(traceFile);
-        if (content.find("VL_TRACE_DECL_") != std::string::npos
-            || content.find("VL_TRACE_PUSH_PREFIX") != std::string::npos) {
-            return true;
-        }
-    }
-    return false;
-}
-
 } } } } // namespace picker::parser::verilator::detail

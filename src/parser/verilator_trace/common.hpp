@@ -18,10 +18,21 @@ struct trace_event {
     std::string raw_expr;
     std::string expr;
     bool is_full = false;
+    bool is_array = false;
+    int array_size = 0;
 };
 
-std::vector<trace_event> parse_v5_026(const std::vector<std::string> &traceFiles);
-std::vector<trace_event> parse_v5_048(const std::vector<std::string> &traceFiles);
+// Loaded once per export. Only trace-relevant statements are retained, and
+// helper bodies are indexed once regardless of the number of call sites.
+struct trace_input {
+    std::map<std::string, std::vector<std::string>> functions;
+    std::vector<std::string> loose;
+    bool modern = false;
+    bool legacy = false;
+};
+
+trace_input read_trace_input(const std::vector<std::string> &traceFiles);
+std::vector<trace_event> parse_trace_events(const trace_input &input, bool modern);
 
 trace_parse_result build_result(const std::vector<trace_event> &events,
                                 const std::vector<cpp_variableInfo> &vars);
@@ -38,5 +49,10 @@ std::string strip_wrapping_parentheses(std::string expr);
 std::string join_scope(const std::vector<std::string> &scope, const std::string &leaf);
 std::string signal_type_from_width(int width);
 std::string read_file(const std::string &fileName);
+// The only version-specific operation is decoding declaration arguments.
+bool parse_v5_026_declaration(const std::string &statement, const std::vector<std::string> &args,
+                             int slot, trace_event &event);
+bool parse_v5_048_declaration(const std::string &statement, const std::vector<std::string> &args,
+                             int slot, trace_event &event);
 
 } } } } // namespace picker::parser::verilator::detail
