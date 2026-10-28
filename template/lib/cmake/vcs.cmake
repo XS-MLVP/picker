@@ -103,7 +103,7 @@ if(SIMULATOR STREQUAL "vcs")
 		execute_process(
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			COMMAND
-				vcs -e VcsMain -slave ${VCS_TRACE} -sverilog -lca -l compile.log
+				vcs -e VcsMain -slave ${VCS_TRACE} -sverilog -lca -kdb -l compile.log
 				-top ${ModuleName}_top -full64 -timescale=1ns/1ps
 				${ModuleName}_top.sv ${ModuleName}.v -f filelist.f
 				-o libDPI${ModuleName}.so +modelsave -LDFLAGS "-shared"

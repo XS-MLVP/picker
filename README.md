@@ -30,7 +30,7 @@ Create a test in the generated package's parent directory to assign inputs by po
 Generated Python DUT classes expose `SIMULATOR` (for example, `DUTAdder.SIMULATOR == "vcs"`)
 and `GetSimulator()`. This identifies the export backend, not a runtime backend switch.
 
-VCS waveform paths must use `.fsdb`; use `--verdi-mode modern` with current Verdi releases.
+VCS waveform paths must use `.fsdb`; use `--verdi-mode modern` with current Verdi releases. VCS source builds enable `-kdb` by default so the generated `.daidir` database can be opened in Verdi. Imported precompiled libraries must supply their own matching debug database.
 `Finish()` finalizes simulation and coverage in a forked child and waits for it, allowing
 Python to continue pytest teardown and report generation.
 
