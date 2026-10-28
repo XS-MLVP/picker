@@ -36,6 +36,7 @@ namespace picker { namespace codegen {
             "  export \"DPI-C\" function vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
             "  function void vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
             "    input string filename;\n"
+            "    picker_fsdb_configured = 1;\n"
             "    $fsdbDumpFinish;\n"
             "    $fsdbDumpfile(filename);\n"
             "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
@@ -200,8 +201,10 @@ namespace picker { namespace codegen {
                     if (wave_file_name.ends_with(".fsdb") == false) PK_FATAL("VCS trace file must be .fsdb format.\n");
                     sv_dump_wave =
                         env.render("  initial begin\n"
+                                   "    if (!picker_fsdb_configured) begin\n"
                                    "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
                                    "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
+                                   "    end\n"
                                    "  end\n\n",
                                    data);
                 }
@@ -222,6 +225,9 @@ namespace picker { namespace codegen {
             data["__TRACE__"] = sv_dump_wave.length() > 0 ? wave_file_name.substr(wave_file_name.find_last_of(".") + 1,
                                                                                   wave_file_name.length()) :
                                                             "OFF";
+            // Declare the runtime guard before its initial-block use without
+            // changing the waveform/control order or trace enablement above.
+            if (simulator == "vcs") sv_dump_wave = "  bit picker_fsdb_configured = 0;\n" + sv_dump_wave;
             data["__SV_DUMP_WAVE__"] = sv_dump_wave + sv_waveform_control;
         }
 

@@ -236,6 +236,7 @@ protected:
 
     // Flag to track if waveform dumping is paused. 0 means active, 1 means paused/closed.
     int waveform_paused;
+    std::string coverage_database;
 
 #if defined(USE_VERILATOR)
     DutVerilatorBase *dut;
@@ -325,6 +326,7 @@ public:
 
     // Get the bitmask for collected coverage metrics. 0 means coverage is disabled
     static int GetCovMetrics();
+    std::string GetCoveragePath();
 
     // Save Model Status with Simulator Capabilities
     // Return current cycle, warning: strictly limited to same design

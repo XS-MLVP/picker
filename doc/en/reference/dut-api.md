@@ -32,7 +32,7 @@ dut.Finish()
 
 Callbacks run after evaluation and signal refresh at the corresponding edge. Drive the RTL reset port to apply reset; see [clock and reset setup](../guides/simulation.md).
 
-While a test framework holds clock control, `Step()` reports an error. Use the framework's execution method during that period. Shutdown in simulators such as VCS and UVS may terminate the process, so arrange test reporting before `Finish()`.
+While a test framework holds clock control, `Step()` reports an error. Use the framework's execution method during that period. Newly generated VCS packages finalize in a child process so the host can continue reporting after `Finish()`; rebuild existing packages to obtain this behavior. UVS shutdown may still terminate the process, so arrange its test reporting before `Finish()`.
 
 ## Waveforms
 

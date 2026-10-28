@@ -25,6 +25,22 @@ make -C build/docs-adder/Adder -j4
 
 Create a test in the generated package's parent directory to assign inputs by port name and check outputs. The tutorial includes a complete script and expected results.
 
+## VCS integration
+
+Generated Python DUT classes expose `SIMULATOR` (for example, `DUTAdder.SIMULATOR == "vcs"`)
+and `GetSimulator()`. This identifies the export backend, not a runtime backend switch.
+
+VCS waveform paths must use `.fsdb`; use `--verdi-mode modern` with current Verdi releases. VCS source builds enable `-kdb` by default so the generated `.daidir` database can be opened in Verdi. Imported precompiled libraries must supply their own matching debug database.
+`Finish()` finalizes simulation and coverage in a forked child and waits for it, allowing
+Python to continue pytest teardown and report generation.
+
+Coverage-enabled VCS exports include `coverage/coverage`, a standalone UCAPI query
+executable using schema version 1, without xcomm coverage-client bindings.
+`GetCoveragePath()` returns the actual VDB; `SetCoverage()` selects a testdata name.
+Finalization uses a database lock before the snapshot can be queried. Regenerate and
+rebuild existing DUT packages after upgrading; installing Picker or updating only the
+Python reporter does not update their compiled libraries.
+
 ## Documentation
 
 [English documentation](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/en/index.md) · [完整中文文档](https://github.com/XS-MLVP/picker/blob/85fb45bc7432e9e94b59f8bb8805c40f0d544a0a/doc/zh/index.md)

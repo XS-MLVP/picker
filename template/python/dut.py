@@ -31,6 +31,8 @@ del _ctypes, _os
 
 class DUT{{__TOP_MODULE_NAME__}}(object):
 
+    SIMULATOR = "{{__SIMULATOR__}}"
+
     # initialize
     def __init__(self, *args, **kwargs):
         self.dut = DutUnifiedBase(*args)
@@ -132,6 +134,16 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
                 - Bit 5: assert (Assertion coverage)
         """
         return self.dut.GetCovMetrics()
+
+    def GetSimulator(self) -> str:
+        """Return the simulator used to compile this DUT."""
+        return self.SIMULATOR
+
+{% if __SIMULATOR__ == "vcs" %}
+    def GetCoveragePath(self) -> str:
+        """Return the native VDB location selected by the compiled runtime."""
+        return self.dut.GetCoveragePath()
+{% endif %}
     
     def CheckPoint(self, name: str) -> int:
         self.dut.CheckPoint(name)

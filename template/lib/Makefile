@@ -55,6 +55,11 @@ endif
 
 release: compile
 	@cp -r build/${TARGET} .
+ifeq ($(SIMULATOR), vcs)
+ifeq ($(COVERAGE), ON)
+	@cp build/coverage/coverage coverage/coverage
+endif
+endif
 	# Bring .vdb alongside the .so so the runtime -cm_dir (anchored to the .so
 	# directory by dut_base.cpp) finds the database and appends new testdata.
 	@cp -r build/${PROJECT}.vdb . 2>/dev/null || true

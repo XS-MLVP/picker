@@ -43,6 +43,13 @@ if(SIMULATOR STREQUAL "vcs")
 	endif()
 
 	if(${COVERAGE} STREQUAL "ON")
+		add_executable(picker_vcs_coverage coverage/vcs_uncover.cpp)
+		target_include_directories(picker_vcs_coverage PRIVATE ${VCS_HOME}/include)
+		target_link_libraries(picker_vcs_coverage PRIVATE ${VCS_HOME}/linux64/lib/libucapi.so)
+		set_target_properties(picker_vcs_coverage PROPERTIES
+			OUTPUT_NAME coverage
+			RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/coverage"
+			BUILD_RPATH "${VCS_HOME}/linux64/lib")
 		add_definitions(-DVCS_COVERAGE)
 		set(VCS_HAS_COVERAGE_FLAGS OFF)
 		set(VCS_HAS_COVERAGE_DIR OFF)
@@ -96,7 +103,7 @@ if(SIMULATOR STREQUAL "vcs")
 		execute_process(
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			COMMAND
-				vcs -e VcsMain -slave ${VCS_TRACE} -sverilog -lca -l compile.log
+				vcs -e VcsMain -slave ${VCS_TRACE} -sverilog -lca -kdb -l compile.log
 				-top ${ModuleName}_top -full64 -timescale=1ns/1ps
 				${ModuleName}_top.sv ${ModuleName}.v -f filelist.f
 				-o libDPI${ModuleName}.so +modelsave -LDFLAGS "-shared"

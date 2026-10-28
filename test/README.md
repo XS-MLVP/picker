@@ -8,6 +8,8 @@ These scripts check the CLI and export/pack flows. Verilator and Python are the 
 
 | Command / 命令 | Scope / 范围 |
 | --- | --- |
+| `python3 test/scripts/test_python_simulator_metadata.py` | VCS/Verilator metadata generation; override binary with `PICKER_BIN`; no simulator license required / 仿真器元数据生成 |
+| `python3 test/scripts/test_vcs_coverage_runtime.py` | Native VCS coverage, FSDB, relocation and post-Finish execution / VCS 原生覆盖率与结束行为 |
 | `make -C test all` | Integration suite / 集成测试 |
 | `make -C test smoke` | CLI smoke, without DUT builds / CLI 冒烟，不构建 DUT |
 | `make -C test export_python` | Python Adder export / Python 加法器 |
@@ -23,3 +25,5 @@ These scripts check the CLI and export/pack flows. Verilator and Python are the 
 Tests write generated directories such as picker_out_* and pack_example. `make -C test clean` removes test outputs. The preflight may rebuild missing bindings; use a separate checkout when preserving other build artifacts.
 
 测试会生成 picker_out_*、pack_example 等目录；`make -C test clean` 清理测试产物。preflight 可能重建缺失绑定；需保留其他构建产物时使用独立 checkout。
+
+For the VCS runtime regression, set `PICKER_VCS_DUT_DIR` to a freshly compiled coverage-enabled Adder package and run in the VCS environment. The test checks two independent snapshots and standalone helper queries. Metadata tests use temporary output directories.
