@@ -11,8 +11,13 @@ enum class parser_version {
 };
 
 parser_version select_parser(const std::string *rootHeaderFile,
-                             const std::vector<std::string> &traceFiles)
+                             const detail::trace_input &input)
 {
+    // The generated trace file format is authoritative. PATH may point at a
+    // different Verilator version than the one that produced the DUT.
+    if (input.modern) return parser_version::v5_048;
+    if (input.legacy) return parser_version::v5_026;
+
     if (rootHeaderFile) {
         auto version = detail::detect_version(*rootHeaderFile);
         if (version.known()) {
@@ -20,18 +25,16 @@ parser_version select_parser(const std::string *rootHeaderFile,
                                            : parser_version::v5_026;
         }
     }
-    return detail::trace_uses_v5_048_macros(traceFiles) ? parser_version::v5_048
-                                                        : parser_version::v5_026;
+    return parser_version::v5_026;
 }
 
 trace_parse_result dispatch_trace_parser(const std::string *rootHeaderFile,
                                          const std::vector<std::string> &traceFiles,
                                          const std::vector<cpp_variableInfo> &vars)
 {
-    auto parser = select_parser(rootHeaderFile, traceFiles);
-    auto events = parser == parser_version::v5_048
-        ? detail::parse_v5_048(traceFiles)
-        : detail::parse_v5_026(traceFiles);
+    auto input = detail::read_trace_input(traceFiles);
+    auto events = detail::parse_trace_events(input,
+        select_parser(rootHeaderFile, input) == parser_version::v5_048);
     return detail::build_result(events, vars);
 }
 
