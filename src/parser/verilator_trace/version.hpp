@@ -16,6 +16,5 @@ struct verilator_version {
 };
 
 verilator_version detect_version(const std::string &rootHeaderFile);
-bool trace_uses_v5_048_macros(const std::vector<std::string> &traceFiles);
 
 } } } } // namespace picker::parser::verilator::detail
