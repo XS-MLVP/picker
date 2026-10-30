@@ -43,14 +43,35 @@ python3 -m venv /tmp/docs-venv
 
 Picker 的示例需要先导出教程中的 Adder、带波形和覆盖率的 Adder，以及内部信号指南中的 vpi。将带记录功能的 Adder 和 vpi 包放在同一个目录后，用 `--cwd` 指定该目录。
 
-## 导出 GitHub Wiki
+## 发布 GitHub Wiki
 
-网站和 Wiki 都由同一份 Markdown 生成。在空目录导出：
+网站和 Wiki 由同一份 Markdown 生成。在空目录预览导出结果：
 
 ```sh
-/tmp/docs-venv/bin/python scripts/docs.py wiki --output /tmp/picker-wiki
+/tmp/docs-venv/bin/python scripts/docs.py wiki --output /tmp/picker-wiki-export
 ```
 
-输出包含双语页面、首页、侧栏、页脚和文件清单，页面链接已转换为 Wiki 名称。维护者审阅后，将这些文件同步到 `picker.wiki.git` 即可。[GitHub Wiki 文档](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages)介绍独立仓库的编辑方式。
+导出包含双语页面、首页、侧边栏、页脚和 SHA-256 文件清单。
+页面链接转换为 GitHub Wiki 的绝对 URL，源码和图片链接指向主仓库。
 
-文档 CI 在面向 master 的 PR、master 或 `docs/**` 分支上的文档改动，以及手动运行时执行。它检查双语页面、链接和示例语法，构建网站并导出 Wiki，结果作为 artifacts 提供评审。
+**Documentation** 工作流检查链接、测试文档工具、构建网站，并上传网站和 Wiki 导出供评审。
+文档修改进入 `master` 后，**Sync GitHub Wiki** 任务将已校验的导出同步到 `picker.wiki.git`。
+PR 和 `docs/**` 分支只生成预览。需要重试时，在 Actions 页面手动运行 **Documentation**，
+选择 `master`。若已有更新的文档提交，旧导出会跳过同步。
+
+发布任务使用自带的 `GITHUB_TOKEN`，仅该任务授予 `contents: write`，无需额外 PAT 或 secret。
+首次使用须启用仓库 Wiki，并在网页创建一次首页，之后 Actions 才能检出 Wiki 仓库。
+参见 [GitHub Wiki 文档](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages)。
+
+请在 `doc/zh` 和 `doc/en` 修改生成页面，下一次同步会按源码覆盖这些页面。
+首次同步会替换初始化的首页、侧边栏和页脚；其他手工页面会保留，同名冲突需要人工处理。
+删除或重命名页面时，只移除仍符合旧清单的生成文件；失效页面如有手工改动，任务会停止供检查。
+内容无变化时不创建提交，推送不会强制覆盖 Wiki 历史。
+
+本地可运行同一同步逻辑并查看差异，以下命令不会发布：
+
+```sh
+git clone https://github.com/XS-MLVP/picker.wiki.git /tmp/picker-wiki-checkout
+python scripts/sync_wiki.py --export /tmp/picker-wiki-export --checkout /tmp/picker-wiki-checkout
+git -C /tmp/picker-wiki-checkout diff
+```
