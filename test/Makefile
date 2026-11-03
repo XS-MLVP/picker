@@ -42,6 +42,11 @@ preflight:
 smoke: preflight
 	bash "$(SCRIPT_DIR)/test_cli.sh"
 
+.PHONY: autobuild_failure
+all: autobuild_failure
+autobuild_failure: preflight
+	bash "$(SCRIPT_DIR)/test_autobuild_failure_status.sh"
+
 template_purge:
 	bash "$(SCRIPT_DIR)/test_template_purge.sh"
 

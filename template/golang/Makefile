@@ -7,7 +7,7 @@ all: test clean
 
 test: compile
 	@echo "--------------Compile Success Test Step DUT--------------------"
-	@cd ../ && GO111MODULE=off GOPATH="`pwd`/${TARGET}/golang:{{__XSPCOMM_GOLANG__}}" go run example.go && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || true
+	@cd ../ && GO111MODULE=off GOPATH="`pwd`/${TARGET}/golang:{{__XSPCOMM_GOLANG__}}" go run example.go && rm -rf *.fst *.vcd *.fsdb *.log *.key 2>/dev/null || { status=$$?; echo "Error: Test failed with status $$status, please check whether behavior is correct" >&2; exit $$status; }
 	@echo "--------------------------------------------------------------"
 
 
