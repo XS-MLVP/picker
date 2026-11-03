@@ -61,6 +61,11 @@ pack_python: preflight
 export_java: preflight
 	bash "$(SCRIPT_DIR)/test_export_adder_java.sh"
 
+.PHONY: export_internal_dollar_python
+all: export_internal_dollar_python
+export_internal_dollar_python: preflight
+	bash "$(SCRIPT_DIR)/test_export_internal_dollar_python.sh"
+
 sv_build: preflight
 	bash "$(SCRIPT_DIR)/test_sv_verilator_build.sh"
 

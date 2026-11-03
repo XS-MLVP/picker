@@ -5,6 +5,7 @@
 #include <chrono>
 #include <regex>
 #include <set>
+#include <string_view>
 #include <unistd.h>
 #include <filesystem>
 #include <functional>
@@ -245,6 +246,34 @@ inline std::string str_replace_all(std::string str, const std::string &from, con
         start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
     }
     return str;
+}
+
+// Return the base name used by generated DPI-C symbols. Keep the historical
+// dot-to-underscore spelling for ordinary signals. A dollar sign is legal in
+// a SystemVerilog identifier but not in a C identifier, so encode the complete
+// logical name behind a reserved prefix in that case. The prefix deliberately
+// contains no underscore, so Picker's underscore-delimited signal tree keeps
+// the encoded name as one leaf. Names already using the prefix in any letter
+// case are encoded as well: Go capitalizes generated fields, so reserving only
+// the lowercase spelling would allow a host-member collision. This keeps the
+// extension collision-free without changing other existing names.
+inline std::string dpi_function_base_name(const std::string &logic_pin)
+{
+    static constexpr std::string_view encoded_prefix = "pickerdpix";
+    static constexpr char hex[]                       = "0123456789abcdef";
+
+    std::string flattened = str_replace_all(logic_pin, ".", "_");
+    const bool needs_encoding = flattened.find('$') != std::string::npos
+                                || lower_case(flattened).starts_with(encoded_prefix);
+    if (!needs_encoding) { return flattened; }
+
+    std::string encoded(encoded_prefix);
+    encoded.reserve(encoded.size() + logic_pin.size() * 2);
+    for (unsigned char c : logic_pin) {
+        encoded.push_back(hex[c >> 4]);
+        encoded.push_back(hex[c & 0x0f]);
+    }
+    return encoded;
 }
 
 template <typename T>
