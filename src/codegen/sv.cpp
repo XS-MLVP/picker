@@ -56,6 +56,30 @@ namespace picker { namespace codegen {
             "    else $fsdbDumpoff;\n"
             "  endfunction\n";
 
+        static const std::string uvs_usdb_control_sv_template =
+            "  export \"DPI-C\" function uvs_usdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "  function void uvs_usdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    input string filename;\n"
+            "    picker_usdb_configured = 1;\n"
+            "    $usdbDumpFinish;\n"
+            "    $usdbDumpfile(filename);\n"
+            "    $usdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
+            "  endfunction\n\n"
+            "  export \"DPI-C\" function uvs_usdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "  function void uvs_usdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    $usdbDumpFinish;\n"
+            "  endfunction\n\n"
+            "  export \"DPI-C\" function uvs_usdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "  function void uvs_usdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    $usdbDumpflush;\n"
+            "  endfunction\n\n"
+            "  export \"DPI-C\" function uvs_usdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "  function void uvs_usdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    input byte unsigned enable;\n"
+            "    if (enable) $usdbDumpon;\n"
+            "    else $usdbDumpoff;\n"
+            "  endfunction\n";
+
         static const std::string vcs_coverage_sv_template =
             "  export \"DPI-C\" task vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
             "  task vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
@@ -209,13 +233,16 @@ namespace picker { namespace codegen {
                                    data);
                 }
             } else if (simulator == "uvs") {
+                sv_waveform_control = env.render(uvs_usdb_control_sv_template, data);
                 if (wave_file_name.length() > 0) {
                     if (wave_file_name.ends_with(".usdb") == false) PK_FATAL("USDB trace file must be .usdb format.\n");
                     sv_dump_wave =
                         env.render("  initial begin\n"
+                                   "    if (!picker_usdb_configured) begin\n"
                                    "    $usdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
                                    "    $usdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
-                                   "  end",
+                                   "    end\n"
+                                   "  end\n\n",
                                    data);
                 }
             } else {
@@ -228,6 +255,7 @@ namespace picker { namespace codegen {
             // Declare the runtime guard before its initial-block use without
             // changing the waveform/control order or trace enablement above.
             if (simulator == "vcs") sv_dump_wave = "  bit picker_fsdb_configured = 0;\n" + sv_dump_wave;
+            if (simulator == "uvs") sv_dump_wave = "  bit picker_usdb_configured = 0;\n" + sv_dump_wave;
             data["__SV_DUMP_WAVE__"] = sv_dump_wave + sv_waveform_control;
         }
 

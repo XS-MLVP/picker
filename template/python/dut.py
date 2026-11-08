@@ -139,9 +139,9 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         """Return the simulator used to compile this DUT."""
         return self.SIMULATOR
 
-{% if __SIMULATOR__ == "vcs" %}
+{% if __SIMULATOR__ == "vcs" or __SIMULATOR__ == "uvs" %}
     def GetCoveragePath(self) -> str:
-        """Return the native VDB location selected by the compiled runtime."""
+        """Return the native database location selected by the compiled runtime."""
         return self.dut.GetCoveragePath()
 {% endif %}
     

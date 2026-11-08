@@ -10,6 +10,7 @@
 #include <functional>
 #include <filesystem>
 #include <cerrno>
+#include <random>
 #if defined(USE_VCS)
 #include <sys/wait.h>
 #include <sys/file.h>
@@ -24,7 +25,7 @@
 
 int enable_xinfo = 0; // 0: disable, 1: enable, 2: debug
 
-#if defined(USE_VCS)
+#if defined(USE_VCS) || defined(USE_UVS)
 
 // argv[0] is the .so path; VCS options start at index 1.
 static bool has_argv_option(int argc, char **argv, const char *opt)
@@ -33,6 +34,24 @@ static bool has_argv_option(int argc, char **argv, const char *opt)
         if (argv[i] && std::strcmp(argv[i], opt) == 0) return true;
     return false;
 }
+
+// Return the absolute directory containing this .so; falls back to CWD.
+static std::string vcs_so_dir()
+{
+    Dl_info info;
+    if (dladdr(reinterpret_cast<void *>(&vcs_so_dir), &info) && info.dli_fname) {
+        std::error_code ec;
+        auto abs = std::filesystem::absolute(info.dli_fname, ec);
+        if (!ec) return abs.parent_path().string();
+    }
+    std::error_code ec;
+    auto cwd = std::filesystem::current_path(ec);
+    return ec ? "." : cwd.string();
+}
+
+#endif
+
+#if defined(USE_VCS)
 
 static void append_argv_option(int &argc, char **argv, const std::string &val, int cap)
 {
@@ -65,20 +84,6 @@ static std::string vcs_coverage_test_name(const std::string &val)
     for (char &c : name)
         if (!std::isalnum((unsigned char)c) && c != '_' && c != '-') c = '_';
     return name;
-}
-
-// Return the absolute directory containing this .so; falls back to CWD.
-static std::string vcs_so_dir()
-{
-    Dl_info info;
-    if (dladdr(reinterpret_cast<void *>(&vcs_so_dir), &info) && info.dli_fname) {
-        std::error_code ec;
-        auto abs = std::filesystem::absolute(info.dli_fname, ec);
-        if (!ec) return abs.parent_path().string();
-    }
-    std::error_code ec;
-    auto cwd = std::filesystem::current_path(ec);
-    return ec ? "." : cwd.string();
 }
 
 #endif
@@ -278,6 +283,19 @@ uint64_t DutVcsBase::NativeSignalAddr(const char *name){
 
 int disable_uvs_mem_direct = 0;
 
+{% if __COVERAGE__ == "ON" %}
+static std::string uvs_coverage_metric_string()
+{
+    static constexpr std::pair<int, const char *> kMetrics[] = {
+        {1 << 0, "stmt"}, {1 << 1, "cond"}, {1 << 2, "fsm"}, {1 << 3, "tgl"}, {1 << 5, "assert"},
+    };
+    std::string s;
+    for (auto [bit, name] : kMetrics)
+        if ({{__COVERAGE_METRICS__}} & bit) { if (!s.empty()) s += ','; s += name; }
+    return s;
+}
+{% endif %}
+
 DutUvsBase::DutUvsBase()
 {
     // XXFatal("UVS does not support no-args constructor");
@@ -299,6 +317,26 @@ void DutUvsBase::init(int argc, char **argv)
     if (disable_mem_direct_env) {
         disable_uvs_mem_direct = 1;
     }
+
+{% if __COVERAGE__ == "ON" %}
+    // UVS reads -covdir here, but SetCoverage is only called after construction.
+    // UVS does not touch the directory until UvsFinish, so point it at a private
+    // path and let Finish move the database to the requested location.
+    this->coverage_args.assign(argv, argv + argc);
+    const auto add_default = [&](const char *key, const std::string &value) {
+        if (has_argv_option(argc, argv, key)) return false;
+        this->coverage_args.insert(this->coverage_args.end(), {key, value});
+        return true;
+    };
+    add_default("-cov", uvs_coverage_metric_string());
+    add_default("-covtest", "{{__TOP_MODULE_NAME__}}");
+    const std::string run_dir = (std::filesystem::temp_directory_path() /
+        ("picker_uvs_cov_" + std::to_string(getpid()) + "_" + std::to_string(std::random_device{}()) + ".cdb")).string();
+    if (add_default("-covdir", run_dir)) this->coverage_run_dir = run_dir;
+    for (auto &arg : this->coverage_args) this->coverage_argv.push_back(arg.data());
+    argc = this->coverage_argv.size();
+    argv = this->coverage_argv.data();
+{% endif %}
 
     // initialize context
     UvsMain(argc, argv);
@@ -339,40 +377,74 @@ int DutUvsBase::Step(uint64_t ncycle, bool dump)
 
 int DutUvsBase::Finish()
 {
-    // Finish VCS context
+    uvs_usdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
     UvsFinish();
+{% if __COVERAGE__ == "ON" %}
+    if (this->coverage_run_dir.empty()) return 0;
+    // UVS only reports a missing compile database with a log line and still returns.
+    std::error_code ec;
+    bool written = false;
+    for (const auto &test : std::filesystem::directory_iterator(std::filesystem::path(this->coverage_run_dir) / "data", ec))
+        written = written || std::filesystem::exists(test.path() / "design.info");
+    if (!written) {
+        XWarning("UVS wrote no coverage data: the DUT package must stay where it was exported");
+        std::filesystem::remove_all(this->coverage_run_dir, ec);
+        return -1;
+    }
+    const std::filesystem::path target = this->coverage_file_path.empty()
+        ? std::filesystem::path(vcs_so_dir()) / "{{__TOP_MODULE_NAME__}}_run.cdb"
+        : std::filesystem::path(this->coverage_file_path);
+    std::filesystem::create_directories(target.parent_path(), ec);
+    std::filesystem::copy(this->coverage_run_dir, target,
+                          std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, ec);
+    if (ec) {
+        XWarning("Failed to store UVS coverage data in %s: %s", target.c_str(), ec.message().c_str());
+        return -1;
+    }
+    std::filesystem::remove_all(this->coverage_run_dir, ec);
+{% endif %}
     return 0;
 };
 
 void DutUvsBase::SetWaveform(const char *filename)
 {
-    XInfo("UVS waveform is not supported");
+    if (filename == nullptr || !std::string(filename).ends_with(".usdb")) {
+        XFatal("UVS trace file must be .usdb format");
+    }
+    uvs_usdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}(filename);
 };
 void DutUvsBase::SetCoverage(const char *filename)
 {
-    XInfo("UVS coverage is not supported");
+{% if __COVERAGE__ == "ON" %}
+    if (filename == nullptr || std::strlen(filename) == 0) {
+        XFatal("UVS coverage file path is empty");
+    }
+    this->coverage_file_path = std::filesystem::absolute(filename).string();
+{% else %}
+    XInfo("UVS coverage is not enabled");
+{% endif %}
 };
 void DutUvsBase::ResetCoverage()
 {
-    XInfo("UVS coverage is not supported");
+    XWarning("UVS cannot reset coverage at runtime, ResetCoverage is ignored");
 };
 void DutUvsBase::FlushWaveform()
 {
-    XInfo("UVS waveform is not supported");
+    uvs_usdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
 };
 bool DutUvsBase::ResumeWaveformDump()
 {
-    XInfo("UVS waveform is not supported");
+    uvs_usdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(1);
     return true;
 };
 bool DutUvsBase::PauseWaveformDump()
 {
-    XInfo("UVS waveform is not supported");
+    uvs_usdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(0);
     return true;
 };
 void DutUvsBase::WaveformEnable(bool enable)
 {
-    XInfo("UVS waveform is not supported");
+    uvs_usdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(enable ? 1 : 0);
 };
 int DutUvsBase::CheckPoint(const char *filename)
 {
@@ -828,6 +900,10 @@ std::string DutUnifiedBase::GetCoveragePath()
         if (std::strcmp(this->argv[index], "-cm_dir") == 0)
             return this->coverage_database = std::filesystem::absolute(this->argv[index + 1]).string();
     }
+#elif defined(USE_UVS)
+    if (coverage_metrics != 0)
+        return this->coverage_database =
+                   (std::filesystem::path(vcs_so_dir()) / "{{__TOP_MODULE_NAME__}}.cdb").string();
 #endif
     return "";
 }

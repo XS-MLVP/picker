@@ -186,6 +186,10 @@ void UvsRunUntil(uint64_t);
 void UvsRun(uint64_t);
 int UvsFinish(void);
 void finish_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void uvs_usdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}(const char *filename);
+void uvs_usdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void uvs_usdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}}();
+void uvs_usdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}}(unsigned char enable);
 }
 
 class DutUvsBase : public DutBase
@@ -193,6 +197,10 @@ class DutUvsBase : public DutBase
 protected:
     uint64_t cycle_hl;
     uint64_t uvs_clock_period[3];
+    std::string coverage_file_path;
+    std::string coverage_run_dir;
+    std::vector<std::string> coverage_args;
+    std::vector<char *> coverage_argv;
 
 public:
     std::string sv_scope = "{{__TOP_MODULE_NAME__}}_top";
