@@ -43,6 +43,12 @@ if(SIMULATOR STREQUAL "uvs")
 	endif()
 
 
+	# The compiled design records this absolute path and reads it at runtime, without
+	# it UVS writes no coverage data. So build in place instead of copying from build/.
+	if(${COVERAGE} STREQUAL "ON" AND NOT "-covdir" IN_LIST SIMULATOR_FLAGS)
+		set(SIMULATOR_FLAGS "${SIMULATOR_FLAGS};-covdir;${CMAKE_SOURCE_DIR}/${ModuleName}.cdb")
+	endif()
+
 	# Using VCS compile
 		execute_process(
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

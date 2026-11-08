@@ -239,6 +239,39 @@ namespace picker { namespace codegen {
         return metrics;
     }
 
+    int uvs_coverage_metric_bit(const std::string &metric)
+    {
+        if (metric == "stmt") return 1 << 0;
+        if (metric == "cond") return 1 << 1;
+        if (metric == "fsm") return 1 << 2;
+        if (metric == "tgl") return 1 << 3;
+        if (metric == "assert") return 1 << 5;
+        if (metric == "all") return 0b101111;
+        return 0;
+    }
+
+    int parse_uvs_coverage_metrics(const std::string &vflag, bool &has_cov)
+    {
+        std::string normalized = vflag;
+        for (auto &ch : normalized) {
+            if (ch == '"' || ch == '\'' || ch == ',') ch = ' ';
+        }
+
+        int metrics = 0;
+        bool in_cov = false;
+        std::stringstream ss(normalized);
+        for (std::string token; ss >> token;) {
+            if (token == "-cov") {
+                has_cov = in_cov = true;
+            } else if (token[0] == '-') {
+                in_cov = false;
+            } else if (in_cov) {
+                metrics |= uvs_coverage_metric_bit(token);
+            }
+        }
+        return metrics;
+    }
+
     void gen_coverage_metrics(std::string &simulator, picker::export_opts &opts, std::string &vflag,
                               nlohmann::json &data)
     {
@@ -264,6 +297,16 @@ namespace picker { namespace codegen {
                 if (!vflag.empty()) vflag += " ";
                 vflag += "-cm line+cond+fsm+tgl+branch+assert";
                 metrics = 0b111111;
+            }
+        } else if (coverage && simulator == "uvs") {
+            bool has_cov = false;
+            metrics      = parse_uvs_coverage_metrics(vflag, has_cov);
+            if (!has_cov) {
+                if (!vflag.empty()) vflag += " ";
+                // UVS has no branch metric. cont_assign counts assign statements,
+                // which are most of the statements in Chisel-generated RTL.
+                vflag += "-cov stmt,cond,tgl,fsm,assert -covopt cont_assign";
+                metrics = 0b101111;
             }
         }
 

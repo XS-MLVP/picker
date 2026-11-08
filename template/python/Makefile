@@ -11,6 +11,7 @@ test: compile
 	@echo "--------------Compile Success Test Step DUT--------------------"
 	@cd ../ && PYTHONPATH=.:{{__XSPCOMM_PYTHON__}}/.. python3 example.py || \
 		{ result=$$?; echo "Error: Test failed, plz check whether behavior is correct"; }
+	@rm -rf {{__TOP_MODULE_NAME__}}_run.cdb
 	@echo "--------------------------------------------------------------"
 
 # copy xspcomm lib
