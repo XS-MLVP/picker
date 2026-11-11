@@ -41,7 +41,7 @@ blue "[export-adder-memdirect-threads] Using ${VERILATOR_VERSION_OUTPUT}"
   --lang cpp \
   --tdir "${OUTDIR}" \
   -w "${OUTDIR}/trace.fst" \
-  -V "--threads;2"
+  -V "--timing;--threads;2"
 
 blue "[export-adder-memdirect-threads] Building generated project"
 make -C "${OUTDIR}" compile NPROC="$(nproc 2>/dev/null || echo 2)"
@@ -58,5 +58,8 @@ else
 fi
 grep -Fq 'Adder_top__DOT__cin' "${ROOT_HEADER}"
 grep -Fq 'source: "Adder_top.cin"' "${OFFSET_YAML}"
+
+blue "[export-adder-memdirect-threads] Verifying --timing model C++ flags"
+python3 "${SCRIPT_DIR}/test_mem_direct_timing.py" -v
 
 green "[export-adder-memdirect-threads] OK"

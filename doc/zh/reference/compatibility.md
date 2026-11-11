@@ -22,6 +22,10 @@
 | 检查点 | `--checkpoints` | Verilator |
 | 原生内存读写 | `--rw mem_direct` | Verilator、GSIM |
 
+`--rw mem_direct` 会为生成的模型头构建一个小型地址生成器。如果 Verilator 同时使用
+`--timing`，该头需要 C++20 协程；Picker 会自动检测并使用 `-std=c++20 -fcoroutines`。
+未启用 `--timing` 时生成器仍使用 C++17，旧编译器继续支持非时序模型。
+
 ## 语言
 
 | `--lang` | 运行或编译环境 |
