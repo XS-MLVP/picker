@@ -193,7 +193,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.dut.Finish()
 
     def RefreshComb(self):
-        self.dut.RefreshComb()
+        self.xclock.RefreshComb()
 
     def AtClone(self):
         """Re-init simulator state in child after fork."""

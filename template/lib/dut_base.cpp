@@ -658,13 +658,13 @@ DutVerilatorBase::~DutVerilatorBase()
 
 int DutVerilatorBase::Step(uint64_t ncycle, bool dump)
 {
-    cycle += ncycle;
 #if defined(VL_VPI)
     VerilatedVpi::callValueCbs();
 #endif
     V{{__TOP_MODULE_NAME__}} *topp = (V{{__TOP_MODULE_NAME__}} *)(top);
     VerilatedContext *contextp = topp->contextp();
     if (likely(dump)) {
+        cycle += ncycle;
         for (uint64_t i = 0; i < ncycle; i++) {
             topp->eval();
 #if defined(VL_VPI)

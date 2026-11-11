@@ -218,7 +218,7 @@ function DUT{{__TOP_MODULE_NAME__}}:VPIInternalSignalList(prefix, deep)
 end
 
 function DUT{{__TOP_MODULE_NAME__}}:RefreshComb()
-    self.dut:RefreshComb()
+    self.xclock:RefreshComb()
 end
 
 function DUT{{__TOP_MODULE_NAME__}}:AtClone()

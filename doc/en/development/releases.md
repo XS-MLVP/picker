@@ -46,7 +46,7 @@ Release artifacts are published to GitHub Releases. The verified Python wheel is
 ## Python distribution and PyPI setup
 
 The distribution is `uc-picker`; the executable remains `picker`. It requires
-`uc-xcomm>=1.1,<2` and `swig>=4.2.1,<5`. Publish `uc-xcomm` first: Tagged CI selects a
+`uc-xcomm>=1.2,<2` and `swig>=4.2.1,<5`. Publish `uc-xcomm` first: Tagged CI selects a
 compatible stable release available on both GitHub and PyPI. Development CI pins
 the corresponding xcomm source and uses a test-only version matching this range.
 

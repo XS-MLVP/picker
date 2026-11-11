@@ -182,7 +182,7 @@ public:
     }
     void RefreshComb()
     {
-        this->dut->RefreshComb();
+        this->xclock.RefreshComb();
     }
     void AtClone()
     {

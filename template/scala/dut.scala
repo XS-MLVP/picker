@@ -108,7 +108,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.xclock.Add(this.xport.Get(clock_name))
     }
     def RefreshComb() = {
-        this.dut.RefreshComb()
+        this.xclock.RefreshComb()
     }
     def AtClone(): Unit = {
         this.dut.atClone()
