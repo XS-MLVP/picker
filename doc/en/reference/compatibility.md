@@ -22,6 +22,11 @@ Enable waveforms and checkpoints at export time:
 | Checkpoints | `--checkpoints` | Verilator |
 | Native memory access | `--rw mem_direct` | Verilator and GSIM |
 
+`--rw mem_direct` builds a small address generator against the generated model header. When
+Verilator also receives `--timing`, that header requires C++20 coroutines; Picker detects it and
+builds the generator with `-std=c++20 -fcoroutines`. Without `--timing`, the generator stays on
+C++17, so older compilers keep working for non-timing models.
+
 ## Languages
 
 | `--lang` | Runtime or compiler |

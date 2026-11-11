@@ -1,8 +1,9 @@
 .PHONY: default
 default: export.bin
 
-# gen_addr.cpp uses std::filesystem, which requires C++17 or newer.
-CXXFLAGS += -std=c++17
+# gen_addr.cpp includes the generated model header and uses std::filesystem.
+# Keep C++17 by default; the Verilator branch below raises this when needed.
+MEM_DIRECT_CXX_STANDARD := -std=c++17
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S), Darwin)
@@ -16,6 +17,13 @@ endif
 {% if __SIMULATOR__ == "verilator" %}
 LIB_DUT_NAME = DPI${TOP_NAME}
 LIB_DUT_PATH := ../build/libDPI${TOP_NAME}.a
+
+# Verilator --timing models schedule delays with C++20 coroutines. Their root
+# header includes verilated_timing.h, so the address generator must use the
+# same standard and coroutine flag as the model instead of forcing C++17.
+ifneq ($(shell grep -q 'verilated_timing.h' ../build/DPI${TOP_NAME}/V${TOP_NAME}___024root.h 2>/dev/null && echo yes),)
+MEM_DIRECT_CXX_STANDARD := -std=c++20 -fcoroutines
+endif
 
 # Use the last VERILATOR_ROOT reported by `verilator -V`
 V_ROOT := $(shell verilator -V | grep ROOT | grep verilator | tail -n 1 | awk '{print $$3}')
@@ -50,6 +58,8 @@ LDLIBS += -lpthread -lz -ldl
 {% endif %}
 
 # OBJS contains the list of object files generated from all .cpp files in the directory
+CXXFLAGS += $(MEM_DIRECT_CXX_STANDARD)
+
 OBJS = $(patsubst %.cpp, %.o, $(wildcard *.cpp))
 
 export.bin: $(OBJS)
