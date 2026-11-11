@@ -33,6 +33,7 @@ import Adder as generated
 
 assert generated.xsp.abi_version() == 3
 assert generated.xsp.XTriggerEngine.CoverageVersion() == 5
+assert generated.xsp.XTriggerEngine.CombinationalVersion() == 1
 dut = generated.DUTAdder()
 try:
     for name in ("a", "b", "cin", "sum", "cout"):
@@ -54,6 +55,19 @@ try:
         assert dut.sum.value == expected & mask
         assert dut.cout.value == expected >> 128
     clock = dut.GetXClock()
+    # Pure combinational inputs are immediately committed, without InitClock.
+    for signal in (dut.a, dut.b, dut.cin):
+        signal.AsImmWrite()
+    tick = clock.GetHalfTick()
+    for a, b, cin in ((1, 2, 0), (mask, 1, 0), (0, 0, 1)):
+        dut.a.Set(a)
+        dut.b.Set(b)
+        dut.cin.Set(cin)
+        dut.RefreshComb()
+        expected = a + b + cin
+        assert dut.sum.value == expected & mask
+        assert dut.cout.value == expected >> 128
+        assert clock.GetHalfTick() == tick
     engine = generated.xsp.XTriggerEngine(clock)
     competing = generated.xsp.XTriggerEngine(clock)
     assert not clock.IsControlled()
@@ -61,7 +75,8 @@ try:
     engine.AcquireClock()
     try:
         for operation in (lambda: dut.Step(1), lambda: clock.RawStep(1),
-                          clock.StepHalf, competing.AcquireClock):
+                          clock.StepHalf, dut.RefreshComb, clock.RefreshComb,
+                          clock.RefreshCombT, clock.eval, clock.eval_t, competing.AcquireClock):
             try:
                 operation()
             except RuntimeError:
@@ -69,6 +84,18 @@ try:
             else:
                 raise AssertionError("clock ownership was bypassed")
             assert clock.GetHalfTick() == tick
+
+        # Engine-owned combination sampling is allowed while manual entry is blocked.
+        dut.a.Set(5)
+        dut.b.Set(6)
+        dut.cin.Set(0)
+        expected = 11
+        sample = engine.ArmEdge(generated.xsp.XPhase_CombStable)
+        result = engine.SamplePhase(generated.xsp.XPhase_CombStable)
+        assert result.advanced_ticks == 0 and len(result.hits) == 1
+        assert result.hits[0].kind == generated.xsp.XHitKind_CombStable
+        assert dut.sum.value == expected and clock.GetHalfTick() == tick
+        assert engine.Disarm(sample)
 
         cycles = engine.ArmClockCycles(2)
         result = engine.RunUntil(8)
@@ -94,6 +121,7 @@ try:
         engine.Clear()
         engine.ReleaseClock()
     assert not clock.IsControlled()
+    dut.RefreshComb()
     dut.Step(1)
     assert dut.sum.value == expected & mask
     assert dut.cout.value == expected >> 128
@@ -101,5 +129,7 @@ finally:
     dut.Finish()
 PY
 )
+
+python3 "${SCRIPT_DIR}/test_comb_refresh_contract.py" -v
 
 green "[export-python] OK"

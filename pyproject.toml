@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 license = "MulanPSL-2.0"
 license-files = ["LICENSE"]
 dependencies = [
-    "uc-xcomm>=1.1,<2",
+    "uc-xcomm>=1.2,<2",
     "swig>=4.2.1,<5",
 ]
 

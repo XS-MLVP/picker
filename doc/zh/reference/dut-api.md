@@ -32,6 +32,13 @@ dut.Finish()
 
 回调在相应边沿的求值和信号刷新后执行。复位通过 RTL 复位端口驱动，示例见[设置时钟和复位](../guides/simulation.md)。
 
+新生成的 Python、C++、Java、Scala、Go 和 Lua 包将 `RefreshComb()` 统一交给
+`XClock.RefreshComb()`。与匹配版本的 xcomm 配合时，框架持有控制权期间（包括暂停）
+手动刷新和手动 Step 一样会报错；释放后恢复。组合事件应通过框架请求，而不是绕过时钟
+直接访问底层 simulator。旧生成包需重新导出、编译。
+Verilator 刷新路径继续使用 `eval_step()`，不增加 context 时间或 Picker 内部周期计数；
+不会替用户提交延迟到边沿的写入，纯组合输入应使用 `AsImmWrite()`。
+
 测试框架取得时钟控制权期间，`Step()` 会报告错误。此时通过框架的执行方法推进仿真。新生成的 VCS 包在子进程中完成结束流程，宿主进程可在 `Finish()` 后继续生成报告；旧包须重新生成并编译。UVS 的结束流程仍可能终止进程，其测试汇总应安排在 `Finish()` 前。
 
 ## 波形

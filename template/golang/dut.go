@@ -238,7 +238,7 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) GetCovMetrics() int {
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) RefreshComb(){
-    self.Dut.RefreshComb()
+    self.Xclock.RefreshComb()
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) AtClone(){

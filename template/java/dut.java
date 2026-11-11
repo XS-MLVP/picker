@@ -267,7 +267,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         this.xclock.Add(this.xport.Get(clock_name));
     }
     public void RefreshComb(){
-        this.dut.RefreshComb();
+        this.xclock.RefreshComb();
     }
     public void AtClone() {
         this.dut.atClone();

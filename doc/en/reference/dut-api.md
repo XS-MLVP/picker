@@ -32,6 +32,14 @@ dut.Finish()
 
 Callbacks run after evaluation and signal refresh at the corresponding edge. Drive the RTL reset port to apply reset; see [clock and reset setup](../guides/simulation.md).
 
+New Python, C++, Java, Scala, Go, and Lua wrappers route `RefreshComb()` through
+`XClock.RefreshComb()`. With the matching xcomm version, manual refresh is rejected just like
+manual Step while a framework owns the clock, including pauses; releasing control restores it.
+Request combinational evaluation through the framework instead of directly accessing the
+underlying simulator. Regenerate and rebuild older packages.
+The Verilator refresh path still uses `eval_step()` without advancing context time or Picker's
+internal cycle count. It does not commit edge-deferred writes; use `AsImmWrite()` for combinational inputs.
+
 While a test framework holds clock control, `Step()` reports an error. Use the framework's execution method during that period. Newly generated VCS packages finalize in a child process so the host can continue reporting after `Finish()`; rebuild existing packages to obtain this behavior. UVS shutdown may still terminate the process, so arrange its test reporting before `Finish()`.
 
 ## Waveforms

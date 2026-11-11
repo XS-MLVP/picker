@@ -166,7 +166,7 @@ jobs:
         if: matrix.full_test
         env:
           # Exercise the dependency range with the pinned upcoming uc-xcomm release.
-          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_UC_XCOMM: 1.1.0
+          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_UC_XCOMM: 1.2.0
         run: |
           python3 -m venv /tmp/picker-wheel-builder
           /tmp/picker-wheel-builder/bin/python -m pip install 'build>=1,<2'
