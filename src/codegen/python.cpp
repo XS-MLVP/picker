@@ -11,7 +11,7 @@ namespace picker { namespace codegen {
         static const std::string xdata_bindptr_template =
             "        self.{{pin_uniq_name}}.BindNativeData(self.dut.NativeSignalAddr(\"{{logic_pin}}\"))\n";
         static const std::string xport_add_template =
-            "        self.xport.Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}})\n";
+            "        self.xport.Add(\"{{signal_name}}\", self.{{pin_uniq_name}})\n";
         static const std::string xport_cascaded_template =
             "        self.{{port_name}} = self.xport.NewSubPort(\"{{prefix_key}}_\")\n";
 
@@ -32,6 +32,7 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["signal_name"]    = signal_name(pin[i]);
                 auto pin_uniq_name = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
                 data["pin_uniq_name"]  = str_replace_all(str_replace_all(pin_uniq_name, "$$", "_"), "$", "_");
 
@@ -40,9 +41,11 @@ namespace picker { namespace codegen {
                                                pin[i].logic_pin_hb - pin[i].logic_pin_lb + 1;
 
                 xdata_init   = xdata_init + env.render(xdata_init_template, data);
-                switch (rw_type) {
+                if (!pin[i].array_name.empty()) {
+                    xdata_bindrw += render_array_binding(pin[i], "python", data["pin_uniq_name"]);
+                } else switch (rw_type) {
                 case SignalAccessType::DPI:
-                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                    xdata_bindrw += env.render(xdata_binddpi_template, data);
                     break;
                 case SignalAccessType::MEM_DIRECT:
                     xdata_bindrw = xdata_bindrw + env.render(xdata_bindptr_template, data);
@@ -69,6 +72,7 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["signal_name"]    = data["pin_func_name"];
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -119,6 +123,8 @@ namespace picker { namespace codegen {
         py::render_internal_signal(internal_signal, xdata_init, xdata_bindrw, xport_add, swig_constant);
         // Generate Cascaded Porst
         py::render_cascaded_signals("", signal_tree_json, cascaded_signals);
+        std::string array_declarations;
+        const bool has_arrays = render_array_ports(external_pin, "python", array_declarations, cascaded_signals);
 
         // Simulator
         std::transform(simulator.begin(), simulator.end(), simulator.begin(),
@@ -138,6 +144,7 @@ namespace picker { namespace codegen {
         data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
         data["__XDATA_INIT__"]     = xdata_init;
+        data["__HAS_UNPACKED_ARRAYS__"] = has_arrays;
         data["__XDATA_BIND__"]     = xdata_bindrw;
         data["__XPORT_ADD__"]      = xport_add;
         data["__XPORT_CASCADED__"] = cascaded_signals;
@@ -149,6 +156,7 @@ namespace picker { namespace codegen {
         data["__VERDI_MODE__"]       = opts.verdi_mode;
 
         // Render
+        configure_array_bindings(external_pin, opts, data);
         inja::Environment env;
         recursive_render(src_dir, dst_dir, data, env);
     }

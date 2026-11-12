@@ -1,7 +1,41 @@
 #pragma once
 #include "dut_base.hpp"
 #include "xspcomm/xcomm.h"
+#include <stdexcept>
+#include <tuple>
 using namespace xspcomm;
+{% if __HAS_UNPACKED_ARRAYS__ %}
+#include <type_traits>
+
+#ifndef PICKER_SIGNAL_ARRAY_VIEW_HPP
+#define PICKER_SIGNAL_ARRAY_VIEW_HPP
+// Non-owning leaves reference the DUT's bound XData, with checked RTL indexing.
+template<typename T>
+class PickerSignalArray {
+    int left_ = 0, right_ = -1;
+    std::vector<T> elements_;
+public:
+    PickerSignalArray() = default;
+    PickerSignalArray(int left, int right, std::initializer_list<T> elements)
+        : left_(left), right_(right), elements_(elements) {}
+
+    int left() const { return left_; }
+    int right() const { return right_; }
+    size_t size() const { return elements_.size(); }
+
+    auto &operator[](int index) {
+        const int64_t offset = (int64_t(index) - left_) * (left_ <= right_ ? 1 : -1);
+        if (offset < 0) { throw std::out_of_range("RTL array index out of range"); }
+        auto &element = elements_.at(size_t(offset));
+        if constexpr (std::is_pointer_v<T>) { return *element; }
+        else { return element; }
+    }
+    const auto &operator[](int index) const {
+        return const_cast<PickerSignalArray *>(this)->operator[](index);
+    }
+};
+#endif
+{% endif %}
 // clang-format off
 class UT{{__TOP_MODULE_NAME__}}
 {
@@ -15,7 +49,7 @@ public:
 {{__XDATA_DECLARATION__}}
 
     // signal hashmap
-    std::map<std::string, XData*> signal_map;
+    std::map<std::tuple<std::string, int, bool>, XData*> signal_map;
     std::map<std::string, std::vector<std::shared_ptr<XData>>> signal_list_map;
 
     // DUT
@@ -117,13 +151,13 @@ public:
     }
     XData *GetInternalSignal(std::string name, int index = -1, bool use_vpi = false)
     {
-        // if not found, create a new one
-        if (this->signal_map.find(name) == this->signal_map.end()) {
+        const auto key = std::make_tuple(name, index, use_vpi);
+        if (this->signal_map.find(key) == this->signal_map.end()) {
             XData *signal = nullptr;
             if(!use_vpi){
                 std::string xname = "CFG:" + name;
                 if (this->dut->GetXSignalCFGBasePtr()==0)return nullptr;
-                if(index >= 0){
+                if(index != -1){
                     signal = this->xcfg->NewXData(name, index, xname);
                 }else{
                     signal = this->xcfg->NewXData(name, xname);
@@ -151,9 +185,9 @@ public:
             if(signal == nullptr){
                 return nullptr;
             }
-            this->signal_map[name] = signal;
+            this->signal_map[key] = signal;
         }
-        return this->signal_map[name];
+        return this->signal_map[key];
     }
     std::vector<std::shared_ptr<XData>> GetInternalSignal(std::string name, bool is_array){
         Assert(is_array==true, "GetInternalSignal: is_array must be true");

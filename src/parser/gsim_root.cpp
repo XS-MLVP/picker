@@ -1,5 +1,6 @@
 
 #include "parser/gsim_root.hpp"
+#include <limits>
 
 namespace picker { namespace parser { namespace gsim {
     std::vector<std::string> readVarDeclarations(const std::string &filename){
@@ -68,11 +69,15 @@ namespace picker { namespace parser { namespace gsim {
                     std::sregex_iterator end;
                     for (; iter != end; ++iter) {
                         int dimension = std::stoi((*iter)[1]);
+                        if (dimension <= 0 || array_size > std::numeric_limits<int>::max() / dimension) {
+                            PK_FATAL("GSIM array is too large or has an invalid dimension: %s", declaration.c_str());
+                        }
+                        var_info.array_dimensions.push_back(dimension);
                         array_size *= dimension;
                     }
+                    var_info.array_size = array_size;
                 }
-                PK_DEBUG("Parsed variable: type=%s, name=%s, width=%d, array_size=%d", var_info.type.c_str(), var_info.name.c_str(), var_info.width, array_size);
-                var_info.array_size = array_size;
+                PK_DEBUG("Parsed variable: type=%s, name=%s, width=%d, array_size=%d", var_info.type.c_str(), var_info.name.c_str(), var_info.width, var_info.array_size);
             } else {
                 PK_ERROR("Find Invalid declaration: %s", declaration.c_str());
                 continue; // skip invalid declarations

@@ -63,6 +63,71 @@ picker export rtl/a.v,rtl/b.v --sname A,2,B,3 \
 
 Inspect the generated interface for instance and port names before writing the test.
 
+## Export unpacked array ports
+
+For the Verilator backend, array support targets 5.026 and newer; see the
+[version compatibility notes](../reference/compatibility.md#unpacked-arrays-and-verilator-versions).
+
+Fixed-size unpacked input/output arrays of scalar `bit`/`logic` or one-dimensional packed `bit`/`logic` vectors are supported. Generated interfaces preserve the array structure; each element is an ordinary `XData`:
+
+```systemverilog
+input logic [7:0] data [0:3];
+input logic [7:0] matrix [-1:1][2:3];
+```
+
+For an existing Python DUT with these ports, use the original RTL indices:
+
+```python
+dut.data[0].value = 0x12
+dut.matrix[-1][2].value = 0x34
+for i in dut.data.indices:
+    dut.data[i].value = i
+dut.Step(1)
+```
+
+Python views provide `bounds` (for example, `((-1, 1), (2, 3))`), `shape`, `indices`, `len()`, and iteration over elements in declaration order. A negative index is an RTL index, not a position counted from the end. Out-of-range indices raise `IndexError`; replace neither the view nor its elements, and assign to the element's `.value` instead. `dut["data"]` returns the same view and `dut["matrix[-1][2]"]` returns the same bound signal as `dut.matrix[-1][2]`.
+
+| Language | Element access | Container |
+| --- | --- | --- |
+| Python | `dut.matrix[-1][2]` | Bounds-aware read-only view |
+| C++ | `dut.matrix[-1][2]` | Bounds-checked view returning `XData&` |
+| Java | `dut.matrix.get(-1).get(2)` | Read-only nested `Map` |
+| Scala | `dut.matrix(-1)(2)` | Immutable nested `Map` |
+| Go | `dut.Matrix[-1][2]` | Nested `map[int]` |
+| Lua | `dut.matrix[-1][2]` | Nested table |
+
+Every language uses the original RTL indices; native maps retain their language's missing-key behavior. `signals.json` records unpacked bounds as `Unpacked: [[left, right], ...]`. Multi-instance exports keep the usual module/instance prefix.
+
+With Verilator `--rw mem_direct`, each array registers one base address and its
+`sizeof`-derived byte strides. xcomm resolves element addresses when binding the
+leaves, accounting for each RTL dimension's direction. No per-element address map,
+SV storage, continuous-assignment bridges, or port DPI accessors are generated.
+Internal arrays use the [native layout path](internal-signals.md#access-a-native-array), not the port interface or VPI.
+
+With `--rw dpi`, each input array has **one indexed getter and one indexed setter**;
+an output array has only the getter. These functions access the original SV array,
+not bridge signals. Their internal flat index follows declaration order, with the
+last dimension changing fastest; the generated SV code maps it back to RTL
+subscripts. Both access modes use xcomm's shared C++ `XDataArray` backend. Each
+leaf stores a backend reference and its DPI index or precomputed native address,
+not a captured read/write callback. Public indexing still uses the RTL bounds.
+
+With a Toffee version providing `SignalArray`, use `Bundle(matrix=dut.matrix)`
+directly or bind the `Unpacked` metadata in `signals.json`. Toffee retains the
+same leaves and original indices without rebinding their backend or registering
+another `XPort`; snapshots retain bounds too. See the
+[Toffee array guide](https://github.com/XS-MLVP/toffee/blob/main/docs/en/guides/data.md).
+
+The views only group references to these bound `XData` objects. This is not bulk
+array transfer: one element access still uses one DPI call, and the current
+generator eagerly creates every port element and registers it with `XPort`.
+Reducing the number of DPI functions does not eliminate per-element generation,
+initialization, or clock-update costs for very large arrays. The C++ `XDataArray`
+API creates/caches leaves on demand with `At(indices)`/`AtFlat(index)`, but generated
+port views still create all leaves eagerly. Batch transfers are not implemented.
+
+Dynamic arrays, queues, associative arrays, unpacked `inout` ports, and element types other than the scalar/packed types above remain unsupported.
+
 ## Add debugging features
 
 - Use `-w trace.fst` to enable waveforms; see [record simulation results](simulation.md#recording).

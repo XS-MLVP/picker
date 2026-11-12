@@ -11,7 +11,7 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 
 cat > "${TMP_DIR}/complex_port.sv" <<'EOF'
 module ComplexPort(
-    input logic [3:0] data [1:0]
+    input logic [1:0][3:0] data [1:0]
 );
 endmodule
 EOF

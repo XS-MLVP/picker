@@ -33,6 +33,7 @@ namespace picker { namespace parser {
         using slang::SourceManager;
         using slang::ast::ArgumentDirection;
         using slang::ast::Compilation;
+        using slang::ast::FixedSizeUnpackedArrayType;
         using slang::ast::InstanceSymbol;
         using slang::ast::PackedArrayType;
         using slang::ast::PortSymbol;
@@ -282,14 +283,36 @@ namespace picker { namespace parser {
         {
             auto pin_type = port_direction_to_logic_pin_type(port.direction, module_name, std::string(port.name));
             const auto &type = port.getType();
-            if (!is_supported_flat_port_type(type)) {
+            const Type *element_type = &type.getCanonicalType();
+            std::vector<std::pair<int, int>> dimensions;
+            while (element_type->kind == SymbolKind::FixedSizeUnpackedArrayType) {
+                const auto &array = element_type->as<FixedSizeUnpackedArrayType>();
+                dimensions.emplace_back(array.range.left, array.range.right);
+                element_type = &array.elementType.getCanonicalType();
+            }
+            if (!is_supported_flat_port_type(*element_type)) {
                 PK_FATAL("Module %s port %s uses unsupported type '%s'. "
-                         "picker export currently supports only scalar and single-dimension packed bit/logic ports.",
+                         "picker export supports scalar and single-dimension packed bit/logic ports, "
+                         "and fixed-size unpacked arrays of these types.",
                          module_name.c_str(), std::string(port.name).c_str(), type.toString().c_str());
             }
+            if (!dimensions.empty() && pin_type == "inout") {
+                PK_FATAL("Module %s port %s uses an unsupported inout unpacked array; "
+                         "only input/output unpacked arrays are supported.",
+                         module_name.c_str(), std::string(port.name).c_str());
+            }
 
-            auto [high_bit, low_bit] = extract_port_range(type);
-            pins.push_back({std::string(port.name), pin_type, high_bit, low_bit});
+            auto [high_bit, low_bit] = extract_port_range(*element_type);
+            // Packed element types are equivalent by width, signing and state kind.
+            // Normalize their range for XData (also avoids the scalar -1 sentinel).
+            if (!dimensions.empty() && element_type->kind == SymbolKind::PackedArrayType) {
+                high_bit = int(element_type->getBitWidth()) - 1;
+                low_bit = 0;
+            }
+            auto element_name = std::string(element_type->isFourState() ? "logic" : "bit");
+            if (element_type->isSigned()) { element_name += " signed"; }
+            pins.push_back({std::string(port.name), pin_type, high_bit, low_bit,
+                            std::move(dimensions), element_name});
         }
 
         picker::sv_module_define convert_instance_to_module_define(const InstanceSymbol &instance, int module_nums)

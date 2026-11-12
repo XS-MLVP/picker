@@ -27,6 +27,47 @@ if _vcs_home:
 del _ctypes, _os
 {% endif %}
 
+{% if __HAS_UNPACKED_ARRAYS__ %}
+from operator import index as _signal_index
+
+
+class _SignalArray:
+    """Read-only array structure indexed by RTL indices, not Python positions."""
+
+    __slots__ = ("_bounds", "_elements")
+
+    def __init__(self, bounds, elements):
+        self._bounds = bounds
+        self._elements = elements
+
+    @property
+    def bounds(self):
+        return self._bounds
+
+    @property
+    def shape(self):
+        return tuple(abs(left - right) + 1 for left, right in self._bounds)
+
+    @property
+    def indices(self):
+        left, right = self._bounds[0]
+        step = 1 if left <= right else -1
+        return range(left, right + step, step)
+
+    def __len__(self):
+        return len(self._elements)
+
+    def __iter__(self):
+        return iter(self._elements)
+
+    def __getitem__(self, index):
+        index = _signal_index(index)
+        left, right = self._bounds[0]
+        offset = (index - left) * (1 if left <= right else -1)
+        if not 0 <= offset < len(self):
+            raise IndexError(f"RTL array index {index} outside [{left}:{right}]")
+        return self._elements[offset]
+{% endif %}
 
 
 class DUT{{__TOP_MODULE_NAME__}}(object):
@@ -41,6 +82,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.xclock.Add(self.xport)
         self.event = self.xclock.getEvent()
         self.internal_signals = {}
+        self._picker_arrays = {}
         self.xcfg = xsp.XSignalCFG(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr())
         {% if __SIMULATOR__ == "gsim" %}
         # Set fast mode for GSim
@@ -152,14 +194,15 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.dut.Restore(name)
 
     def GetInternalSignal(self, name: str, index=-1, is_array=False, use_vpi=False):
-        if name not in self.internal_signals:
+        key = (name, index, is_array, use_vpi)
+        if key not in self.internal_signals:
             signal = None
             if self.dut.GetXSignalCFGBasePtr() != 0 and not use_vpi:
                 xname = "CFG:" + name
                 if is_array:
                     assert index < 0, "Index is not supported for array signal"
                     signal = self.xcfg.NewXDataArray(name, xname)
-                elif index >= 0:
+                elif index != -1:
                     signal = self.xcfg.NewXData(name, index, xname)
                 else:
                     signal = self.xcfg.NewXData(name, xname)
@@ -175,10 +218,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
             if signal is None:
                 return None
             if not isinstance(signal, xsp.XData):
-                self.internal_signals[name] = list(signal)
+                self.internal_signals[key] = list(signal)
             else:
-                self.internal_signals[name] = signal
-        return self.internal_signals[name]
+                self.internal_signals[key] = signal
+        return self.internal_signals[key]
 
     def GetInternalSignalList(self, prefix="", deep=99, use_vpi=False):
         if self.dut.GetXSignalCFGBasePtr() != 0 and not use_vpi:
@@ -204,6 +247,8 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     ################################
 
     def __getitem__(self, key):
+        if key in self._picker_arrays:
+            return self._picker_arrays[key]
         return self.xport[key]
 
     # Async APIs wrapped from XClock
@@ -218,8 +263,8 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     def __setattr__(self, name, value):
         assert not isinstance(getattr(self, name, None),
-                              xsp.XData), \
-        f"XData attributes of DUT are read-only; set the signal with `{name}.value = ...` instead."
+                               (xsp.XData,{% if __HAS_UNPACKED_ARRAYS__ %} _SignalArray,{% endif %})), \
+        f"Signal attributes of DUT are read-only; set a signal's value instead of replacing `{name}`."
         return super().__setattr__(name, value)
 
 

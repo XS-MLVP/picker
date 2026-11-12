@@ -6,6 +6,11 @@
 #include <vector>
 #include <iostream>
 #include <initializer_list>
+{% if __HAS_ARRAY_BINDINGS__ %}
+#ifndef SWIG
+#include "xspcomm/xarray.h"
+#endif
+{% endif %}
 
 #if defined(USE_VERILATOR) || defined(USE_VCS) || defined(USE_UVS)
 #include <svdpi.h>
@@ -104,6 +109,7 @@ private:
 
 public:
     std::map<std::string, uint64_t> pin_address_map;
+    std::map<std::string, std::vector<unsigned long long>> array_stride_map;
     // Verilator Context and Top Module
     std::string sv_scope = "TOP.{{__TOP_MODULE_NAME__}}_top";
     void *top;
@@ -245,6 +251,10 @@ protected:
     // Flag to track if waveform dumping is paused. 0 means active, 1 means paused/closed.
     int waveform_paused;
     std::string coverage_database;
+{% if __HAS_ARRAY_BINDINGS__ %}
+    // One shared xcomm backend per array and DUT/library instance.
+    std::map<std::string, std::shared_ptr<xspcomm::XDataArray>> array_bindings;
+{% endif %}
 
 #if defined(USE_VERILATOR)
     DutVerilatorBase *dut;
@@ -290,6 +300,11 @@ public:
     // Get DPI handle for XData
     uint64_t GetDPIHandle(char *name, int towards);
     uint64_t GetDPIHandle(std::string name, int towards);
+{% if __HAS_ARRAY_BINDINGS__ %}
+
+    // xdata is an existing XData::CSelf(); index is flat declaration order.
+    void BindArrayElement(uint64_t xdata, const std::string &name, int index);
+{% endif %}
 
     // Get VPI function pointer to use VPI functions
     uint64_t GetVPIFuncPtr(const char *name);
@@ -380,3 +395,36 @@ extern int enable_xinfo;
         fprintf(stderr, "WARNING: " fmt, ##__VA_ARGS__);                                                               \
         puts("");                                                                                                      \
     } while (0)
+{% if __HAS_ARRAY_BINDINGS__ %}
+
+#ifndef SWIG
+// Header-only: the language wrapper already links xcomm; the simulator library
+// need not link it. Bounds and access dispatch live in xcomm, not leaf closures.
+inline void DutUnifiedBase::BindArrayElement(uint64_t xdata, const std::string &name, int index)
+{
+    auto *signal = reinterpret_cast<xspcomm::XData *>(xdata);
+    if (!signal || index < 0) { XFatal("Invalid array binding %s[%d]", name.c_str(), index); }
+    auto found = this->array_bindings.find(name);
+    if (found == this->array_bindings.end()) {
+        std::shared_ptr<xspcomm::XDataArray> array;
+{% for pin in __ARRAY_PORTS__ %}
+        if (name == "{{pin.name}}") {
+            array = std::make_shared<xspcomm::XDataArray>({{pin.width}}, std::vector<int>{{pin.left}}, std::vector<int>{{pin.right}});
+{% if __RW_TYPE__ == "DPI" %}
+            array->BindDPIPtr(this->GetDPIHandle(name, 0), this->GetDPIHandle(name, 1));
+{% else %}
+#ifdef USE_VERILATOR
+            array->BindNativeData(this->NativeSignalAddr(name.c_str()), this->dut->array_stride_map.at(name));
+#else
+            XFatal("Native array backend is unsupported for this simulator");
+#endif
+{% endif %}
+        }
+{% endfor %}
+        if (!array) { XFatal("Unknown array binding %s", name.c_str()); }
+        found = this->array_bindings.emplace(name, std::move(array)).first;
+    }
+    found->second->BindElement(*signal, uint64_t(index));
+}
+#endif
+{% endif %}

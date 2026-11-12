@@ -8,7 +8,7 @@ namespace codegen {
     namespace cxx {
         static const std::string xdata_declaration_template = "    XData {{pin_uniq_name}};\n";
         static const std::string xdata_reinit_template =
-            "    this->{{pin_uniq_name}}.ReInit({{logic_pin_length}}, IOType::{{logic_pin_type}}, \"{{logic_pin}}\");\n";
+            "    this->{{pin_uniq_name}}.ReInit({{logic_pin_length}}, IOType::{{logic_pin_type}}, \"{{signal_name}}\");\n";
         static const std::string comment_template = "    {{logic_pin_type}} {{logic_pin_length}} {{logic_pin}}\n";
 
         static const std::string xdata_binddpi_template =
@@ -52,6 +52,7 @@ namespace codegen {
             auto pin_map = picker::get_default_conflict_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
+                data["signal_name"]    = signal_name(pin[i]);
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
@@ -67,13 +68,14 @@ namespace codegen {
 
                 xdata_declaration = xdata_declaration + env.render(xdata_declaration_template, data);
                 xdata_reinit      = xdata_reinit + env.render(xdata_reinit_template, data);
-                switch (rw_type) {
+                if (!pin[i].array_name.empty()) {
+                    xdata_bindrw += render_array_binding(pin[i], "cpp", data["pin_uniq_name"]);
+                } else switch (rw_type) {
                 case SignalAccessType::DPI:
-                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                    xdata_bindrw += env.render(xdata_binddpi_template, data);
                     break;
                 case SignalAccessType::MEM_DIRECT:
-                    // xdata_bindrw = xdata_bindrw + env.render(xdata_bindptr_template, data);
-                    xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                    xdata_bindrw = xdata_bindrw + env.render(xdata_bindptr_template, data);
                     break;
                 }
                 xport_add = xport_add + env.render(xport_add_template, data);
@@ -96,6 +98,7 @@ namespace codegen {
             auto pin_map = picker::get_default_conflict_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
+                data["signal_name"]    = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
@@ -160,6 +163,7 @@ namespace codegen {
                                     comments);
         // Generate Cascaded Ports
         cxx::render_cascaded_signals("", signal_tree_json, cascaded_signals_dec, cascaded_signals_sgn);
+        const bool has_arrays = render_array_ports(external_pin, "cpp", cascaded_signals_dec, cascaded_signals_sgn);
 
         std::string erro_message;
         auto cpplib_location = picker::get_xcomm_lib("lib", erro_message);
@@ -176,6 +180,7 @@ namespace codegen {
         data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
 
         data["__XDATA_DECLARATION__"]  = xdata_declaration;
+        data["__HAS_UNPACKED_ARRAYS__"] = has_arrays;
         data["__XDATA_REINIT__"]       = xdata_reinit;
         data["__XDATA_BIND__"]         = xdata_bindrw;
         data["__XPORT_ADD__"]          = xport_add;
@@ -187,6 +192,7 @@ namespace codegen {
         data["__SIMULATOR__"]        = opts.sim;
 
         // Render
+        configure_array_bindings(external_pin, opts, data);
         inja::Environment env;
         recursive_render(src_dir, dst_dir, data, env);
     }

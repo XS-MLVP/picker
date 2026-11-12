@@ -1,13 +1,13 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: all preflight smoke template_purge export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg export_cachecfg_fst export_adder_memdirect_threads export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes clean
+.PHONY: all preflight smoke template_purge export_python export_vpi_python pack_python export_java sv_build gsim_smoke export_cachecfg export_cachecfg_fst export_adder_memdirect_threads export_filelist export_complex_port export_unpacked_array pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes clean
 
 .NOTPARALLEL: all
 
 SCRIPT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/scripts
 
-all: preflight smoke template_purge export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg export_cachecfg_fst export_adder_memdirect_threads export_filelist export_complex_port pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes pack_python
+all: preflight smoke template_purge export_python export_vpi_python export_java sv_build gsim_smoke export_cachecfg export_cachecfg_fst export_adder_memdirect_threads export_filelist export_complex_port export_unpacked_array pack_transaction pack_from_rtl pack_unsupported_type pack_multiple_classes pack_python
 
 # Ensure picker is built with python and java support before running tests
 preflight:
@@ -81,6 +81,9 @@ export_filelist: preflight
 
 export_complex_port: preflight
 	bash "$(SCRIPT_DIR)/test_export_unsupported_complex_port.sh"
+
+export_unpacked_array: preflight
+	python3 "$(SCRIPT_DIR)/test_export_unpacked_array.py"
 
 pack_transaction: preflight
 	bash "$(SCRIPT_DIR)/test_pack_transaction.sh"

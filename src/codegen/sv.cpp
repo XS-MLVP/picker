@@ -1,4 +1,5 @@
 #include "codegen/sv.hpp"
+#include <limits>
 
 namespace picker { namespace codegen {
 
@@ -6,8 +7,10 @@ namespace picker { namespace codegen {
         static const std::string sub_module_template =
             " {{module_name}} {{module_name}}{{module_subfix}}(\n{{pin_connect}}\n );\n";
         static const std::string pin_connect_template           = "    .{{raw_pin}}({{logic_pin}}),\n";
-        static const std::string logic_pin_declaration_template = "  logic {{logic_pin_length}} {{logic_pin}};\n";
-        static const std::string wire_pin_declaration_template  = "  wire {{logic_pin_length}} {{logic_pin}};\n";
+        static const std::string logic_pin_declaration_template =
+            "  {{logic_pin_data_type}} {{logic_pin_length}} {{logic_pin}}{{unpacked_dimensions}};\n";
+        static const std::string wire_pin_declaration_template =
+            "  {{wire_pin_data_type}} {{logic_pin_length}} {{logic_pin}}{{unpacked_dimensions}};\n";
 
         static const std::string dpi_get_export_template =
             "  export \"DPI-C\" function get_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n";
@@ -24,6 +27,21 @@ namespace picker { namespace codegen {
             "  function void set_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
             "    input logic {{logic_pin_length}} value;\n"
             "    {{logic_pin}}=value;\n"
+            "  endfunction\n\n";
+
+        static const std::string dpi_array_get_impl_template =
+            "  function void get_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    input int index;\n"
+            "    output logic {{logic_pin_length}} value;\n"
+            "    if (index < 0 || index >= {{array_size}}) value='x;\n"
+            "    else value={{logic_pin}};\n"
+            "  endfunction\n\n";
+
+        static const std::string dpi_array_set_impl_template =
+            "  function void set_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
+            "    input int index;\n"
+            "    input logic {{logic_pin_length}} value;\n"
+            "    if (index >= 0 && index < {{array_size}}) {{logic_pin}}=value;\n"
             "  endfunction\n\n";
 
         static const std::string dpi_finish_sv_template =
@@ -108,10 +126,22 @@ namespace picker { namespace codegen {
         /// @param dpi_impl
         std::vector<picker::sv_signal_define>
         render_external_pin(std::vector<picker::sv_module_define> sv_module_result, std::string &inner_modules, 
-                            std::string &logic, std::string &wire, std::string &dpi_export, std::string &dpi_impl)
+                            std::string &logic, std::string &wire, std::string &dpi_export, std::string &dpi_impl,
+                            SignalAccessType rw_type)
         {
             std::vector<picker::sv_signal_define> ret;
             inja::Environment env;
+            std::set<std::string> declared_pins;
+            std::set<std::string> reserved_pins;
+            for (const auto &module : sv_module_result) {
+                for (int instance = 0; instance < module.module_nums; ++instance) {
+                    std::string prefix;
+                    if (sv_module_result.size() != 1 || module.module_nums != 1) { prefix = module.module_name + "_"; }
+                    if (module.module_nums != 1) { prefix += std::to_string(instance) + "_"; }
+                    for (const auto &pin : module.pins) { reserved_pins.insert(prefix + pin.logic_pin); }
+                }
+            }
+            size_t element_number = 0;
             auto module_diffs = sv_module_result.size();
             for (int diff_index = 0; diff_index < module_diffs; diff_index++) {
                 auto &module = sv_module_result[diff_index];
@@ -129,10 +159,28 @@ namespace picker { namespace codegen {
                     data["module_name"] = module.module_name;
                     PK_DEBUG("module_subfix: %s, pin_prefix: %s", data["module_subfix"].dump().c_str(),
                              pin_prefix.c_str());
+                    auto declare_pin = [&]() {
+                        const auto name = data["logic_pin"].get<std::string>();
+                        if (!declared_pins.insert(name).second) {
+                            PK_FATAL("Exported port name collision: %s", name.c_str());
+                        }
+                        logic += env.render(logic_pin_declaration_template, data);
+                        wire += env.render(wire_pin_declaration_template, data);
+                    };
+                    auto export_pin = [&](const picker::sv_signal_define &flat_pin) {
+                        ret.push_back(flat_pin);
+                        if (rw_type == SignalAccessType::MEM_DIRECT || !flat_pin.array_name.empty()) { return; }
+                        data["pin_func_name"] = str_replace_all(flat_pin.logic_pin, ".", "_");
+                        dpi_export += env.render(dpi_get_export_template, data);
+                        dpi_impl += env.render(dpi_get_impl_template, data);
+                        if (flat_pin.logic_pin_type != "output") {
+                            dpi_export += env.render(dpi_set_export_template, data);
+                            dpi_impl += env.render(dpi_set_impl_template, data);
+                        }
+                    };
                     for (int i = 0; i < pin.size(); i++) {
                         picker::sv_signal_define temp_pin = pin[i];
                         temp_pin.logic_pin                = pin_prefix + pin[i].logic_pin;
-                        ret.push_back(temp_pin); // pins need export
                         data["io_type"]                    = pin[i].logic_pin_type;
                         data["raw_pin"]                    = pin[i].logic_pin;
                         data["logic_pin"]                  = temp_pin.logic_pin;
@@ -143,17 +191,83 @@ namespace picker { namespace codegen {
                         data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ?
                                                        "" :
                                                        "[" + std::to_string(pin[i].logic_pin_hb) + ":"
-                                                           + std::to_string(pin[i].logic_pin_lb) + "]";
+                                                            + std::to_string(pin[i].logic_pin_lb) + "]";
+                        std::string dimensions;
+                        for (const auto &[left, right] : pin[i].unpacked_dimensions) {
+                            dimensions += " [" + std::to_string(left) + ":" + std::to_string(right) + "]";
+                        }
+                        data["unpacked_dimensions"] = dimensions;
+                        data["logic_pin_data_type"] = dimensions.empty() ? "logic" : pin[i].unpacked_element_type;
+                        data["wire_pin_data_type"] = dimensions.empty() ? "wire" :
+                            str_replace_all(pin[i].unpacked_element_type, "logic", "wire");
                         pin_connect += env.render(pin_connect_template, data);
-                        logic += env.render(logic_pin_declaration_template, data);
-                        wire += env.render(wire_pin_declaration_template, data);
-                        dpi_export += env.render(dpi_get_export_template, data);
-                        dpi_impl += env.render(dpi_get_impl_template, data);
-                        if (pin[i].logic_pin_type != "output") {
-                            dpi_export += env.render(dpi_set_export_template, data);
-                            dpi_impl += env.render(dpi_set_impl_template, data);
+                        declare_pin();
+                        if (pin[i].unpacked_dimensions.empty()) {
+                            export_pin(temp_pin);
+                            continue;
                         }
 
+                        if (rw_type == SignalAccessType::DPI) {
+                            // One indexed accessor pair per array, regardless of element count.
+                            // The flat index follows declaration order (last dimension fastest).
+                            int64_t size = 1;
+                            std::vector<int64_t> strides(pin[i].unpacked_dimensions.size());
+                            for (size_t d = strides.size(); d-- > 0;) {
+                                strides[d] = size;
+                                const auto [left, right] = pin[i].unpacked_dimensions[d];
+                                const int64_t length = std::abs(int64_t(left) - right) + 1;
+                                if (size > std::numeric_limits<int>::max() / length) {
+                                    PK_FATAL("DPI array %s exceeds the supported int index range", temp_pin.logic_pin.c_str());
+                                }
+                                size *= length;
+                            }
+                            std::string element = temp_pin.logic_pin;
+                            for (size_t d = 0; d < strides.size(); ++d) {
+                                const auto [left, right] = pin[i].unpacked_dimensions[d];
+                                const auto length = std::abs(int64_t(left) - right) + 1;
+                                element += "[" + std::to_string(left);
+                                if (length > 1) {
+                                    element += std::string(left <= right ? " + " : " - ")
+                                               + "((index / " + std::to_string(strides[d]) + ") % "
+                                               + std::to_string(length) + ")";
+                                }
+                                element += "]";
+                            }
+                            data["logic_pin"] = element;
+                            data["array_size"] = size;
+                            dpi_export += env.render(dpi_get_export_template, data);
+                            dpi_impl += env.render(dpi_array_get_impl_template, data);
+                            if (temp_pin.logic_pin_type != "output") {
+                                dpi_export += env.render(dpi_set_export_template, data);
+                                dpi_impl += env.render(dpi_array_set_impl_template, data);
+                            }
+                        }
+
+                        // Only flatten the binding metadata. RTL storage stays an array;
+                        // leaves bind through the shared indexed backend.
+                        auto flat_pin = temp_pin;
+                        flat_pin.array_name = temp_pin.logic_pin;
+                        std::function<void(size_t)> render_elements =
+                            [&](size_t dimension) {
+                                if (dimension == pin[i].unpacked_dimensions.size()) {
+                                    std::string name;
+                                    do {
+                                        name = "_picker_array_" + std::to_string(element_number++);
+                                    } while (reserved_pins.contains(name));
+                                    flat_pin.logic_pin = name;
+                                    ret.push_back(flat_pin);
+                                    return;
+                                }
+                                const auto [left, right] = pin[i].unpacked_dimensions[dimension];
+                                const int step = left <= right ? 1 : -1;
+                                for (int64_t index = left;; index += step) {
+                                    flat_pin.array_indices.push_back(int(index));
+                                    render_elements(dimension + 1);
+                                    flat_pin.array_indices.pop_back();
+                                    if (index == right) { break; }
+                                }
+                            };
+                        render_elements(0);
                     }
                     if (pin_connect.length() == 0)
                         PK_FATAL(
@@ -266,7 +380,14 @@ namespace picker { namespace codegen {
             // iterate the signal pin and generate the signal tree by TRIE tree
             // get all the signal name and sort them
             std::vector<picker::sv_signal_define> signal_list;
-            for (auto pin : external_pin) { signal_list.push_back(pin); }
+            std::set<std::string> arrays;
+            for (auto pin : external_pin) {
+                if (!pin.array_name.empty()) {
+                    if (!arrays.insert(pin.array_name).second) { continue; }
+                    pin.logic_pin = pin.array_name;
+                }
+                signal_list.push_back(pin);
+            }
             for (auto pin : internal_signal) { signal_list.push_back(pin); }
 
             // sort the signal list for handle the signal tree
@@ -302,6 +423,7 @@ namespace picker { namespace codegen {
                 bool isEndOfWord = false;
                 std::string part_name, pin_type;
                 int high_bit = -1, low_bit = -1;
+                std::vector<std::pair<int, int>> dimensions;
             };
 
             // Build the TRIE
@@ -321,6 +443,7 @@ namespace picker { namespace codegen {
                 current->high_bit    = signal.logic_pin_hb;
                 current->low_bit     = signal.logic_pin_lb;
                 current->pin_type    = signal.logic_pin_type;
+                current->dimensions  = signal.unpacked_dimensions;
             }
 
             // Auto merge words with '_', if one node has only one child and not
@@ -331,7 +454,7 @@ namespace picker { namespace codegen {
             };
 
             std::function<void(TrieNode *)> merge_trie = [&](TrieNode *node) {
-                while (node->children.size() == 1 && !is_number(node->part_name)
+                while (!node->isEndOfWord && node->children.size() == 1 && !is_number(node->part_name)
                        && !is_number(node->children.begin()->first)) {
                     auto child = node->children.begin();
                     if (node->part_name.size() > 0) { node->part_name += "_"; }
@@ -347,6 +470,7 @@ namespace picker { namespace codegen {
                         node->high_bit    = temp->high_bit;
                         node->low_bit     = temp->low_bit;
                         node->pin_type    = temp->pin_type;
+                        node->dimensions  = temp->dimensions;
                     }
                     delete temp;
                     PK_DEBUG("merge %s", node->part_name.c_str());
@@ -367,6 +491,7 @@ namespace picker { namespace codegen {
                     json["High"] = node->high_bit;
                     json["Low"]  = node->low_bit;
                     json["_"]    = true;
+                    if (!node->dimensions.empty()) { json["Unpacked"] = node->dimensions; }
                 }
                 std::vector<std::pair<std::string, std::string>> rename_keys;
                 for (const auto &child : node->children) {
@@ -423,7 +548,7 @@ namespace picker { namespace codegen {
     {
         std::string inner_modules, logic, wire, dpi_export, dpi_impl, signal_tree, extend_sv;
 
-        auto external_pin = sv::render_external_pin(sv_module_result, inner_modules, logic, wire, dpi_export, dpi_impl);
+        auto external_pin = sv::render_external_pin(sv_module_result, inner_modules, logic, wire, dpi_export, dpi_impl, rw_type);
         sv::render_internal_signal(internal_signal, dpi_export, dpi_impl);
         sv::render_sv_waveform(simulator, wave_file_name, global_render_data);
         sv::render_signal_tree(external_pin, internal_signal, signal_tree, signal_tree_json);

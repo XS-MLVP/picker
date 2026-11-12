@@ -4,7 +4,6 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <map>
 #include <ostream>
 #include <string>
 #include <unordered_map>
@@ -21,39 +20,41 @@ typedef V{{__TOP_MODULE_NAME__}}___024root BaseType;
 typedef S{{__TOP_MODULE_NAME__}} BaseType;
 {% endif %}
 
-#define SET_SIZE(type) size_map[#type] = sizeof(type)
-extern std::map<std::string, int> size_map;
-
 struct cpp_variableInfo {
     std::string name;
     std::string type;
     int width       = 0;
     int array_size  = 0;
     uint64_t offset = 0;
-
-    int mem_bytes() const
-    {
-        if (size_map.find(type) == size_map.end()) {
-        {% if __SIMULATOR__ == "verilator" %}
-            if (type.rfind("VlWide<", 0) == 0) {
-                return stoi(type.substr(7, type.size() - 8)) * sizeof(EData);
-            }
-        {% endif %}
-        {% if __SIMULATOR__ == "gsim" %}
-            return -1;
-        {% endif %}
-        }
-        return size_map[type];
-    }
+    std::vector<int> array_dimensions;
+    std::vector<uint64_t> array_strides;
+    uint32_t mem_bytes = 0;
 
     void write_yaml(std::ostream &out) const
     {
         out << "  - name: " << name << "\n";
         out << "    type: " << type << "\n";
-        out << "    mem_bytes: " << mem_bytes() << "\n";
+        out << "    mem_bytes: " << mem_bytes << "\n";
         out << "    rtl_width: " << width << "\n";
         if (array_size > 0) { out << "    array_size: " << array_size << "\n"; }
+        write_array_layout(out, "    ");
         out << "    offset: " << offset << "\n";
+    }
+
+    void write_array_layout(std::ostream &out, const std::string &prefix) const
+    {
+        if (array_dimensions.empty()) { return; }
+        out << prefix << "array_dimensions: [";
+        for (size_t i = 0; i < array_dimensions.size(); ++i) {
+            if (i) { out << ", "; }
+            out << array_dimensions[i];
+        }
+        out << "]\n" << prefix << "array_strides: [";
+        for (size_t i = 0; i < array_strides.size(); ++i) {
+            if (i) { out << ", "; }
+            out << array_strides[i];
+        }
+        out << "]\n";
     }
 };
 
@@ -69,5 +70,3 @@ struct raw_signal_info {
 };
 
 extern std::vector<cpp_variableInfo> all_vars;
-
-void init_type_size();

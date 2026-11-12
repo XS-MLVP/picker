@@ -647,6 +647,16 @@ void DutVerilatorBase::init(int argc, char **argv)
     {% for pin in __MODULE_EXTERNAL_PINS__ %}
     this->pin_address_map["{{pin.name}}"] = (uint64_t)(&(((V{{__TOP_MODULE_NAME__}} *)this->top)->rootp->{{__TOP_MODULE_NAME__}}_top__DOT__{{pin.name}}));
     {% endfor %}
+    {% if __RW_TYPE__ == "MEM_DIRECT" %}
+    {% for pin in __ARRAY_PORTS__ %}
+    this->pin_address_map["{{pin.name}}"] = (uint64_t)(&(((V{{__TOP_MODULE_NAME__}} *)this->top)->rootp->{{__TOP_MODULE_NAME__}}_top__DOT__{{pin.native_first}}));
+    this->array_stride_map["{{pin.name}}"] = {
+        {% for element in pin.native_strides %}
+        sizeof(((V{{__TOP_MODULE_NAME__}} *)this->top)->rootp->{{__TOP_MODULE_NAME__}}_top__DOT__{{element}}),
+        {% endfor %}
+    };
+    {% endfor %}
+    {% endif %}
     {% endif %}
 };
 
@@ -1273,6 +1283,23 @@ uint64_t DutUnifiedBase::GetDPIHandle(char *name, int towards)
     } else {
         func = dlsym(RTLD_DEFAULT, func_name);
     }
+
+#ifdef USE_VERILATOR
+    // Older Verilator releases encode consecutive underscores in DPI export
+    // symbols (e.g. get__pin -> get___05Fpin). Newer releases keep the declared
+    // C name, so only try the legacy spelling after an exact lookup fails.
+    if (func == nullptr) {
+        std::string legacy_name = func_name;
+        size_t pos = 0;
+        while ((pos = legacy_name.find("__", pos)) != std::string::npos) {
+            legacy_name.replace(pos, 2, "___05F");
+            pos += 6;
+        }
+        if (legacy_name != func_name) {
+            func = dlsym(this->lib_handle != nullptr ? this->lib_handle : RTLD_DEFAULT, legacy_name.c_str());
+        }
+    }
+#endif
 
     // internal only support read
     if (func == nullptr && towards == 0) { XFatal("Failed to find DPI function %s", func_name); }

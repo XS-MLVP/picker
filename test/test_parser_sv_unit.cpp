@@ -298,6 +298,63 @@ namespace {
         fs::remove_all(base);
     }
 
+    void test_fixed_unpacked_array_ports()
+    {
+        namespace fs = std::filesystem;
+        const fs::path base = fs::temp_directory_path() / "picker_test_sv_unpacked_arrays";
+        fs::create_directories(base);
+        write_text(base / "arrays.sv",
+                   "package ArrayTypes;\n"
+                   "    typedef logic [0:4] word_t;\n"
+                   "    typedef word_t row_t [3:2];\n"
+                   "    typedef row_t matrix_t [-1:1];\n"
+                   "endpackage\n"
+                   "module ArrayTop #(parameter W = 5, N = 3) (\n"
+                   "    input logic [W-1:0] down [N+1:2],\n"
+                   "    output bit up [2:4],\n"
+                   "    input ArrayTypes::matrix_t matrix,\n"
+                   "    output logic single_element [7:7],\n"
+                   "    input bit signed sized [2]\n"
+                   ");\n"
+                   "endmodule\n");
+
+        picker::export_opts opts {};
+        opts.file = {(base / "arrays.sv").string()};
+        opts.source_module_name_list = {"ArrayTop"};
+        std::vector<picker::sv_module_define> modules;
+        picker::parser::sv(opts, modules);
+        assert(modules.size() == 1);
+        const auto &module = modules.front();
+        assert(module.pins.size() == 5);
+
+        using Ranges = std::vector<std::pair<int, int>>;
+        const auto &down = find_pin(module, "down");
+        assert(down.logic_pin_type == "input");
+        assert(down.logic_pin_hb == 4 && down.logic_pin_lb == 0);
+        assert((down.unpacked_dimensions == Ranges{{4, 2}}));
+        assert(down.unpacked_element_type == "logic");
+        const auto &up = find_pin(module, "up");
+        assert(up.logic_pin_type == "output");
+        assert(up.logic_pin_hb == -1 && up.logic_pin_lb == 0);
+        assert((up.unpacked_dimensions == Ranges{{2, 4}}));
+        assert(up.unpacked_element_type == "bit");
+        const auto &matrix = find_pin(module, "matrix");
+        assert(matrix.logic_pin_hb == 4 && matrix.logic_pin_lb == 0);
+        assert((matrix.unpacked_dimensions == Ranges{{-1, 1}, {3, 2}}));
+        assert((find_pin(module, "single_element").unpacked_dimensions == Ranges{{7, 7}}));
+        assert((find_pin(module, "sized").unpacked_dimensions == Ranges{{0, 1}}));
+        assert(find_pin(module, "sized").unpacked_element_type == "bit signed");
+
+        // Array bounds and element widths must come from the elaborated type.
+        opts.sflag = {"-GArrayTop.W=9", "-GArrayTop.N=2"};
+        modules.clear();
+        picker::parser::sv(opts, modules);
+        const auto &overridden = find_pin(modules.front(), "down");
+        assert(overridden.logic_pin_hb == 8);
+        assert((overridden.unpacked_dimensions == Ranges{{3, 2}}));
+        fs::remove_all(base);
+    }
+
 } // namespace
 
 int main()
@@ -309,5 +366,6 @@ int main()
     test_filelist_order_wins_when_explicit_file_is_duplicate();
     test_filelist_ignores_linker_inputs();
     test_missing_child_modules_do_not_block_top_port_extraction();
+    test_fixed_unpacked_array_ports();
     return 0;
 }

@@ -33,7 +33,8 @@ int main()
                "struct {\n"
                "  CData/*3:0*/ a;\n"
                "  VlUnpacked<IData/*31:0*/, 2> b;\n"
-               "  VlWide<3>/*95:0*/ c;\n"
+                "  VlWide<3>/*95:0*/ c;\n"
+                "  VlUnpacked<VlUnpacked<VlWide<3>/*95:0*/, 3>, 2> matrix;\n"
                "};\n"
                "VTop___024root::VTop___024root() {}\n");
 
@@ -52,9 +53,14 @@ int main()
     assert(b->type == "IData");
     assert(b->width == 32);
     assert(b->array_size == 2);
+    assert(b->array_dimensions == std::vector<int>{2});
 
     assert(c->type == "VlWide<3>");
     assert(c->width == 96);
+    const auto *matrix = find_var(vars, "matrix");
+    assert(matrix && matrix->type == "VlWide<3>" && matrix->width == 96);
+    assert(matrix->array_size == 6);
+    assert((matrix->array_dimensions == std::vector<int>{2, 3}));
 
     const fs::path non_struct_hdr = base / "VFlat___024root.h";
     write_text(non_struct_hdr,

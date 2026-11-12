@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 project({{__TOP_MODULE_NAME__}} VERSION 0.0.1)
+{% if __HAS_ARRAY_BINDINGS__ %}
+include_directories("{{__XSPCOMM_INCLUDE__}}")
+{% endif %}
 
 include(CheckIncludeFile)
 check_include_file("execinfo.h" HAVE_EXECINFO_H)
@@ -51,14 +54,6 @@ endif()
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_SWIG_FLAGS "-c++")
 
-if(POLICY CMP0078)
-    message("Find CMP0078, set it be NEW")
-    cmake_policy(SET CMP0078 NEW)
-endif()
-if(POLICY CMP0086)
-    message("Find CMP0086, set it be NEW")
-    cmake_policy(SET CMP0086 NEW)
-endif()
 if(POLICY CMP0148)
     message("Find CMP0148, set it be NEW")
     cmake_policy(SET CMP0148 NEW)
