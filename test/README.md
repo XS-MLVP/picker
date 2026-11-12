@@ -16,12 +16,21 @@ These scripts check the CLI and export/pack flows. Verilator and Python are the 
 | `make -C test export_vpi_python` | VPI export / VPI 导出 |
 | `make -C test export_filelist` | File lists / 文件列表 |
 | `make -C test export_complex_port` | Complex ports / 复杂端口 |
-| `make -C test export_unpacked_array` | Port arrays and native internal storage: Python/C++ DPI/mem_direct and optional Java / 端口数组与内部原生存储 |
+| `make -C test export_unpacked_array` | Port arrays and native internal storage: Python/C++ DPI/mem_direct, optional Java / 端口数组与内部原生存储 |
 | `make -C test pack_transaction` | UVM transactions / UVM 事务 |
 | `make -C test pack_from_rtl` | Transactions from RTL / 从 RTL 生成事务 |
 | `make -C test pack_unsupported_type` | Unsupported types / 不支持的类型 |
 | `make -C test pack_multiple_classes` | Multiple classes / 多类事务 |
 | `make -C test pack_python` | Python packaging / Python 包装 |
+
+Python and C++ run full RTL regressions for array ports in both DPI and mem_direct
+modes, and for native internal arrays through mem_direct; Java runs the port-array
+regression when its toolchain is available. Scala, Go, and Lua share the binding
+path but are not covered by an equivalent full-simulation regression here.
+
+Python 和 C++ 会对 DPI、mem_direct 两种模式的数组端口执行完整 RTL 回归，并通过
+mem_direct 覆盖内部原生数组；Java 工具链可用时运行数组端口回归。Scala、Go 和 Lua 使用
+同一套绑定路径，但这里没有等价的完整仿真回归。
 
 Tests write generated directories such as picker_out_* and pack_example. `make -C test clean` removes test outputs. The preflight may rebuild missing bindings; use a separate checkout when preserving other build artifacts.
 

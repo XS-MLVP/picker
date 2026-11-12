@@ -62,15 +62,16 @@ For your own design, query names with `VPIInternalSignalList()`, then pass the a
 
 By default, `GetInternalSignal()` uses generated native layout information when available and otherwise queries VPI. `use_vpi=True` selects VPI explicitly. `example/CacheSignalCFG` contains a complete native-access project.
 
-Current VPI lookup does not provide array views: `is_array` and `index` apply only
-to native layout lookup, even when the simulator exposes array handles. The planned
-VPI array path requires **Verilator 5.048 or newer** and excludes 5.026; existing
-VPI queries for individual signals are unchanged. See [VPI array compatibility](../reference/compatibility.md#vpi-array-versions)
-for the distinction between simulator probes and current integration status.
+VPI lookup returns individual `XData` signals. The native layout lookup also
+provides array access through the `is_array` and `index` arguments described below.
 
 ## Access a native array
 
-For models with native layout information, obtain the array once and access its elements:
+On Verilator, native array access uses the `--rw mem_direct` layout path and the
+same 5.026-and-newer range as array ports; regression anchors are 5.026, 5.048,
+and 5.052. See [version compatibility](../reference/compatibility.md#unpacked-arrays-and-verilator-versions).
+
+For fixed-size arrays in models with native layout information, obtain the array once and access its elements:
 
 ```python
 memory = dut.GetInternalSignal("Top.memory", is_array=True)
@@ -88,7 +89,8 @@ xcomm consumes the dimensions and strides through a shared native `XDataArray`
 backend. `dut.xcfg.NewXDataArrayView(name)` returns a view with `Shape()`,
 `Strides()`, `At(indices)` and `AtFlat(index)`; leaves are created on demand.
 These internal view bounds are zero-based **storage coordinates**, not recovered
-RTL bounds. Existing flat list/index queries use the same backend without per-leaf
-callbacks. The backend retains metadata, not the model allocation or DPI library.
+RTL bounds. The flat list and indexed queries use the same backend without
+per-leaf callbacks. The backend retains metadata, not the model allocation or DPI
+library.
 
 Use internal signal objects while their DUT is alive, and query them again after creating a new model.

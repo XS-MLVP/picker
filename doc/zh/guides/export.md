@@ -65,9 +65,10 @@ picker export rtl/a.v,rtl/b.v --sname A,2,B,3 \
 
 <a id="unpacked-array-ports"></a>
 
-## 导出 unpacked array 端口
+## 导出 unpacked 数组端口
 
-Verilator 后端的数组支持面向 5.026 及更新版本，见[版本兼容说明](../reference/compatibility.md#unpacked-array-versions)。
+Verilator 后端的定长 unpacked 数组端口支持 5.026 及更新版本；回归锚点为 5.026、5.048 和 5.052。
+见[版本兼容说明](../reference/compatibility.md#unpacked-array-versions)。
 
 支持元素为标量 `bit`/`logic` 或一维 packed `bit`/`logic` 位向量的定长 unpacked 输入/输出数组。生成接口保留数组结构，每个元素仍是普通的 `XData`：
 
@@ -76,7 +77,7 @@ input logic [7:0] data [0:3];
 input logic [7:0] matrix [-1:1][2:3];
 ```
 
-对于已有这些端口的 Python DUT，使用 RTL 原始下标：
+对于使用这些端口生成的 Python DUT，使用 RTL 原始下标：
 
 ```python
 dut.data[0].value = 0x12
@@ -86,7 +87,7 @@ for i in dut.data.indices:
 dut.Step(1)
 ```
 
-Python 数组视图提供 `bounds`（如 `((-1, 1), (2, 3))`）、`shape`、`indices`、`len()`，并支持按声明顺序遍历元素。负下标表示 RTL 下标，不表示倒数位置。越界抛出 `IndexError`；数组结构只读，不要替换视图或元素，应给元素的 `.value` 赋值。`dut["data"]` 返回同一视图，`dut["matrix[-1][2]"]` 与 `dut.matrix[-1][2]` 指向同一绑定信号。
+Python 数组视图提供 `bounds`（如 `((-1, 1), (2, 3))`）、`shape`、`indices`、`len()`，并支持按声明顺序遍历元素。负下标表示 RTL 下标，不表示倒数位置。每层视图保留该维声明的方向；例如 `data [3:2]` 的 `indices` 为 `[3, 2]`，迭代从左侧边界开始。越界抛出 `IndexError`；数组结构只读，不要替换视图或元素，应给元素的 `.value` 赋值。`dut["data"]` 返回同一视图，`dut["matrix[-1][2]"]` 与 `dut.matrix[-1][2]` 指向同一绑定信号。
 
 | 语言 | 元素访问 | 容器 |
 | --- | --- | --- |
@@ -97,7 +98,9 @@ Python 数组视图提供 `bounds`（如 `((-1, 1), (2, 3))`）、`shape`、`ind
 | Go | `dut.Matrix[-1][2]` | 嵌套 `map[int]` |
 | Lua | `dut.matrix[-1][2]` | 嵌套 table |
 
-各语言均使用 RTL 原始下标；原生映射保留所属语言的缺失键行为。`signals.json` 使用 `Unpacked: [[left, right], ...]` 记录各维边界。多实例导出沿用原有模块/实例前缀。
+C++ 视图对超出声明边界的下标抛出 `std::out_of_range`。
+
+各语言均使用 RTL 原始下标。Java、Scala、Go 和 Lua 的 map 容器保留所属语言的缺失键行为。`signals.json` 使用 `Unpacked: [[left, right], ...]` 按声明顺序记录各维边界。多实例导出沿用原有模块/实例前缀。六种绑定使用同一套数组元素绑定路径，因此各语言的元素访问遵循相同的后端规则和 RTL 下标规则。
 
 Verilator `--rw mem_direct` 为每个数组只登记一个基地址和由 `sizeof` 得到的各维字节步长。
 xcomm 在绑定叶子时根据 RTL 各维方向计算元素地址，不生成逐元素地址映射、SV 存储、
@@ -107,19 +110,18 @@ xcomm 在绑定叶子时根据 RTL 各维方向计算元素地址，不生成逐
 getter。这些函数直接访问原 SV 数组，不经过桥接信号。内部扁平下标按声明顺序排列，
 最后一维变化最快；生成的 SV 代码将其换算为 RTL 下标。两种访问模式均使用 xcomm 中共享
 的 C++ `XDataArray` 后端。每个叶子保存后端引用及 DPI 下标或已计算的原生地址，不保存
-捕获状态的读写回调。对外访问仍使用原 RTL 边界。
+逐元素的捕获状态读写回调。对外访问仍使用原 RTL 边界。
 
-使用提供 `SignalArray` 的 Toffee 版本时，可以直接写
+Toffee 的 `SignalArray` 支持直接写
 `Bundle(matrix=dut.matrix)`，或通过带 `Unpacked` 的 `signals.json` 绑定。Toffee 保留同一
 批叶子和原始下标，不改写后端或自动登记其他 `XPort`；数组快照也保留边界。详见
 [Toffee 数组指南](https://github.com/XS-MLVP/toffee/blob/main/docs/zh/guides/data.md)。
 
-数组视图只组织这些已绑定 `XData` 的引用。这不是批量传输：读写一个元素仍需一次 DPI
-调用，当前生成器仍预先创建所有端口元素并注册到 `XPort`。减少 DPI 函数数量并没有消除
-大数组逐元素生成、初始化和时钟更新的开销。C++ `XDataArray` 的 `At(indices)`/`AtFlat(index)`
-可以按需创建、缓存叶子，但生成的端口视图仍预先创建全部元素；批量传输尚未实现。
+数组视图组织已绑定 `XData` 的引用。DPI 后端每次通过带下标的访问器读写一个元素，
+mem_direct 则直接访问该元素的原生存储。生成的端口视图在初始化时创建叶子并注册到
+`XPort`；C++ `XDataArray` 的 `At(indices)`/`AtFlat(index)` 按需创建并缓存叶子。
 
-动态数组、队列、关联数组、unpacked `inout` 端口，以及上述标量/位向量以外的元素类型仍不支持。
+以下类型不支持：动态数组、队列、关联数组、unpacked `inout` 端口，以及上述标量/位向量以外的元素类型。
 
 ## 添加调试功能
 
