@@ -32,6 +32,7 @@ Choose integration tests for the change:
 | Python export and templates | `make -C test export_python` |
 | File lists | `make -C test export_filelist` |
 | Complex ports | `make -C test export_complex_port` |
+| Unpacked array ports and native internal arrays | `make -C test export_unpacked_array` |
 | Internal signals and VPI | `make -C test export_vpi_python` |
 | Transaction packing | `make -C test pack_transaction` |
 | RTL to transactions | `make -C test pack_from_rtl` |

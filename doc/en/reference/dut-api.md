@@ -75,9 +75,9 @@ Bits 0–5 of `GetCovMetrics()` represent line, cond, fsm, toggle, branch, and a
 | `GetInternalSignalList(prefix="", deep=99, use_vpi=False)` | List accessible names, preferring native layout information and then VPI |
 | `VPIInternalSignalList(prefix="", deep=99)` | Enumerate hierarchical names through VPI |
 
-For native lookup, `prefix` is a substring filter. For VPI, `prefix` and `deep` select the starting hierarchy and search depth. `index` and `is_array` apply to native layout lookup.
+For native lookup, `prefix` is a substring filter. For VPI, `prefix` and `deep` select the starting hierarchy and search depth. VPI lookup of internal signals returns individual signals; `index` and `is_array` apply only to native layout lookup.
 
-Results are cached by `name`, and later calls reuse the first object. An ordinary failed lookup returns `None`; an explicit `use_vpi=True` lookup failure raises an assertion. See [access internal signals](../guides/internal-signals.md) for examples.
+Successful results are cached by name and lookup options; later calls with the same arguments reuse the first object. An ordinary failed lookup returns `None`; an explicit `use_vpi=True` lookup failure raises an assertion. See [access internal signals](../guides/internal-signals.md) for examples.
 
 ## Python asynchronous methods
 

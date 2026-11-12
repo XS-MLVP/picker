@@ -60,7 +60,7 @@ picker --check
 
 ## 使用 pip 安装
 
-首次 PyPI 发行完成后，在 Python 3.11+ 环境安装 `uc-picker`：
+在 Python 3.11+ 环境安装 `uc-picker`：
 
 ```sh
 python -m pip install uc-picker

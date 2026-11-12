@@ -74,9 +74,9 @@ Verilator 刷新路径继续使用 `eval_step()`，不增加 context 时间或 P
 | `GetInternalSignalList(prefix="", deep=99, use_vpi=False)` | 返回可访问名称；默认优先原生布局，随后 VPI |
 | `VPIInternalSignalList(prefix="", deep=99)` | 通过 VPI 枚举层次名称 |
 
-原生查询中的 `prefix` 按名称子串筛选。VPI 中的 `prefix` 和 `deep` 指定起始层次与搜索深度。`index`、`is_array` 用于原生布局路径。
+原生查询中的 `prefix` 按名称子串筛选。VPI 中的 `prefix` 和 `deep` 指定起始层次与搜索深度。通过 VPI 查询内部信号时返回单个信号；`index`、`is_array` 仅用于原生布局查询。
 
-查询结果按 `name` 缓存，后续调用复用首次查询的对象。普通查询未找到时返回 `None`；显式 `use_vpi=True` 查询失败会触发断言。具体示例见[访问内部信号](../guides/internal-signals.md)。
+成功查询的结果按名称和查询选项缓存；参数相同的后续调用复用首次查询的对象。普通查询未找到时返回 `None`；显式 `use_vpi=True` 查询失败会触发断言。具体示例见[访问内部信号](../guides/internal-signals.md)。
 
 ## Python 异步方法
 

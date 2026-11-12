@@ -60,7 +60,7 @@ Next, export and run the [adder tutorial](../tutorials/first-dut.md) to check th
 
 ## Install with pip
 
-After the first PyPI release, install `uc-picker` in a Python 3.11+ environment:
+Install `uc-picker` in a Python 3.11+ environment:
 
 ```sh
 python -m pip install uc-picker

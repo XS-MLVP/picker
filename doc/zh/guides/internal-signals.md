@@ -62,16 +62,17 @@ python3 inspect.py
 
 `GetInternalSignal()` 默认优先使用模型生成的原生布局信息，否则通过 VPI 查询。`use_vpi=True` 明确选择 VPI。仓库 `example/CacheSignalCFG` 展示了原生访问的完整工程。
 
-当前 VPI 查询不提供数组视图，`is_array` 和 `index` 只适用于原生布局路径，即使模拟器
-已经提供数组句柄也不例外。规划中的 VPI 数组路径以 **Verilator 5.048（含）** 为最低
-版本，不支持 5.026；已有普通信号的 VPI 查询不变。模拟器探针与当前集成状态的区别见
-[VPI 数组兼容说明](../reference/compatibility.md#vpi-array-versions)。
+VPI 查询返回单个 `XData` 信号。原生布局查询还通过下文的 `is_array` 和 `index` 参数
+提供数组访问。
 
 <a id="native-arrays"></a>
 
 ## 访问原生数组
 
-在提供原生布局的模型中，可以一次取得数组，再访问元素：
+在 Verilator 上，原生数组访问使用 `--rw mem_direct` 布局路径，版本范围与数组端口相同，
+为 5.026 及更新版本；回归锚点为 5.026、5.048 和 5.052。见[版本兼容说明](../reference/compatibility.md#unpacked-array-versions)。
+
+在提供原生布局的模型中，可以一次取得定长数组，再访问元素：
 
 ```python
 memory = dut.GetInternalSignal("Top.memory", is_array=True)
@@ -88,7 +89,7 @@ memory[1].value = 42
 xcomm 通过共享的原生 `XDataArray` 后端消费维度和步长。
 `dut.xcfg.NewXDataArrayView(name)` 返回提供 `Shape()`、`Strides()`、`At(indices)` 和
 `AtFlat(index)` 的视图，按需创建叶子。这些内部视图使用从零开始的**存储坐标**，
-不是恢复出的 RTL 原始边界。原有扁平列表及下标查询也走同一后端，不安装逐元素回调。
+不是恢复出的 RTL 原始边界。扁平列表及下标查询也走同一后端，不安装逐元素回调。
 共享后端只持有元数据，不持有模型内存或 DPI 动态库的生命周期。
 
 内部信号对象在 DUT 存活期间使用，重新创建模型后重新查询。

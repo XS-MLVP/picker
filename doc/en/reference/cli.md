@@ -25,7 +25,7 @@ Use `picker --help`, `picker export --help`, and `picker pack --help` for comman
 | `--sdir, --source_dir` | Template directory | Override installed templates |
 | `--lang, --language` | `python` | cpp/python/java/scala/golang/lua |
 | `--sim` | `verilator` | verilator/vcs/gsim/uvs; requires the toolchain |
-| `--rw, --access-mode` | `dpi` | dpi or mem_direct; see the access guide for support |
+| `--rw, --access-mode` | `dpi` | dpi or mem_direct; see [array access modes](../guides/export.md#export-unpacked-array-ports) and [version support](compatibility.md#unpacked-arrays-and-verilator-versions) |
 | `--internal` | Configuration file | Select internal signals |
 | `--vpi` | Flag, off | Compile VPI support |
 | `--checkpoints` | Flag, off | Compile supported save/restore functionality |

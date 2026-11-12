@@ -32,6 +32,7 @@ make unit_tests NPROC=4 BUILD_XSPCOMM_SWIG=python,java
 | Python 导出与模板 | `make -C test export_python` |
 | 文件列表 | `make -C test export_filelist` |
 | 复杂端口解析 | `make -C test export_complex_port` |
+| Unpacked 数组端口与内部原生数组 | `make -C test export_unpacked_array` |
 | 内部信号与 VPI | `make -C test export_vpi_python` |
 | 事务打包 | `make -C test pack_transaction` |
 | RTL 转事务 | `make -C test pack_from_rtl` |

@@ -30,13 +30,17 @@
 
 ### Unpacked 数组与 Verilator 版本
 
-定长 unpacked 数组的 **DPI 与 mem_direct** 路径面向 **Verilator 5.026 及更新版本**，回归版本为
-5.026、5.048 和 5.052；未对所有中间版本或未来版本逐一认证。通用构建检查仍接受
-5.020，但数组功能未验证 5.026 之前的版本。
+定长 unpacked 数组的 **DPI 与 mem_direct** 路径支持 **Verilator 5.026 及更新版本**。回归锚点为
+5.026、5.048、5.052；其他功能的通用构建最低版本为 5.020。
 
-Picker 与 xcomm 按配套工具链升级。升级后不再支持旧 DUT 和旧布局 YAML，使用当前工具链
-重新生成并编译模型产物。本源码树的数组实现直接使用当前 xcomm `XDataArray` API，
-不提供旧 SDK 兼容路径。
+| 数组访问路径 | RTL 回归覆盖 | 已验证的 Verilator 版本 |
+| --- | --- | --- |
+| DPI 端口 | Python、C++、Java | 5.026、5.048、5.052 |
+| mem_direct 端口 | Python、C++、Java | 5.026、5.048、5.052 |
+| mem_direct 内部数组 | Python、C++ | 5.026、5.048、5.052 |
+
+六种语言生成器使用同一套共享数组绑定实现，数组绑定使用 xcomm 的 `XDataArray` API。
+Picker 与 xcomm 使用匹配的工具链；升级后重新生成并编译 DUT 和数组布局 YAML。
 
 原生元素地址及步长由 C++ 编译器根据生成模型计算，不按 Verilator 版本硬编码。
 更换 Verilator 或模型构建选项时，需要重新生成并一起编译访问代码、模型和布局元数据。
@@ -46,24 +50,6 @@ Picker 与 xcomm 按配套工具链升级。升级后不再支持旧 DUT 和旧�
 编码名称。不支持的 trace 格式应明确报错，不能当成有效原生布局。端口和内部数组的下标
 接口不同，见[数组端口访问](../guides/export.md#unpacked-array-ports)和
 [内部原生数组](../guides/internal-signals.md#native-arrays)。
-
-<a id="vpi-array-versions"></a>
-
-### VPI 数组（待实现）
-
-新增 VPI 数组路径的最低版本定为 **Verilator 5.048（含）**；5.026 不纳入支持，
-包括其能够暴露句柄的部分一维数组。这不改变已有普通信号的 VPI 查询，也不影响
-5.026 上的 DPI 与 mem_direct 数组路径。
-
-独立 VPI 探针已在 5.048 和 5.052 验证一维、二维和三维定长数组的逐维句柄索引及
-元素读写，包含升降序、负下标和 65 位元素。5.026 对探针中的二维、三维数组没有注册
-VPI 根句柄，因此不为其增加桥接信号或其他兼容路径。这些探针验证的是模拟器能力，
-不代表 Picker/xcomm 的 VPI 数组集成已完成，也不代表所有中间版本或未来版本均已验证。
-
-当前共享 `XDataArray` 后端仅实现 DPI 和 mem_direct；`GetInternalSignal()` 的
-`is_array`、`index` 仍只适用于原生布局路径。后续 VPI 数组路径应独立查询元素句柄，
-不按内存地址推算句柄，也不在明确选择 VPI 时静默切换到 mem_direct。缺少数组句柄或
-索引能力时应明确报错，而不是返回伪造的数组视图。
 
 ## 语言
 

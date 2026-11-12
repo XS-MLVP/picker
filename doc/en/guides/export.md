@@ -65,7 +65,8 @@ Inspect the generated interface for instance and port names before writing the t
 
 ## Export unpacked array ports
 
-For the Verilator backend, array support targets 5.026 and newer; see the
+Fixed-size unpacked array ports are supported with the Verilator backend on
+5.026 and newer; regression anchors are 5.026, 5.048, and 5.052. See the
 [version compatibility notes](../reference/compatibility.md#unpacked-arrays-and-verilator-versions).
 
 Fixed-size unpacked input/output arrays of scalar `bit`/`logic` or one-dimensional packed `bit`/`logic` vectors are supported. Generated interfaces preserve the array structure; each element is an ordinary `XData`:
@@ -75,7 +76,7 @@ input logic [7:0] data [0:3];
 input logic [7:0] matrix [-1:1][2:3];
 ```
 
-For an existing Python DUT with these ports, use the original RTL indices:
+For a Python DUT generated with these ports, use the original RTL indices:
 
 ```python
 dut.data[0].value = 0x12
@@ -85,7 +86,7 @@ for i in dut.data.indices:
 dut.Step(1)
 ```
 
-Python views provide `bounds` (for example, `((-1, 1), (2, 3))`), `shape`, `indices`, `len()`, and iteration over elements in declaration order. A negative index is an RTL index, not a position counted from the end. Out-of-range indices raise `IndexError`; replace neither the view nor its elements, and assign to the element's `.value` instead. `dut["data"]` returns the same view and `dut["matrix[-1][2]"]` returns the same bound signal as `dut.matrix[-1][2]`.
+Python views provide `bounds` (for example, `((-1, 1), (2, 3))`), `shape`, `indices`, `len()`, and iteration over elements in declaration order. A negative index is an RTL index, not a position counted from the end. Each view level preserves the declared direction of its dimension; for `data [3:2]`, `indices` is `[3, 2]` and iteration starts at the left bound. Out-of-range indices raise `IndexError`; replace neither the view nor its elements, and assign to the element's `.value` instead. `dut["data"]` returns the same view and `dut["matrix[-1][2]"]` returns the same bound signal as `dut.matrix[-1][2]`.
 
 | Language | Element access | Container |
 | --- | --- | --- |
@@ -96,7 +97,9 @@ Python views provide `bounds` (for example, `((-1, 1), (2, 3))`), `shape`, `indi
 | Go | `dut.Matrix[-1][2]` | Nested `map[int]` |
 | Lua | `dut.matrix[-1][2]` | Nested table |
 
-Every language uses the original RTL indices; native maps retain their language's missing-key behavior. `signals.json` records unpacked bounds as `Unpacked: [[left, right], ...]`. Multi-instance exports keep the usual module/instance prefix.
+C++ views throw `std::out_of_range` for an index outside the declared bounds.
+
+Every language uses the original RTL indices. The Java, Scala, Go, and Lua map containers retain their language's missing-key behavior. `signals.json` records unpacked bounds as `Unpacked: [[left, right], ...]` in declaration order. Multi-instance exports keep the usual module/instance prefix. All six bindings use the same array-element binding path, so element access follows the same backend rules and RTL indexing in every language.
 
 With Verilator `--rw mem_direct`, each array registers one base address and its
 `sizeof`-derived byte strides. xcomm resolves element addresses when binding the
@@ -110,23 +113,22 @@ not bridge signals. Their internal flat index follows declaration order, with th
 last dimension changing fastest; the generated SV code maps it back to RTL
 subscripts. Both access modes use xcomm's shared C++ `XDataArray` backend. Each
 leaf stores a backend reference and its DPI index or precomputed native address,
-not a captured read/write callback. Public indexing still uses the RTL bounds.
+not a captured per-element read/write callback. Public indexing still uses the
+RTL bounds.
 
-With a Toffee version providing `SignalArray`, use `Bundle(matrix=dut.matrix)`
+With Toffee's `SignalArray` support, use `Bundle(matrix=dut.matrix)`
 directly or bind the `Unpacked` metadata in `signals.json`. Toffee retains the
 same leaves and original indices without rebinding their backend or registering
 another `XPort`; snapshots retain bounds too. See the
 [Toffee array guide](https://github.com/XS-MLVP/toffee/blob/main/docs/en/guides/data.md).
 
-The views only group references to these bound `XData` objects. This is not bulk
-array transfer: one element access still uses one DPI call, and the current
-generator eagerly creates every port element and registers it with `XPort`.
-Reducing the number of DPI functions does not eliminate per-element generation,
-initialization, or clock-update costs for very large arrays. The C++ `XDataArray`
-API creates/caches leaves on demand with `At(indices)`/`AtFlat(index)`, but generated
-port views still create all leaves eagerly. Batch transfers are not implemented.
+Views group references to the bound `XData` objects. A DPI backend read or write
+uses the indexed accessor for one element; mem_direct accesses that element's
+native storage directly. Generated port views create their leaves and register
+them with `XPort` during initialization. The C++ `XDataArray` API creates and
+caches leaves on demand with `At(indices)`/`AtFlat(index)`.
 
-Dynamic arrays, queues, associative arrays, unpacked `inout` ports, and element types other than the scalar/packed types above remain unsupported.
+The following are not supported: dynamic arrays, queues, associative arrays, unpacked `inout` ports, and element types other than the scalar/packed types above.
 
 ## Add debugging features
 

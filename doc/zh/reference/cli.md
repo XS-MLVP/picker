@@ -25,7 +25,7 @@
 | `--sdir, --source_dir` | 模板目录 | 覆盖安装模板来源 |
 | `--lang, --language` | `python` | cpp/python/java/scala/golang/lua |
 | `--sim` | `verilator` | verilator/vcs/gsim/uvs；依赖对应工具链 |
-| `--rw, --access-mode` | `dpi` | dpi 或 mem_direct；支持范围见访问指南 |
+| `--rw, --access-mode` | `dpi` | dpi 或 mem_direct；支持范围见[数组访问方式](../guides/export.md#unpacked-array-ports)和[版本说明](compatibility.md#unpacked-array-versions) |
 | `--internal` | 配置文件 | 选定内部信号 |
 | `--vpi` | flag，关闭 | 编入 VPI 支持 |
 | `--checkpoints` | flag，关闭 | 编入受支持的保存/恢复能力 |
