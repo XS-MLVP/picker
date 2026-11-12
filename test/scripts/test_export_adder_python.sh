@@ -25,13 +25,13 @@ cp "${ROOT_DIR}/example/Adder/example.py" "${ROOT_DIR}/picker_out/Adder/python/"
 blue "[export-python] Building generated project"
 make -C "${ROOT_DIR}/picker_out/Adder" EXAMPLE=ON -j"$(nproc)"
 
-blue "[export-python] Verifying generated signals against xcomm ABI 3"
+blue "[export-python] Verifying generated signals against xcomm ABI 4"
 (
   cd "${ROOT_DIR}/picker_out"
   python3 - <<'PY'
 import Adder as generated
 
-assert generated.xsp.abi_version() == 3
+assert generated.xsp.abi_version() == 4
 assert generated.xsp.XTriggerEngine.CoverageVersion() == 5
 assert generated.xsp.XTriggerEngine.CombinationalVersion() == 1
 dut = generated.DUTAdder()

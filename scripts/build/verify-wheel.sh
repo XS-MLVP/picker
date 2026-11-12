@@ -58,7 +58,7 @@ assert (signal.U() & 0xFF) == 0xA5
 clock = xspcomm.XClock(lambda _: 0)
 clock.Step(2)
 assert clock.clk == 2
-assert xspcomm.abi_version() == 3
+assert xspcomm.abi_version() == 4
 assert xspcomm.XTriggerEngine.CoverageVersion() == 5
 assert xspcomm.XCoveragePoint().kind == xspcomm.XCoveragePointKind_Value
 assert xspcomm.XCoverageBin().point_id == 0
