@@ -8,8 +8,10 @@ namespace picker { namespace codegen {
             "    self.{{pin_uniq_name}} = xsp.XData({{logic_pin_length}}, xsp.XData.{{logic_pin_type}})\n";
         static const std::string xdata_binddpi_template =
             "    self.{{pin_uniq_name}}:BindDPIPtr(self.dut:GetDPIHandle(\"{{pin_func_name}}\", 0), self.dut:GetDPIHandle(\"{{pin_func_name}}\", 1))\n";
+        static const std::string xdata_bindptr_template =
+            "    self.{{pin_uniq_name}}:BindNativeData(self.dut:NativeSignalAddr(\"{{logic_pin}}\"))\n";
         static const std::string xport_add_template =
-            "    self.xport:Add(\"{{pin_func_name}}\", self.{{pin_uniq_name}})\n";
+            "    self.xport:Add(\"{{signal_name}}\", self.{{pin_uniq_name}})\n";
         static const std::string xport_cascaded_template =
             "    self.{{port_name}} = self.xport:NewSubPort(\"{{prefix_key}}_\")\n";
 
@@ -21,7 +23,8 @@ namespace picker { namespace codegen {
         /// @param xport_add
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &xdata_init,
-                                 std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant)
+                                  std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant,
+                                  SignalAccessType rw_type)
         {
             inja::Environment env;
             nlohmann::json data;
@@ -30,6 +33,7 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["signal_name"]    = signal_name(pin[i]);
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -37,7 +41,9 @@ namespace picker { namespace codegen {
                                                pin[i].logic_pin_hb - pin[i].logic_pin_lb + 1;
 
                 xdata_init   = xdata_init + env.render(xdata_init_template, data);
-                xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                xdata_bindrw += !pin[i].array_name.empty() ?
+                    render_array_binding(pin[i], "lua", data["pin_uniq_name"]) :
+                    env.render(rw_type == SignalAccessType::MEM_DIRECT ? xdata_bindptr_template : xdata_binddpi_template, data);
                 xport_add    = xport_add + env.render(xport_add_template, data);
             }
         }
@@ -59,6 +65,7 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["signal_name"]    = data["pin_func_name"];
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -104,11 +111,13 @@ namespace picker { namespace codegen {
         std::string xdata_init, xdata_bindrw, xport_add, swig_constant, cascaded_signals;
 
         // Generate External Pin
-        lua_scope::render_external_pin(external_pin, xdata_init, xdata_bindrw, xport_add, swig_constant);
+        lua_scope::render_external_pin(external_pin, xdata_init, xdata_bindrw, xport_add, swig_constant, opts.rw_type);
         // Generate Internal Signal
         lua_scope::render_internal_signal(internal_signal, xdata_init, xdata_bindrw, xport_add, swig_constant);
         // Generate Cascaded Porst
         lua_scope::render_cascaded_signals("", signal_tree_json, cascaded_signals);
+        std::string array_declarations;
+        render_array_ports(external_pin, "lua", array_declarations, cascaded_signals);
 
         // Simulator
         std::transform(simulator.begin(), simulator.end(), simulator.begin(),
@@ -138,6 +147,7 @@ namespace picker { namespace codegen {
         data["__SIMULATOR__"]        = opts.sim;
 
         // Render
+        configure_array_bindings(external_pin, opts, data);
         inja::Environment env;
         recursive_render(src_dir, dst_dir, data, env);
     }

@@ -62,6 +62,13 @@ python3 inspect.py
 
 `GetInternalSignal()` 默认优先使用模型生成的原生布局信息，否则通过 VPI 查询。`use_vpi=True` 明确选择 VPI。仓库 `example/CacheSignalCFG` 展示了原生访问的完整工程。
 
+当前 VPI 查询不提供数组视图，`is_array` 和 `index` 只适用于原生布局路径，即使模拟器
+已经提供数组句柄也不例外。规划中的 VPI 数组路径以 **Verilator 5.048（含）** 为最低
+版本，不支持 5.026；已有普通信号的 VPI 查询不变。模拟器探针与当前集成状态的区别见
+[VPI 数组兼容说明](../reference/compatibility.md#vpi-array-versions)。
+
+<a id="native-arrays"></a>
+
 ## 访问原生数组
 
 在提供原生布局的模型中，可以一次取得数组，再访问元素：
@@ -72,4 +79,16 @@ print(memory[0].value)
 memory[1].value = 42
 ```
 
-将 `Top.memory` 替换为实际名称。查询结果按名称缓存，因此同一名称应保持一致的数组查询方式。`index`、`is_array` 由原生访问路径提供。内部信号对象在 DUT 存活期间使用，重新创建模型后重新查询。
+将 `Top.memory` 替换为 `GetInternalSignalList()` 列出的实际名称。可写内部数组需要由 Verilator 保留，例如在声明后加 `/*verilator public_flat_rw*/`。不需要 VPI 或 SV 桥接信号。`AsImmWrite()` 模式下写入会立即修改模型存储，再调用 `Step()` 或 `RefreshComb()` 计算读取该存储的电路逻辑。
+
+`is_array=True` 返回按**原生存储顺序**排列的扁平列表，最后一维变化最快。这里的下标是从零开始的存储位置，不是导出端口视图使用的 RTL 边界。例如 `logic [64:0] memory [2:3][-1:1]` 对应六个元素，位置 `row * 3 + column` 对应 RTL 的 `memory[row + 2][column - 1]`。只需访问一个元素时，使用 `dut.GetInternalSignal(name, index=position)`。Python 和 C++ 会在绑定前检查扁平下标，并按各个下标分别缓存。
+
+布局生成器记录各维尺寸和由 `sizeof` 得出的实际步长，在提供扁平接口前检查连续存储。例如 Verilator 的 65 位元素占 12 字节，不是 9 字节。存在 trace 元数据时，还可能列出 `Top.memory[2][-1]` 这样的 RTL 下标名称；直接元素选择会绑定原生偏移，而非表达式后端。应以模型实际列出的名称为准。计算表达式仍是只读派生信号，不能当成可写原生存储。
+
+xcomm 通过共享的原生 `XDataArray` 后端消费维度和步长。
+`dut.xcfg.NewXDataArrayView(name)` 返回提供 `Shape()`、`Strides()`、`At(indices)` 和
+`AtFlat(index)` 的视图，按需创建叶子。这些内部视图使用从零开始的**存储坐标**，
+不是恢复出的 RTL 原始边界。原有扁平列表及下标查询也走同一后端，不安装逐元素回调。
+共享后端只持有元数据，不持有模型内存或 DPI 动态库的生命周期。
+
+内部信号对象在 DUT 存活期间使用，重新创建模型后重新查询。

@@ -11,7 +11,7 @@
 namespace fs = std::filesystem;
 
 // Test generated forms, not a second parser implementation. In particular an
-// array and a scalar projection intentionally share the same source and slot.
+// array and a scalar element alias intentionally share the same source and slot.
 struct format {
     bool modern;
     std::string push(const std::string &name, bool array = false) const {
@@ -38,7 +38,8 @@ static void write(const fs::path &file, const std::string &text) {
 static std::vector<picker::cpp_variableInfo> vars = {
     {"Top__DOT__mem", "SData", 16, 2, 0},
     {"Top__DOT__native", "SData", 16, 0, 4},
-    {"Top__DOT__scalar", "SData", 16, 0, 6}};
+    {"Top__DOT__scalar", "SData", 16, 0, 6},
+    {"Top__DOT__matrix", "SData", 16, 4, 8, {2, 2}}};
 
 static void expect_error(const fs::path &file, const std::string &code, const std::string &message) {
     write(file, code);
@@ -77,7 +78,10 @@ int main() {
             "VL_DEBUG_IF(VL_DBG_MSGF(\"brace } and fake __trace_init_bad()\\n\"););\n"
             + array("renamed") + array("array_alias")
             + f.decl("c+100", "\"mem\"") // same name as storage, but a scalar alias
-            + f.decl("c+9", "\"scalar\"") + f.decl("c+209", "\"shifted\"") + "}\n");
+            + f.decl("c+9", "\"scalar\"") + f.decl("c+209", "\"shifted\"")
+            + f.push("\"grid\"", true) + f.push("\"[-1]\"", true)
+            + f.decl("c+300", "\"[2]\"") + f.pop() + f.pop()
+            + f.decl("c+301", "\"out_of_bounds\"") + "}\n");
         std::string dtype;
         if (modern) dtype = "void VTop__trace_init_dtype____0(Root* vlSelf, Trace* tracep, const char* name, int fidx, int c, Direction direction) {\n"
             + f.push("name", true) + "for (int i = 0; i < 2; ++i) {\n"
@@ -89,6 +93,8 @@ int main() {
             "bufp->fullSData(oldp+9, vlSelfRef.Top__DOT__native,16);\n}\n"
             "void VTop__trace_full_z(Root* vlSelf, Buffer* bufp) {\n"
             "bufp->fullSData(oldp+9, vlSelfRef.Top__DOT__scalar,16);\n"
+            "bufp->fullSData(oldp+300, (vlSelfRef.Top__DOT__matrix\n [ 0U ]\t[1U]),16);\n"
+            "bufp->fullSData(oldp+301, vlSelfRef.Top__DOT__matrix[2U][0U],16);\n"
             "VTop__trace_full_dtype____0(vlSelf,bufp,100U,vlSelfRef.Top__DOT__mem);\n}\n"
             "void VTop__trace_full_dtype____0(Root* vlSelf, Buffer* bufp, int offset, const Array& __VdtypeVar) {\n"
             "uint32_t* oldp = bufp->oldp(vlSymsp->__Vm_baseCode+offset);\n"
@@ -99,13 +105,17 @@ int main() {
             auto result = picker::parser::verilator::processTraceFiles(files, vars);
             std::map<std::string, picker::parser::trace_signal_info> signals;
             for (const auto &s : result.signals) signals[s.name] = s;
-            assert(signals.size() == 5);
+            assert(signals.size() == 7);
             assert(signals.at("Top.renamed").kind == "direct");
             assert(signals.at("Top.array_alias").kind == "direct");
             assert(signals.at("Top.renamed").root_name == "Top.mem");
             assert(signals.at("Top.renamed").deps[0].array_size == 2);
-            assert(signals.at("Top.mem").kind == "projection");
+            assert(signals.at("Top.mem").kind == "direct");
+            assert(signals.at("Top.mem").root_name == "Top.mem[0]");
             assert(signals.at("Top.mem").source_expr == "Top.mem[0]");
+            assert(signals.at("Top.grid[-1][2]").kind == "direct");
+            assert(signals.at("Top.grid[-1][2]").root_name == "Top.matrix[0][1]");
+            assert(signals.at("Top.out_of_bounds").kind == "projection");
             assert(signals.at("Top.scalar").source_expr == "Top.scalar");
             assert(signals.at("Top.shifted").source_expr == "Top.native");
             std::reverse(files.begin(), files.end());

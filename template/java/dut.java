@@ -13,6 +13,17 @@ import java.util.function.Consumer;
 
 
 public class UT_{{__TOP_MODULE_NAME__}} {
+{% if __HAS_UNPACKED_ARRAYS__ %}
+    @SafeVarargs
+    private static <T> Map<Integer, T> signalArray(int left, int right, T... elements) {
+        Map<Integer, T> result = new LinkedHashMap<>();
+        int step = left <= right ? 1 : -1;
+        for (int i = 0; i < elements.length; ++i) {
+            result.put((int)((long)left + (long)i * step), elements[i]);
+        }
+        return Collections.unmodifiableMap(result);
+    }
+{% endif %}
     private static boolean LIB_LOADED = false;
     public static void loadLibraryFromJar(String path) throws IOException {
         InputStream inputStream = UT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path);

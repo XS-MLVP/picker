@@ -46,15 +46,18 @@ int main()
 
     assert(foo->type == "uint8_t");
     assert(foo->width == 3);
-    assert(foo->array_size == 1);
+    assert(foo->array_size == 0);
+    assert(foo->array_dimensions.empty());
 
     assert(bar->type == "unsigned _BitInt(192)");
     assert(bar->width == 129);
-    assert(bar->array_size == 1);
+    assert(bar->array_size == 0);
+    assert(bar->array_dimensions.empty());
 
     assert(arr->type == "uint32_t");
     assert(arr->width == 21);
     assert(arr->array_size == 8);
+    assert((arr->array_dimensions == std::vector<int>{4, 2}));
 
     fs::remove_all(base);
     return 0;

@@ -16,6 +16,7 @@ These scripts check the CLI and export/pack flows. Verilator and Python are the 
 | `make -C test export_vpi_python` | VPI export / VPI 导出 |
 | `make -C test export_filelist` | File lists / 文件列表 |
 | `make -C test export_complex_port` | Complex ports / 复杂端口 |
+| `make -C test export_unpacked_array` | Port arrays and native internal storage: Python/C++ DPI/mem_direct and optional Java / 端口数组与内部原生存储 |
 | `make -C test pack_transaction` | UVM transactions / UVM 事务 |
 | `make -C test pack_from_rtl` | Transactions from RTL / 从 RTL 生成事务 |
 | `make -C test pack_unsupported_type` | Unsupported types / 不支持的类型 |

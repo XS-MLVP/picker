@@ -696,11 +696,11 @@ std::string join_scope(const std::vector<std::string> &scope, const std::string 
     std::string result;
     for (const auto &part : scope) {
         if (part == "$rootio") continue;
-        if (!result.empty()) result += ".";
+        if (!result.empty() && !part.starts_with("[")) result += ".";
         result += part;
     }
     if (!leaf.empty()) {
-        if (!result.empty()) result += ".";
+        if (!result.empty() && !leaf.starts_with("[")) result += ".";
         result += leaf;
     }
     return result;
@@ -802,20 +802,56 @@ trace_parse_result build_result(const std::vector<trace_event> &events,
             info.width = decl.width;
             info.source_expr = source.expr;
             info.deps = bindings;
+            // A constant element selection is native storage, not a derived
+            // expression. Preserve its physical C++ indices for the offset tool.
+            std::string selected;
+            if (deps.size() == 1) {
+                auto var = varLookup.find(deps.front());
+                auto expr = strip_wrapping_parentheses(source.expr);
+                // Legacy trace emitters wrap wide array references across lines,
+                // including whitespace between the member and its subscripts.
+                expr.erase(std::remove_if(expr.begin(), expr.end(),
+                                          [](unsigned char ch) { return std::isspace(ch); }), expr.end());
+                if (var != varLookup.end() && var->second.array_size > 0
+                    && decl.width == var->second.width && expr.starts_with(deps.front())) {
+                    auto suffix = expr.substr(deps.front().size());
+                    static const std::regex indices(R"((\[[0-9]+[uUlL]*\])+)");
+                    if (std::regex_match(suffix, indices)) {
+                        auto dimensions = var->second.array_dimensions;
+                        if (dimensions.empty()) { dimensions = {var->second.array_size}; }
+                        std::string canonical = deps.front();
+                        size_t rank = 0, position = 0;
+                        bool valid = true;
+                        while (position < suffix.size()) {
+                            const auto end = suffix.find(']', position);
+                            auto index = std::stoull(suffix.substr(position + 1, end - position - 1));
+                            if (rank >= dimensions.size() || index >= uint64_t(dimensions[rank++])) { valid = false; break; }
+                            canonical += "[" + std::to_string(index) + "]";
+                            position = end + 1;
+                        }
+                        if (valid && rank == dimensions.size()) { selected = canonical; }
+                    }
+                }
+            }
             // Only an explicit whole-array declaration may bind the array base.
-            // A scalar alias can share its first slot and must remain a projection.
+            // A scalar alias sharing its first slot must bind only that element.
             if (decl.is_array && deps.size() == 1) {
                 auto var = varLookup.find(deps.front());
                 if (var != varLookup.end() && var->second.array_size > 0
                     && decl.array_size == var->second.array_size
                     && decl.width == var->second.width
-                    && strip_wrapping_parentheses(source.expr) == deps.front() + "[0]") {
+                    && !selected.empty()) {
                     info.kind = "direct";
                     info.source_expr = deps.front();
+                    selected.clear();
                 }
             }
+            if (!selected.empty()) {
+                info.kind = "direct";
+                info.root_name = selected;
+            }
             if ((info.kind == "direct" || info.kind == "projection") && deps.size() == 1) {
-                info.root_name = deps.front();
+                if (info.root_name.empty()) { info.root_name = deps.front(); }
             }
             result.signals.push_back(std::move(info));
         }

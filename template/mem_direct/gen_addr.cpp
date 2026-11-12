@@ -4,7 +4,6 @@
 #include <iostream>
 #include <sstream>
 
-std::map<std::string, int> size_map;
 std::vector<cpp_variableInfo> all_vars;
 
 {{__render_varible_info_sub_define__}}
@@ -71,6 +70,39 @@ std::unordered_map<std::string, cpp_variableInfo> build_var_lookup()
         lookup[var.name] = var;
     }
     return lookup;
+}
+
+cpp_variableInfo resolve_source(const std::unordered_map<std::string, cpp_variableInfo> &lookup,
+                                const std::string &source)
+{
+    auto found = lookup.find(source);
+    if (found != lookup.end()) { return found->second; }
+    // Trace-selected elements carry zero-based C++ storage indices. Compute
+    // their offsets from sizeof-derived strides, never from RTL bit widths.
+    auto bracket = source.find('[');
+    auto base = lookup.find(source.substr(0, bracket));
+    if (bracket != std::string::npos && base != lookup.end()) {
+        auto var = base->second;
+        size_t dimension = 0;
+        while (bracket < source.size() && source[bracket] == '[') {
+            auto end = source.find(']', bracket);
+            auto text = source.substr(bracket + 1, end - bracket - 1);
+            if (end == std::string::npos || text.empty() || text.find_first_not_of("0123456789") != std::string::npos) { break; }
+            auto index = std::stoull(text);
+            if (dimension >= var.array_dimensions.size() || index >= uint64_t(var.array_dimensions[dimension])) { break; }
+            var.offset += index * var.array_strides[dimension++];
+            bracket = end + 1;
+        }
+        if (bracket == source.size() && dimension == var.array_dimensions.size()) {
+            var.name = source;
+            var.array_size = 0;
+            var.array_dimensions.clear();
+            var.array_strides.clear();
+            return var;
+        }
+    }
+    fprintf(stderr, "Signal source not found in mem_direct vars: %s\n", source.c_str());
+    exit(1);
 }
 
 std::vector<raw_signal_info> load_raw_signal_map(const std::filesystem::path &rawFile)
@@ -167,18 +199,19 @@ void write_offset_yaml(std::ostream &out)
 void write_signal_dep(std::ostream &out, const cpp_variableInfo &var, const std::string &prefix)
 {
     out << prefix << "type: \"" << yaml_escape(var.type) << "\"\n";
-    out << prefix << "mem_bytes: " << var.mem_bytes() << "\n";
+    out << prefix << "mem_bytes: " << var.mem_bytes << "\n";
     out << prefix << "rtl_width: " << var.width << "\n";
     if (var.array_size > 0) {
         out << prefix << "array_size: " << var.array_size << "\n";
     }
+    var.write_array_layout(out, prefix);
     out << prefix << "offset: " << var.offset << "\n";
 }
 
 void write_signal_source(std::ostream &out, const cpp_variableInfo &var, const std::string &prefix)
 {
     out << prefix << "source_type: \"" << yaml_escape(var.type) << "\"\n";
-    out << prefix << "source_mem_bytes: " << var.mem_bytes() << "\n";
+    out << prefix << "source_mem_bytes: " << var.mem_bytes << "\n";
     out << prefix << "source_rtl_width: " << var.width << "\n";
     if (var.array_size > 0) {
         out << prefix << "source_array_size: " << var.array_size << "\n";
@@ -197,15 +230,10 @@ void write_signals_yaml(std::ostream &out, const std::vector<raw_signal_info> &s
         out << "    kind: " << signal.kind << "\n";
 
         if (signal.kind == "direct" || signal.kind == "projection") {
-            auto it = lookup.find(signal.source);
-            if (it == lookup.end()) {
-                fprintf(stderr, "Signal source not found in mem_direct vars: %s (%s)\n",
-                        signal.name.c_str(), signal.source.c_str());
-                exit(1);
-            }
+            const auto var = resolve_source(lookup, signal.source);
             out << "    source: \"" << yaml_escape(signal.source) << "\"\n";
             if (signal.kind == "direct") {
-                write_signal_dep(out, it->second, "    ");
+                write_signal_dep(out, var, "    ");
             } else {
                 if (!signal.type.empty()) {
                     out << "    type: \"" << yaml_escape(signal.type) << "\"\n";
@@ -214,7 +242,7 @@ void write_signals_yaml(std::ostream &out, const std::vector<raw_signal_info> &s
                     out << "    rtl_width: " << signal.rtl_width << "\n";
                 }
                 out << "    expr: \"" << yaml_escape(signal.expr) << "\"\n";
-                write_signal_source(out, it->second, "    ");
+                write_signal_source(out, var, "    ");
             }
             continue;
         }
@@ -295,23 +323,8 @@ void render_varible_info()
     return;
 }
 
-void init_type_size()
-{
-{% if __SIMULATOR__ == "verilator" %}
-    {% for t in __yaml_varible_type_set__ %}
-    SET_SIZE({{t}});
-    {% endfor %}
-{% endif %}
-{% if __SIMULATOR__ == "gsim" %}
-    {% for t in __yaml_varible_type_set__ %}
-    SET_SIZE({{t}});
-    {% endfor %}
-{% endif %}
-}
-
 int main(int argc, char **argv)
 {
-    init_type_size();
     render_varible_info();
     auto signals = try_load_raw_signal_map(argv[0]);
     write_offset_yaml(std::cout);

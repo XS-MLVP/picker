@@ -9,8 +9,10 @@ namespace picker { namespace codegen {
             "        this.{{pin_uniq_name}} = new XData({{logic_pin_length}}, XData.{{logic_pin_type}});\n";
         static const std::string xdata_binddpi_template =
             "        this.{{pin_uniq_name}}.BindDPIPtr(this.dut.GetDPIHandle(\"{{pin_func_name}}\", 0), this.dut.GetDPIHandle(\"{{pin_func_name}}\", 1));\n";
+        static const std::string xdata_bindptr_template =
+            "        this.{{pin_uniq_name}}.BindNativeData(this.dut.NativeSignalAddr(\"{{logic_pin}}\"));\n";
         static const std::string xport_add_template =
-            "        this.xport.Add(\"{{pin_func_name}}\", this.{{pin_uniq_name}});\n";
+            "        this.xport.Add(\"{{signal_name}}\", this.{{pin_uniq_name}});\n";
         static const std::string xport_cascaded_dec_template = "    public XPort {{port_name}};\n";
         static const std::string xport_cascaded_sgn_template =
             "        this.{{port_name}} = this.xport.NewSubPort(\"{{prefix_key}}_\");\n";
@@ -23,8 +25,8 @@ namespace picker { namespace codegen {
         /// @param xport_add
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &moudle_name,
-                                 std::string &xdata_decl, std::string &xdata_init, std::string &xdata_bindrw,
-                                 std::string &xport_add, std::string &swig_constant)
+                                  std::string &xdata_decl, std::string &xdata_init, std::string &xdata_bindrw,
+                                  std::string &xport_add, std::string &swig_constant, SignalAccessType rw_type)
         {
             inja::Environment env;
             nlohmann::json data;
@@ -34,6 +36,7 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["signal_name"]    = signal_name(pin[i]);
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -42,7 +45,9 @@ namespace picker { namespace codegen {
 
                 xdata_decl   = xdata_decl + env.render(xdata_declare_template, data);
                 xdata_init   = xdata_init + env.render(xdata_init_template, data);
-                xdata_bindrw = xdata_bindrw + env.render(xdata_binddpi_template, data);
+                xdata_bindrw += !pin[i].array_name.empty() ?
+                    render_array_binding(pin[i], "java", data["pin_uniq_name"]) :
+                    env.render(rw_type == SignalAccessType::MEM_DIRECT ? xdata_bindptr_template : xdata_binddpi_template, data);
                 xport_add    = xport_add + env.render(xport_add_template, data);
             }
         }
@@ -66,6 +71,7 @@ namespace picker { namespace codegen {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
+                data["signal_name"]    = data["pin_func_name"];
                 data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -115,13 +121,14 @@ namespace picker { namespace codegen {
 
         // Generate External Pin
         java_ns::render_external_pin(external_pin, dst_module_name, xdata_decl, xdata_init, xdata_bindrw, xport_add,
-                                     swig_constant);
+                                      swig_constant, opts.rw_type);
         // Generate Internal Signal
         java_ns::render_internal_signal(internal_signal, dst_module_name, xdata_decl, xdata_init, xdata_bindrw,
                                         xport_add, swig_constant);
 
         // Generate Cascaded Ports
         java_ns::render_cascaded_signals("", signal_tree_json, cascaded_signals_dec, cascaded_signals_sgn);
+        const bool has_arrays = render_array_ports(external_pin, "java", cascaded_signals_dec, cascaded_signals_sgn);
 
         // Simulator
         std::transform(simulator.begin(), simulator.end(), simulator.begin(),
@@ -145,6 +152,7 @@ namespace picker { namespace codegen {
         data["__JNI_LIB_SUFFIX__"] = native_lib_suffix;
 
         data["__XDATA_DECL__"]         = xdata_decl;
+        data["__HAS_UNPACKED_ARRAYS__"] = has_arrays;
         data["__XDATA_INIT__"]         = xdata_init;
         data["__XDATA_BIND__"]         = xdata_bindrw;
         data["__XPORT_ADD__"]          = xport_add;
@@ -157,6 +165,7 @@ namespace picker { namespace codegen {
         data["__SIMULATOR__"]        = opts.sim;
 
         // Render
+        configure_array_bindings(external_pin, opts, data);
         inja::Environment env;
         recursive_render(src_dir, dst_dir, data, env);
     }

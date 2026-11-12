@@ -62,6 +62,12 @@ For your own design, query names with `VPIInternalSignalList()`, then pass the a
 
 By default, `GetInternalSignal()` uses generated native layout information when available and otherwise queries VPI. `use_vpi=True` selects VPI explicitly. `example/CacheSignalCFG` contains a complete native-access project.
 
+Current VPI lookup does not provide array views: `is_array` and `index` apply only
+to native layout lookup, even when the simulator exposes array handles. The planned
+VPI array path requires **Verilator 5.048 or newer** and excludes 5.026; existing
+VPI queries for individual signals are unchanged. See [VPI array compatibility](../reference/compatibility.md#vpi-array-versions)
+for the distinction between simulator probes and current integration status.
+
 ## Access a native array
 
 For models with native layout information, obtain the array once and access its elements:
@@ -72,4 +78,17 @@ print(memory[0].value)
 memory[1].value = 42
 ```
 
-Replace `Top.memory` with the actual name. Results are cached by name, so keep the array lookup mode consistent for each name. The native access path provides `index` and `is_array`. Use internal signal objects while their DUT is alive, and query them again after creating a new model.
+Replace `Top.memory` with a name returned by `GetInternalSignalList()`. A writable internal array must be retained by Verilator, for example with `/*verilator public_flat_rw*/` on its declaration. Neither VPI nor SV bridge signals are needed. A write in `AsImmWrite()` mode changes the model's storage immediately; call `Step()` or `RefreshComb()` to evaluate logic that reads it.
+
+`is_array=True` returns a flat list in **native storage order**, with the last dimension varying fastest. Its indices are zero-based storage positions, not the RTL bounds used by exported port views. For `logic [64:0] memory [2:3][-1:1]`, the list has six elements and position `row * 3 + column` corresponds to RTL `memory[row + 2][column - 1]`. To bind only one element, use `dut.GetInternalSignal(name, index=position)`. Python and C++ check this flat index before binding and cache each index separately.
+
+The layout generator records the dimensions and `sizeof`-derived strides; it checks that the array is contiguous before exposing the flat API. A 65-bit Verilator element occupies 12 bytes, not 9. With trace metadata, RTL-indexed leaf names such as `Top.memory[2][-1]` may also be available; direct element selections bind their native offsets rather than an expression backend. Use the names actually listed by the model. Computed expressions are still read-only derived signals, not writable native storage.
+
+xcomm consumes the dimensions and strides through a shared native `XDataArray`
+backend. `dut.xcfg.NewXDataArrayView(name)` returns a view with `Shape()`,
+`Strides()`, `At(indices)` and `AtFlat(index)`; leaves are created on demand.
+These internal view bounds are zero-based **storage coordinates**, not recovered
+RTL bounds. Existing flat list/index queries use the same backend without per-leaf
+callbacks. The backend retains metadata, not the model allocation or DPI library.
+
+Use internal signal objects while their DUT is alive, and query them again after creating a new model.

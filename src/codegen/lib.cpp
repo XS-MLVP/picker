@@ -8,6 +8,43 @@
 
 namespace picker { namespace codegen {
 
+    void configure_array_bindings(const std::vector<picker::sv_signal_define> &pins, const picker::export_opts &opts,
+                                  nlohmann::json &data)
+    {
+        auto arrays = nlohmann::json::array();
+        std::set<std::string> seen;
+        for (const auto &pin : pins) {
+            if (pin.array_name.empty() || !seen.insert(pin.array_name).second) continue;
+            nlohmann::json array;
+            array["name"] = pin.array_name;
+            array["width"] = pin.logic_pin_hb == -1 ? 0 : pin.logic_pin_hb - pin.logic_pin_lb + 1;
+            std::string left = "{", right = "{", native = pin.array_name;
+            auto strides = nlohmann::json::array();
+            for (const auto &[l, r] : pin.unpacked_dimensions) {
+                if (left.size() > 1) { left += ", "; right += ", "; }
+                left += std::to_string(l);
+                right += std::to_string(r);
+                native += "[0]";
+                strides.push_back(native);
+            }
+            array["left"] = left + "}";
+            array["right"] = right + "}";
+            array["native_first"] = native;
+            array["native_strides"] = strides;
+            arrays.push_back(array);
+        }
+        const bool enabled = !arrays.empty();
+        data["__HAS_ARRAY_BINDINGS__"] = enabled;
+        data["__ARRAY_PORTS__"] = arrays;
+        data["__RW_TYPE__"] = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
+        if (enabled && !data.contains("__XSPCOMM_INCLUDE__")) {
+            std::string error;
+            auto include = picker::get_xcomm_lib("include", error);
+            if (include.empty()) { PK_FATAL("%s\n", error.c_str()); }
+            data["__XSPCOMM_INCLUDE__"] = include;
+        }
+    }
+
     bool check_file_type(const std::string src, const std::vector<std::string> &types)
     {
         for (const auto &type : types) {
@@ -319,6 +356,7 @@ namespace picker { namespace codegen {
     {
         if (opts.rw_type != picker::SignalAccessType::MEM_DIRECT) { return; }
         for (const auto &pin : external_pins) {
+            if (!pin.array_name.empty()) continue; // Arrays register one base/stride layout, not N element addresses.
             nlohmann::json expin;
             expin["name"] = pin.logic_pin;
             expin["type"] = (pin.logic_pin_type[0] == 'i') ? "In" : "Out";
@@ -398,6 +436,7 @@ namespace picker { namespace codegen {
         data["__GENERATOR_TEMPLATE_PATH__"] = std::filesystem::absolute(opts.source_dir);
 
         // Render lib files
+        configure_array_bindings(ret, opts, data);
         recursive_render(src_dir, dst_dir, data, env);
 
         // Copy verilog files

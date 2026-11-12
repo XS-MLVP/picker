@@ -63,6 +63,64 @@ picker export rtl/a.v,rtl/b.v --sname A,2,B,3 \
 
 生成后，查看接口文件中的实例和端口名称，再编写对应测试。
 
+<a id="unpacked-array-ports"></a>
+
+## 导出 unpacked array 端口
+
+Verilator 后端的数组支持面向 5.026 及更新版本，见[版本兼容说明](../reference/compatibility.md#unpacked-array-versions)。
+
+支持元素为标量 `bit`/`logic` 或一维 packed `bit`/`logic` 位向量的定长 unpacked 输入/输出数组。生成接口保留数组结构，每个元素仍是普通的 `XData`：
+
+```systemverilog
+input logic [7:0] data [0:3];
+input logic [7:0] matrix [-1:1][2:3];
+```
+
+对于已有这些端口的 Python DUT，使用 RTL 原始下标：
+
+```python
+dut.data[0].value = 0x12
+dut.matrix[-1][2].value = 0x34
+for i in dut.data.indices:
+    dut.data[i].value = i
+dut.Step(1)
+```
+
+Python 数组视图提供 `bounds`（如 `((-1, 1), (2, 3))`）、`shape`、`indices`、`len()`，并支持按声明顺序遍历元素。负下标表示 RTL 下标，不表示倒数位置。越界抛出 `IndexError`；数组结构只读，不要替换视图或元素，应给元素的 `.value` 赋值。`dut["data"]` 返回同一视图，`dut["matrix[-1][2]"]` 与 `dut.matrix[-1][2]` 指向同一绑定信号。
+
+| 语言 | 元素访问 | 容器 |
+| --- | --- | --- |
+| Python | `dut.matrix[-1][2]` | 保留边界的只读视图 |
+| C++ | `dut.matrix[-1][2]` | 检查边界、返回 `XData&` 的视图 |
+| Java | `dut.matrix.get(-1).get(2)` | 只读嵌套 `Map` |
+| Scala | `dut.matrix(-1)(2)` | 不可变嵌套 `Map` |
+| Go | `dut.Matrix[-1][2]` | 嵌套 `map[int]` |
+| Lua | `dut.matrix[-1][2]` | 嵌套 table |
+
+各语言均使用 RTL 原始下标；原生映射保留所属语言的缺失键行为。`signals.json` 使用 `Unpacked: [[left, right], ...]` 记录各维边界。多实例导出沿用原有模块/实例前缀。
+
+Verilator `--rw mem_direct` 为每个数组只登记一个基地址和由 `sizeof` 得到的各维字节步长。
+xcomm 在绑定叶子时根据 RTL 各维方向计算元素地址，不生成逐元素地址映射、SV 存储、
+连续赋值桥接或端口 DPI 访问器。内部数组使用[原生布局路径](internal-signals.md#native-arrays)，不通过端口接口或 VPI 绕行。
+
+`--rw dpi` 为每个输入数组只生成**一个带下标的 getter 和一个 setter**，输出数组只有
+getter。这些函数直接访问原 SV 数组，不经过桥接信号。内部扁平下标按声明顺序排列，
+最后一维变化最快；生成的 SV 代码将其换算为 RTL 下标。两种访问模式均使用 xcomm 中共享
+的 C++ `XDataArray` 后端。每个叶子保存后端引用及 DPI 下标或已计算的原生地址，不保存
+捕获状态的读写回调。对外访问仍使用原 RTL 边界。
+
+使用提供 `SignalArray` 的 Toffee 版本时，可以直接写
+`Bundle(matrix=dut.matrix)`，或通过带 `Unpacked` 的 `signals.json` 绑定。Toffee 保留同一
+批叶子和原始下标，不改写后端或自动登记其他 `XPort`；数组快照也保留边界。详见
+[Toffee 数组指南](https://github.com/XS-MLVP/toffee/blob/main/docs/zh/guides/data.md)。
+
+数组视图只组织这些已绑定 `XData` 的引用。这不是批量传输：读写一个元素仍需一次 DPI
+调用，当前生成器仍预先创建所有端口元素并注册到 `XPort`。减少 DPI 函数数量并没有消除
+大数组逐元素生成、初始化和时钟更新的开销。C++ `XDataArray` 的 `At(indices)`/`AtFlat(index)`
+可以按需创建、缓存叶子，但生成的端口视图仍预先创建全部元素；批量传输尚未实现。
+
+动态数组、队列、关联数组、unpacked `inout` 端口，以及上述标量/位向量以外的元素类型仍不支持。
+
 ## 添加调试功能
 
 - 使用 `-w trace.fst` 生成波形支持，具体操作见[记录仿真结果](simulation.md#recording)。

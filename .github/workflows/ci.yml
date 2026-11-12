@@ -72,6 +72,9 @@ jobs:
           - os: ubuntu-22.04
             verilator_override: v5.026
             full_test: false
+          - os: ubuntu-22.04
+            verilator_override: v5.048
+            full_test: false
     runs-on: ${{ matrix.os }}
     env:
       BUILD_XSPCOMM_SWIG: python,java
@@ -183,10 +186,10 @@ jobs:
           name: picker-dev-wheels-${{ matrix.os }}-${{ github.sha }}
           path: dist/*.whl
 
-      - name: Legacy Verilator VCD compatibility
+      - name: Verilator native-array and VCD compatibility
         if: matrix.full_test == false
         run: |
-          make -C test export_cachecfg
+          make -C test export_cachecfg export_unpacked_array
 
       - name: Cleanup generated artifacts
         if: always()

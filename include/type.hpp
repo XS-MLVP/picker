@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace picker {
@@ -67,6 +68,13 @@ typedef struct sv_signal_define {
     std::string logic_pin_type;
     int logic_pin_hb;
     int logic_pin_lb;
+    // Original fixed unpacked ranges, outermost first; retained on lowered elements.
+    std::vector<std::pair<int, int>> unpacked_dimensions;
+    // Array connections require equivalent element types (bit vs logic, signedness).
+    std::string unpacked_element_type = "logic";
+    // Lowered elements keep their parent bounds and RTL indices, independent of logic_pin.
+    std::string array_name;
+    std::vector<int> array_indices;
 } sv_signal_define;
 
 typedef struct sv_module_define {
@@ -108,6 +116,7 @@ typedef struct cpp_variableInfo {
     int width      = 0;
     int array_size = 0;
     int64_t offset = 0;
+    std::vector<int> array_dimensions;
 } cpp_variableInfo;
 
 } // namespace picker
