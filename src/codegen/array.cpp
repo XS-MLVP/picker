@@ -4,6 +4,7 @@ namespace picker { namespace codegen {
 
     std::string signal_name(const picker::sv_signal_define &pin)
     {
+        if (!pin.signal_path.empty()) { return pin.signal_path; }
         if (pin.array_name.empty()) { return pin.logic_pin; }
         auto name = pin.array_name;
         for (int index : pin.array_indices) { name += "[" + std::to_string(index) + "]"; }
@@ -36,7 +37,7 @@ namespace picker { namespace codegen {
     {
         std::map<std::string, std::vector<const picker::sv_signal_define *>> arrays;
         for (const auto &pin : pins) {
-            if (!pin.array_name.empty()) { arrays[pin.array_name].push_back(&pin); }
+            if (!pin.array_name.empty() && pin.aggregate_name.empty()) { arrays[pin.array_name].push_back(&pin); }
         }
         auto pin_map = picker::get_default_conflict_map();
         for (const auto &[name, elements] : arrays) {
@@ -112,6 +113,57 @@ namespace picker { namespace codegen {
                     initialization += "        self._picker_arrays[" + nlohmann::json(name).dump()
                                       + "] = self." + attribute + "\n";
                 }
+            }
+        }
+        std::set<std::string> seen;
+        std::set<std::string> attributes;
+        for (const auto &pin : pins) {
+            attributes.insert(pin.logic_pin);
+            if (!pin.aggregate_name.empty()) attributes.insert(pin.aggregate_name);
+            else if (!pin.array_name.empty()) attributes.insert(pin.array_name);
+        }
+        for (const auto &pin : pins) {
+            if (pin.aggregate_name.empty() || !seen.insert(pin.aggregate_name).second) continue;
+            const auto layout = nlohmann::json::parse(*pin.type_layout);
+            if (layout["kind"] == "bits") continue;
+            const bool packed = layout["packed"].get<bool>();
+            const bool structure = layout["kind"] == "struct";
+            auto attribute = pin.aggregate_name;
+            if (packed) {
+                attribute += "_view";
+                while (attributes.contains(attribute)) attribute += "_";
+            }
+            attributes.insert(attribute);
+            attribute = picker::fix_conflict_pin_name(attribute, pin_map, language == "golang");
+            if (language == "python") attribute = str_replace_all(attribute, "$", "_");
+            const auto name = nlohmann::json(pin.aggregate_name).dump();
+            const auto description = nlohmann::json(*pin.type_layout).dump();
+            const std::string type = structure ? "XStruct" : "XArray";
+            const std::string method = structure ? "Struct" : "Array";
+            if (language == "cpp") {
+                declarations += "    std::shared_ptr<" + type + "> " + attribute + ";\n";
+                initialization += "    this->" + attribute + " = XView::FromPort(this->xport, " + name +
+                                  ", " + description + ");\n";
+            } else if (language == "python") {
+                initialization += "        self." + attribute + " = xsp.XView.FromPort(self.xport, " + name +
+                                  ", " + description + ")." + method + "()\n";
+                initialization += "        self._picker_views[" + (packed ? nlohmann::json(attribute).dump() : name) +
+                                  "] = self." + attribute + "\n";
+            } else if (language == "java") {
+                declarations += "    public " + type + " " + attribute + ";\n";
+                initialization += "        this." + attribute + " = XView.FromPort(this.xport, " + name +
+                                  ", " + description + ")." + method + "();\n";
+            } else if (language == "scala") {
+                initialization += "    val " + attribute + ": " + type + " = XView.FromPort(this.xport, " + name +
+                                  ", " + description + ")." + method + "()\n";
+            } else if (language == "golang") {
+                declarations += "    " + attribute + " xspcomm." + type + "\n";
+                initialization += "    {\n        view := xspcomm.XViewFromPort(self.Xport, " + name +
+                                  ", " + description + ")\n        self." + attribute + " = view." + method +
+                                  "()\n        xspcomm.DeleteXView(view)\n    }\n";
+            } else {
+                initialization += "    self." + attribute + " = xsp.XView.FromPort(self.xport, " + name +
+                                  ", " + description + "):" + method + "()\n";
             }
         }
         return !arrays.empty();

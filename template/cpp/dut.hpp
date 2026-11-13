@@ -51,6 +51,9 @@ public:
     // signal hashmap
     std::map<std::tuple<std::string, int, bool>, XData*> signal_map;
     std::map<std::string, std::vector<std::shared_ptr<XData>>> signal_list_map;
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    std::shared_ptr<XVPI> vpi_backend;
+    {% endif %}
 
     // DUT
     DutUnifiedBase *dut = nullptr;
@@ -189,6 +192,27 @@ public:
         }
         return this->signal_map[key];
     }
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    XView GetInternalSignalView(std::string name)
+    {
+        if (!this->vpi_backend) {
+            this->vpi_backend = std::make_shared<XVPI>();
+            this->vpi_backend->Configure(
+                this->dut->GetVPIFuncPtr("vpi_get"),
+                this->dut->GetVPIFuncPtr("vpi_get_value"),
+                this->dut->GetVPIFuncPtr("vpi_put_value"),
+                this->dut->GetVPIFuncPtr("vpi_handle_by_name"),
+                this->dut->GetVPIFuncPtr("vpi_handle_by_index"),
+                this->dut->GetVPIFuncPtr("vpi_handle"),
+                this->dut->GetVPIFuncPtr("vpi_iterate"),
+                this->dut->GetVPIFuncPtr("vpi_scan"),
+                this->dut->GetVPIFuncPtr("vpi_get_str"),
+                this->dut->GetVPIFuncPtr("vpi_release_handle"),
+                this->dut->GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}});
+        }
+        return this->vpi_backend->Get(name);
+    }
+    {% endif %}
     std::vector<std::shared_ptr<XData>> GetInternalSignal(std::string name, bool is_array){
         Assert(is_array==true, "GetInternalSignal: is_array must be true");
         if(this->signal_list_map.find(name) == this->signal_list_map.end()){
@@ -212,6 +236,12 @@ public:
     }
     void Finish()
     {
+        {% if __HAS_AGGREGATE_VIEWS__ %}
+        if (this->vpi_backend) {
+            this->vpi_backend->Close();
+            this->vpi_backend.reset();
+        }
+        {% endif %}
         this->dut->Finish();
     }
     void RefreshComb()

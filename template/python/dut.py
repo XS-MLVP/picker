@@ -74,6 +74,16 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     SIMULATOR = "{{__SIMULATOR__}}"
 
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    @staticmethod
+    def _picker_view_value(view):
+        if view.Kind() == "bits":
+            return view.Data()
+        if view.Kind() == "struct":
+            return view.Struct()
+        return view.Array()
+    {% endif %}
+
     # initialize
     def __init__(self, *args, **kwargs):
         self.dut = DutUnifiedBase(*args)
@@ -83,6 +93,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.event = self.xclock.getEvent()
         self.internal_signals = {}
         self._picker_arrays = {}
+        self._picker_views = {}
+        {% if __HAS_AGGREGATE_VIEWS__ %}
+        self._vpi_backend = None
+        {% endif %}
         self.xcfg = xsp.XSignalCFG(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr())
         {% if __SIMULATOR__ == "gsim" %}
         # Set fast mode for GSim
@@ -108,7 +122,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 {{__XPORT_CASCADED__}}
 
     def __del__(self):
-        self.Finish()
+        try:
+            self.Finish()
+        except Exception:
+            pass
 
     ################################
     #         User APIs            #
@@ -207,17 +224,40 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
                 else:
                     signal = self.xcfg.NewXData(name, xname)
             else:
+                {% if __HAS_AGGREGATE_VIEWS__ %}
+                if self._vpi_backend is None:
+                    self._vpi_backend = xsp.XVPI()
+                    self._vpi_backend.Configure(
+                        self.dut.GetVPIFuncPtr("vpi_get"),
+                        self.dut.GetVPIFuncPtr("vpi_get_value"),
+                        self.dut.GetVPIFuncPtr("vpi_put_value"),
+                        self.dut.GetVPIFuncPtr("vpi_handle_by_name"),
+                        self.dut.GetVPIFuncPtr("vpi_handle_by_index"),
+                        self.dut.GetVPIFuncPtr("vpi_handle"),
+                        self.dut.GetVPIFuncPtr("vpi_iterate"),
+                        self.dut.GetVPIFuncPtr("vpi_scan"),
+                        self.dut.GetVPIFuncPtr("vpi_get_str"),
+                        self.dut.GetVPIFuncPtr("vpi_release_handle"),
+                        self.dut.GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}})
+                view = self._vpi_backend.Get(name)
+                if view.HasValue():
+                    if index >= 0:
+                        assert view.Kind() == "array", "Index is only supported for VPI arrays"
+                        view = view.Array().At(index)
+                    signal = self._picker_view_value(view)
+                {% else %}
                 assert index < 0, "Index is not supported for VPI signal"
                 assert not is_array, "Array is not supported for VPI signal"
                 signal = xsp.XData.FromVPI(self.dut.GetVPIHandleObj(name),
                                            self.dut.GetVPIFuncPtr("vpi_get"),
                                            self.dut.GetVPIFuncPtr("vpi_get_value"),
                                            self.dut.GetVPIFuncPtr("vpi_put_value"), "VPI:" + name)
+                {% endif %}
                 if use_vpi:
                     assert signal is not None, f"Internal signal {name} not found (Check VPI is enabled)"
             if signal is None:
                 return None
-            if not isinstance(signal, xsp.XData):
+            if not isinstance(signal, (xsp.XData,{% if __HAS_AGGREGATE_VIEWS__ %} xsp.XStruct, xsp.XArray,{% endif %})):
                 self.internal_signals[key] = list(signal)
             else:
                 self.internal_signals[key] = signal
@@ -229,11 +269,25 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         else:
             return self.dut.VPIInternalSignalList(prefix, deep)
 
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    def GetInternalSignalView(self, name: str):
+        """Return the recursive VPI view for an internal signal or aggregate."""
+        self.GetInternalSignal(name, use_vpi=True)
+        return self._vpi_backend.Get(name)
+    {% endif %}
+
     def VPIInternalSignalList(self, prefix="", deep=99):
         return self.dut.VPIInternalSignalList(prefix, deep)
 
     def Finish(self):
-        self.dut.Finish()
+        {% if __HAS_AGGREGATE_VIEWS__ %}
+        if getattr(self, "_vpi_backend", None) is not None:
+            backend = self._vpi_backend
+            self._vpi_backend = None
+            backend.Close()
+        {% endif %}
+        if getattr(self, "dut", None) is not None:
+            self.dut.Finish()
 
     def RefreshComb(self):
         self.xclock.RefreshComb()
@@ -249,6 +303,8 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     def __getitem__(self, key):
         if key in self._picker_arrays:
             return self._picker_arrays[key]
+        if key in self._picker_views:
+            return self._picker_views[key]
         return self.xport[key]
 
     # Async APIs wrapped from XClock
@@ -263,7 +319,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     def __setattr__(self, name, value):
         assert not isinstance(getattr(self, name, None),
-                               (xsp.XData,{% if __HAS_UNPACKED_ARRAYS__ %} _SignalArray,{% endif %})), \
+                               (xsp.XData,{% if __HAS_UNPACKED_ARRAYS__ %} _SignalArray,{% endif %}{% if __HAS_AGGREGATE_VIEWS__ %} xsp.XStruct, xsp.XArray,{% endif %})), \
         f"Signal attributes of DUT are read-only; set a signal's value instead of replacing `{name}`."
         return super().__setattr__(name, value)
 

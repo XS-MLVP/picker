@@ -128,7 +128,58 @@ native storage directly. Generated port views create their leaves and register
 them with `XPort` during initialization. The C++ `XDataArray` API creates and
 caches leaves on demand with `At(indices)`/`AtFlat(index)`.
 
-The following are not supported: dynamic arrays, queues, associative arrays, unpacked `inout` ports, and element types other than the scalar/packed types above.
+Dynamic arrays, queues, associative arrays, unions, and unpacked `inout` ports are not supported.
+
+## Structs and multidimensional packed arrays
+
+Picker generates recursive xcomm layouts from elaborated RTL types; no Toffee
+layout declaration is needed. These aggregate port views require Verilator
+**5.048 or newer**; generated builds reject older versions before compilation.
+
+| RTL type | Bound values | Generated interface |
+| --- | --- | --- |
+| Packed struct | One complete `XData` | Original signal plus an `XStruct` field view |
+| Multidimensional packed array | One complete `XData` | Original signal plus an `XArray` |
+| Unpacked array | Independent element values | Array view over `XData` or nested containers |
+| Unpacked struct | Independent field values | An `XStruct`, without a whole-value `XData` |
+
+For a packed port `packet`, `dut.packet` remains the complete `XData` and
+`dut.packet_view` maps its fields. A packed array `matrix` similarly gets
+`dut.matrix_view`. If the suffix conflicts with another port, Picker appends
+underscores until the view name is unique. Unpacked struct ports use their own
+name directly. Structs and arrays compose recursively:
+
+```python
+dut.packed_in_view.Data("tag").value = 29
+dut.packed_in_view.Data("valid").value = 1
+dut.matrix_view[1][-2].value = 1
+dut.record_in.entries[-1].header.Data("tag").value = 17
+dut.record_in.entries[-1].payload[3].value = (1 << 64) + 0x1234
+dut.Step(1)
+```
+
+Struct `Data(name)` returns the complete field `XData`; `Struct(name)` and
+`Array(name)` select nested containers. Python also offers `view[name]` and
+field attributes; a packed array field is an `XData` through these shortcuts,
+and `Array(name)` explicitly requests its indexed view. Fields conflicting with
+methods remain accessible with `view[name]`. Packed arrays retain each
+dimension's RTL bounds and direction, with the leftmost declared element at the
+most-significant end. Python `bounds`, `shape`, and `indices` follow unpacked
+array conventions. Scalar leaves use `XData`'s usual width-zero representation.
+
+Packed field writes merge into the parent and follow its existing write/edge
+commit policy. Views do not add `XPort` registrations or simulator backends.
+Unpacked fields bind independently; a homogeneous field within an unpacked
+array shares one indexed DPI getter/setter pair, or one native base with
+compiler-derived byte strides. Native access uses actual generated C++ members,
+not assumed C++ struct packing. `signals.json` records the recursive type under
+`Layout`, including fields, packed offsets, bounds, widths, signing and state kind.
+DPI and mem_direct both access the selected independent field or array element
+directly, without copying an entire unpacked array for a single-element write.
+
+Run `make -C test export_aggregate_views` for the Python/C++/Java RTL regression
+using `test/data/aggregate_views.sv`. Use the matching xcomm SDK containing
+`XStruct`, `XArray` and native ABI 4, and rebuild generated DUTs with that SDK.
 
 ## Add debugging features
 

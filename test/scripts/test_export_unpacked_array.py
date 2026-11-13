@@ -594,11 +594,10 @@ struct SLayout {
 
     def test_unsupported_types(self):
         cases = (
-            ("input logic [1:0][3:0] data [1:0]", "unsupported type"),
             ("input logic [3:0] data []", "unsupported type"),
             ("input logic [3:0] data [$]", "unsupported type"),
             ("input logic [3:0] data [int]", "unsupported type"),
-            ("input int data [2]", "unsupported type"),
+            ("input real data [2]", "unsupported type"),
             ("inout wire [3:0] data [1:0]", "unsupported inout unpacked array"),
         )
         for declaration, diagnostic in cases:

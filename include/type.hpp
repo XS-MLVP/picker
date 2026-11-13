@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -75,6 +76,15 @@ typedef struct sv_signal_define {
     // Lowered elements keep their parent bounds and RTL indices, independent of logic_pin.
     std::string array_name;
     std::vector<int> array_indices;
+    // Recursive type description for struct and multidimensional packed ports.
+    // Lowered leaves retain their original public path and their root layout.
+    std::shared_ptr<const std::string> type_layout;
+    std::string aggregate_name;
+    std::string signal_path;
+    // Compiler expressions for a homogeneous unpacked field group. There is
+    // one shared binding per field group, not one native registration per leaf.
+    std::string binding_native;
+    std::vector<std::string> binding_strides;
 } sv_signal_define;
 
 typedef struct sv_module_define {

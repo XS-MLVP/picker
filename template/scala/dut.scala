@@ -13,6 +13,9 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     var xclock = new XClock(this.dut.getPxcStep(), this.dut.getPSelf())
     val internalSignals: scala.collection.mutable.Map[String, XData] = scala.collection.mutable.Map()
     val internalSignalsList: scala.collection.mutable.Map[String, Array[XData]] = scala.collection.mutable.Map()
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    var vpiBackend: XVPI = null
+    {% endif %}
     var xport = new XPort()
     var xcfg = this.newXCFG()
 
@@ -102,6 +105,13 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.xclock.StepFal(callback)
     }
     def Finish(): Unit  = {
+        {% if __HAS_AGGREGATE_VIEWS__ %}
+        if (this.vpiBackend != null) {
+            this.vpiBackend.Close()
+            this.vpiBackend.delete()
+            this.vpiBackend = null
+        }
+        {% endif %}
         this.dut.Finish()
     }
     def InitClock(clock_name: String) = {
@@ -157,6 +167,26 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         }
         signal
     }
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    def GetInternalSignalView(name: String): XView = {
+        if (this.vpiBackend == null) {
+            this.vpiBackend = new XVPI()
+            this.vpiBackend.Configure(
+                this.dut.GetVPIFuncPtr("vpi_get"),
+                this.dut.GetVPIFuncPtr("vpi_get_value"),
+                this.dut.GetVPIFuncPtr("vpi_put_value"),
+                this.dut.GetVPIFuncPtr("vpi_handle_by_name"),
+                this.dut.GetVPIFuncPtr("vpi_handle_by_index"),
+                this.dut.GetVPIFuncPtr("vpi_handle"),
+                this.dut.GetVPIFuncPtr("vpi_iterate"),
+                this.dut.GetVPIFuncPtr("vpi_scan"),
+                this.dut.GetVPIFuncPtr("vpi_get_str"),
+                this.dut.GetVPIFuncPtr("vpi_release_handle"),
+                this.dut.GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}})
+        }
+        this.vpiBackend.Get(name)
+    }
+    {% endif %}
     def GetInternalSignal(name: String, is_array:Boolean): Array[XData] = {
         if (this.internalSignalsList.contains(name)) {
             return this.internalSignalsList(name)

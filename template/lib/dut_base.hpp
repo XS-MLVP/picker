@@ -6,6 +6,11 @@
 #include <vector>
 #include <iostream>
 #include <initializer_list>
+#if defined(USE_VERILATOR) && defined(VL_VPI)
+// Load the simulator's official VPI types before xcomm's standalone VPI
+// compatibility declarations to avoid duplicate t_vpi_value definitions.
+#include <vpi_user.h>
+#endif
 {% if __HAS_ARRAY_BINDINGS__ %}
 #ifndef SWIG
 #include "xspcomm/xarray.h"
@@ -313,6 +318,7 @@ public:
     // Get VPI handle object to apply VPI operations
     uint64_t GetVPIHandleObj(const char *name);
     uint64_t GetVPIHandleObj(std::string name);
+    std::string GetVPIScope() const;
 
     // Iterate all internal signals
     std::vector<std::string> VPIInternalSignalList(char *name, int depth); 

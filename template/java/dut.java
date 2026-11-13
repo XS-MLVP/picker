@@ -78,6 +78,9 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public XSignalCFG xcfg;
     private Map<String, XData> internalSignals = new java.util.HashMap<String, XData>();
     private Map<String, List<XData>> internalSignalsList = new java.util.HashMap<String, List<XData>>();
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    private XVPI vpiBackend;
+    {% endif %}
 
     // all pins declare
 {{__XDATA_DECL__}}
@@ -226,6 +229,26 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         }
         return signal;
     }
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    public XView GetInternalSignalView(String name) {
+        if (this.vpiBackend == null) {
+            this.vpiBackend = new XVPI();
+            this.vpiBackend.Configure(
+                this.dut.GetVPIFuncPtr("vpi_get"),
+                this.dut.GetVPIFuncPtr("vpi_get_value"),
+                this.dut.GetVPIFuncPtr("vpi_put_value"),
+                this.dut.GetVPIFuncPtr("vpi_handle_by_name"),
+                this.dut.GetVPIFuncPtr("vpi_handle_by_index"),
+                this.dut.GetVPIFuncPtr("vpi_handle"),
+                this.dut.GetVPIFuncPtr("vpi_iterate"),
+                this.dut.GetVPIFuncPtr("vpi_scan"),
+                this.dut.GetVPIFuncPtr("vpi_get_str"),
+                this.dut.GetVPIFuncPtr("vpi_release_handle"),
+                this.dut.GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}});
+        }
+        return this.vpiBackend.Get(name);
+    }
+    {% endif %}
     public List<XData> GetInternalSignal(String name, Boolean is_array){
         if (this.internalSignalsList.containsKey(name)) {
             return this.internalSignalsList.get(name);
@@ -272,6 +295,13 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         return this.VPIInternalSignalList(prefix, deep);
     }
     public void Finish(){
+        {% if __HAS_AGGREGATE_VIEWS__ %}
+        if (this.vpiBackend != null) {
+            this.vpiBackend.Close();
+            this.vpiBackend.delete();
+            this.vpiBackend = null;
+        }
+        {% endif %}
         this.dut.Finish();
     }
     public void InitClock(String clock_name){
