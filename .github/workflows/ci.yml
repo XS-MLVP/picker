@@ -61,6 +61,7 @@ jobs:
     needs: branch-or-pr
     if: needs.branch-or-pr.outputs.run_build == 'true'
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-22.04

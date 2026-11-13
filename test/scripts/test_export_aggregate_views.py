@@ -210,10 +210,8 @@ object example {
 '''
 
 VPI_CHECK = r'''
-import re
+import sys
 from AggregatePorts import DUTAggregatePorts, xsp
-version_text = __import__("subprocess").check_output(["verilator", "--version"], text=True)
-version = tuple(map(int, re.search(r"Verilator (\d+)\.(\d+)", version_text).groups()))
 
 dut = DUTAggregatePorts()
 dut.packed_in.Set(59)
@@ -221,6 +219,30 @@ dut.matrix.Set(0x81)
 dut.record_in.enabled.Set(1)
 dut.packed_records[2].PackedData().Set(0x2f)
 dut.Step(1)
+
+if sys.argv[1] == "unpacked-struct":
+    cached = dut.GetInternalSignal("packed_in", use_vpi=True)
+    if __VPI_STRUCT_SUPPORTED__:
+        record = dut.GetInternalSignal("record_in", use_vpi=True)
+        assert isinstance(record, xsp.XStruct)
+        assert record.Data("enabled").U() == 1
+        assert tuple(record.entries.indices) == (-1, 0)
+        record.entries[-1].header.Data("tag").Set(17)
+        assert dut.GetInternalSignal("record_in.entries[-1].header", use_vpi=True).Data("tag").U() == 17
+        dut.Step(1)
+        assert dut.record_out.entries[-1].header.Data("tag").U() == 17
+    else:
+        try:
+            dut.GetInternalSignal("record_in", use_vpi=True)
+        except RuntimeError as error:
+            assert "__VPI_STRUCT_ERROR__" in str(error), str(error)
+        else:
+            raise AssertionError("unpacked-struct VPI access unexpectedly succeeded")
+    # A rejected lookup must not invalidate previously cached, supported views.
+    assert dut.GetInternalSignal("packed_in", use_vpi=True).Data("valid").CSelf() == cached.Data("valid").CSelf()
+    assert cached.Data("valid").U() == 1
+    dut.Finish()
+    sys.exit(0)
 
 packed = dut.GetInternalSignal("packed_in", use_vpi=True)
 assert isinstance(packed, xsp.XStruct)
@@ -246,23 +268,6 @@ assert matrix[1][-2].U() == 1
 assert matrix[0][1].U() == 1
 matrix[1][-1].Set(1)
 
-try:
-    record = dut.GetInternalSignal("record_in", use_vpi=True)
-except RuntimeError as error:
-    # Verilator 5.048 exposes aggregate port values and array indices, but not
-    # the VPI type/member paths needed to safely bind an unpacked struct.
-    assert version < (5, 52), (version, error)
-    assert "does not identify the VPI object as a struct" in str(error)
-    record_supported = False
-else:
-    assert version >= (5, 52), version
-    assert isinstance(record, xsp.XStruct)
-    assert record.Data("enabled").U() == 1
-    assert tuple(record.entries.indices) == (-1, 0)
-    record.entries[-1].header.Data("tag").Set(17)
-    assert dut.GetInternalSignal("record_in.entries[-1].header", use_vpi=True).Data("tag").U() == 17
-    record_supported = True
-
 records = dut.GetInternalSignal("packed_records", use_vpi=True)
 assert isinstance(records, xsp.XArray)
 assert records.bounds == ((2, 1),)
@@ -271,8 +276,6 @@ records[1].Data("valid").Set(1)
 dut.Step(1)
 assert dut.packed_out.U() == 59
 assert dut.matrix_out.U() == 0xC1
-if record_supported:
-    assert dut.record_out.entries[-1].header.Data("tag").U() == 17
 assert dut.packed_records_out[1].PackedData().U() & 1 == 1
 held = packed.Data("valid")
 dut.Finish()
@@ -292,12 +295,34 @@ CPP_VPI_CHECK = r'''
 #include "UT_AggregatePorts.hpp"
 #include <cassert>
 #include <stdexcept>
-int main() {
+int main(int argc, char **argv) {
     UTAggregatePorts dut;
     dut.packed_in.Set(59);
     dut.matrix.Set(0x81);
     dut.record_in->Data("enabled")->Set(1);
     dut.Step(1);
+    if (argc > 1 && std::string(argv[1]) == "unpacked-struct") {
+        const auto cached = dut.GetInternalSignalView("packed_in").Struct();
+        if (__VPI_STRUCT_SUPPORTED__) {
+            std::shared_ptr<XStruct> record = dut.GetInternalSignalView("record_in");
+            assert(record->Data("enabled")->U() == 1);
+            record->Array("entries")->Struct(-1)->Struct("header")->Data("tag")->Set(17);
+            dut.Step(1);
+            assert(dut.record_out->Array("entries")->Struct(-1)->Struct("header")->Data("tag")->U() == 17);
+        } else {
+            bool rejected = false;
+            try { (void)dut.GetInternalSignalView("record_in"); }
+            catch (const std::runtime_error &error) {
+                if (std::string(error.what()).find("__VPI_STRUCT_ERROR__") == std::string::npos) throw;
+                rejected = true;
+            }
+            assert(rejected);
+        }
+        assert(dut.GetInternalSignalView("packed_in").Struct()->Data("valid") == cached->Data("valid"));
+        assert(cached->Data("valid")->U() == 1);
+        dut.Finish();
+        return 0;
+    }
     std::shared_ptr<XStruct> packed = dut.GetInternalSignalView("packed_in");
     const auto held_view = dut.GetInternalSignalView("packed_in");
     bool wrong_kind = false;
@@ -315,15 +340,11 @@ int main() {
     std::shared_ptr<XArray> matrix = dut.GetInternalSignalView(matrix_name);
     assert(matrix->Array(1)->Data(-2)->U() == 1);
     matrix->Array(1)->Data(-1)->Set(1);
-    std::shared_ptr<XStruct> record = dut.GetInternalSignalView("record_in");
-    auto entry = record->Array("entries")->Struct(-1);
-    entry->Struct("header")->Data("tag")->Set(17);
     std::shared_ptr<XArray> records = dut.GetInternalSignalView("packed_records");
     records->Struct(1)->Data("valid")->Set(1);
     dut.Step(1);
     assert(dut.packed_out.U() == 59);
     assert(dut.matrix_out.U() == 0xc1);
-    assert(dut.record_out->Array("entries")->Struct(-1)->Struct("header")->Data("tag")->U() == 17);
     assert(dut.packed_records_out->Struct(1)->Data("valid")->U() == 1);
     auto held = packed->Data("valid");
     dut.Finish();
@@ -350,7 +371,30 @@ public class example {
         UT_AggregatePorts dut = new UT_AggregatePorts();
         dut.packed_in.Set(59);
         dut.matrix.Set(0x81);
+        dut.record_in.Data("enabled").Set(1);
         dut.Step(1);
+        if (args.length > 0 && args[0].equals("unpacked-struct")) {
+            XStruct cached = dut.GetInternalSignalView("packed_in").Struct();
+            if (__VPI_STRUCT_SUPPORTED__) {
+                XStruct record = dut.GetInternalSignalView("record_in").Struct();
+                assert record.Data("enabled").U().longValue() == 1;
+                record.Array("entries").Struct(-1).Struct("header").Data("tag").Set(17);
+                dut.Step(1);
+                assert dut.record_out.Array("entries").Struct(-1).Struct("header").Data("tag").U().longValue() == 17;
+            } else {
+                boolean rejected = false;
+                try { dut.GetInternalSignalView("record_in"); }
+                catch (RuntimeException error) {
+                    if (!error.getMessage().contains("__VPI_STRUCT_ERROR__")) throw error;
+                    rejected = true;
+                }
+                assert rejected;
+            }
+            assert dut.GetInternalSignalView("packed_in").Struct().Data("valid").CSelf().equals(cached.Data("valid").CSelf());
+            assert cached.Data("valid").U().longValue() == 1;
+            dut.Finish();
+            return;
+        }
         XView heldView = dut.GetInternalSignalView("packed_in");
         boolean wrongKind = false;
         try { heldView.Array(); } catch (RuntimeException expected) { wrongKind = true; }
@@ -361,11 +405,11 @@ public class example {
         XArray matrix = dut.GetInternalSignalView("matrix").Array();
         assert matrix.Array(1).Data(-2).U().longValue() == 1;
         matrix.Array(1).Data(-1).Set(1);
-        XStruct record = dut.GetInternalSignalView("record_in").Struct();
-        record.Array("entries").Struct(-1).Struct("header").Data("tag").Set(17);
+        XArray records = dut.GetInternalSignalView("packed_records").Array();
+        records.Struct(1).Data("valid").Set(1);
         dut.Step(1);
         assert dut.matrix_out.U().longValue() == 0xc1;
-        assert dut.record_out.Array("entries").Struct(-1).Struct("header").Data("tag").U().longValue() == 17;
+        assert dut.packed_records_out.Struct(1).Data("valid").U().longValue() == 1;
         dut.Finish();
         boolean expired = false;
         try { heldView.Struct(); } catch (RuntimeException expected) { expired = true; }
@@ -377,6 +421,9 @@ public class example {
 GO_VPI_CHECK = r'''
 package main
 import (
+    "fmt"
+    "os"
+    "strings"
     ut "UT_AggregatePorts"
     xs "xspcomm"
 )
@@ -392,7 +439,37 @@ func main() {
     dut := ut.NewUT_AggregatePorts()
     dut.Packed_in.Set(59)
     dut.Matrix.Set(0x81)
+    dut.Record_in.Data("enabled").SetGo(1)
     dut.Step(1)
+    if len(os.Args) > 1 && os.Args[1] == "unpacked-struct" {
+        cachedView := dut.GetInternalSignalView("packed_in")
+        defer xs.DeleteXView(cachedView)
+        cached := cachedView.Struct()
+        defer xs.DeleteXStruct(cached)
+        if __VPI_STRUCT_SUPPORTED__ {
+            recordView := dut.GetInternalSignalView("record_in")
+            defer xs.DeleteXView(recordView)
+            record := recordView.Struct()
+            defer xs.DeleteXStruct(record)
+            if record.Data("enabled").U64() != 1 { panic("VPI struct read mismatch") }
+            record.Array("entries").Struct(-1).Struct("header").Data("tag").SetGo(17)
+            dut.Step(1)
+            if dut.Record_out.Array("entries").Struct(-1).Struct("header").Data("tag").U64() != 17 { panic("VPI struct write mismatch") }
+        } else {
+            var rejected interface{}
+            func() {
+                defer func() { rejected = recover() }()
+                view := dut.GetInternalSignalView("record_in")
+                xs.DeleteXView(view)
+            }()
+            if rejected == nil || !strings.Contains(fmt.Sprint(rejected), "__VPI_STRUCT_ERROR__") {
+                panic(fmt.Sprintf("expected the missing VPI member diagnostic, got %v", rejected))
+            }
+        }
+        if cached.Data("valid").U64() != 1 { panic("cached VPI view was invalidated") }
+        dut.Finish()
+        return
+    }
     heldView := dut.GetInternalSignalView("packed_in")
     defer xs.DeleteXView(heldView)
     mustPanic(func() { heldView.Array() })
@@ -401,11 +478,11 @@ func main() {
     matrix := dut.GetInternalSignalView("matrix").Array()
     if matrix.Array(1).Data(-2).U64() != 1 { panic("VPI array-index mismatch") }
     matrix.Array(1).Data(-1).SetGo(1)
-    record := dut.GetInternalSignalView("record_in").Struct()
-    record.Array("entries").Struct(-1).Struct("header").Data("tag").SetGo(17)
+    records := dut.GetInternalSignalView("packed_records").Array()
+    records.Struct(1).Data("valid").SetGo(1)
     dut.Step(1)
     if dut.Matrix_out.U().Uint64() != 0xc1 { panic("VPI packed-array write mismatch") }
-    if dut.Record_out.Array("entries").Struct(-1).Struct("header").Data("tag").U64() != 17 { panic("VPI struct write mismatch") }
+    if dut.Packed_records_out.Struct(1).Data("valid").U64() != 1 { panic("VPI unpacked-array write mismatch") }
     dut.Finish()
     mustPanic(func() { heldView.Struct() })
 }
@@ -417,7 +494,24 @@ local DUT = require("UT_AggregatePorts")
 local dut = DUT:new()
 dut.packed_in:Set(59)
 dut.matrix:Set(0x81)
+dut.record_in:Data("enabled"):Set(1)
 dut:Step(1)
+if arg[1] == "unpacked-struct" then
+    local cached = dut:GetInternalSignalView("packed_in"):Struct()
+    if __VPI_STRUCT_SUPPORTED__ then
+        local record = dut:GetInternalSignalView("record_in"):Struct()
+        assert(record:Data("enabled"):U() == 1)
+        record:Array("entries"):Struct(-1):Struct("header"):Data("tag"):Set(17)
+        dut:Step(1)
+        assert(dut.record_out:Array("entries"):Struct(-1):Struct("header"):Data("tag"):U() == 17)
+    else
+        local ok, error = pcall(function() dut:GetInternalSignalView("record_in") end)
+        assert(not ok and tostring(error):find("__VPI_STRUCT_ERROR__", 1, true), tostring(error))
+    end
+    assert(cached:Data("valid"):U() == 1)
+    dut:Finish()
+    return
+end
 local held_view = dut:GetInternalSignalView("packed_in")
 local ok = pcall(function() held_view:Array() end)
 assert(not ok)
@@ -427,11 +521,11 @@ assert(packed:Data("valid"):U() == 1)
 local matrix = dut:GetInternalSignalView("matrix"):Array()
 assert(matrix:Array(1):Data(-2):U() == 1)
 matrix:Array(1):Data(-1):Set(1)
-local record = dut:GetInternalSignalView("record_in"):Struct()
-record:Array("entries"):Struct(-1):Struct("header"):Data("tag"):Set(17)
+local records = dut:GetInternalSignalView("packed_records"):Array()
+records:Struct(1):Data("valid"):Set(1)
 dut:Step(1)
 assert(dut.matrix_out:U() == 0xc1)
-assert(dut.record_out:Array("entries"):Struct(-1):Struct("header"):Data("tag"):U() == 17)
+assert(dut.packed_records_out:Struct(1):Data("valid"):U() == 1)
 dut:Finish()
 ok = pcall(function() held_view:Struct() end)
 assert(not ok)
@@ -447,22 +541,51 @@ object example {
         val dut = new UT_AggregatePorts()
         dut.packed_in.Set(59)
         dut.matrix.Set(0x81)
+        dut.record_in.Data("enabled").Set(1)
         dut.Step(1)
+        if (args.headOption.contains("unpacked-struct")) {
+            val cached = dut.GetInternalSignalView("packed_in").Struct()
+            if (__VPI_STRUCT_SUPPORTED__) {
+                val record = dut.GetInternalSignalView("record_in").Struct()
+                assert(record.Data("enabled").U().longValue() == 1)
+                record.Array("entries").Struct(-1).Struct("header").Data("tag").Set(17)
+                dut.Step(1)
+                assert(dut.record_out.Array("entries").Struct(-1).Struct("header").Data("tag").U().longValue() == 17)
+            } else {
+                var rejected = false
+                try { dut.GetInternalSignalView("record_in") }
+                catch {
+                    case error: RuntimeException =>
+                        assert(error.getMessage.contains("__VPI_STRUCT_ERROR__"))
+                        rejected = true
+                }
+                assert(rejected)
+            }
+            assert(cached.Data("valid").U().longValue() == 1)
+            dut.Finish()
+            return
+        }
         val packed = dut.GetInternalSignalView("packed_in").Struct()
         assert(packed.Data("tag").S().longValue() == -3)
         assert(packed.Data("valid").U().longValue() == 1)
         val matrix = dut.GetInternalSignalView("matrix").Array()
         assert(matrix.Array(1).Data(-2).U().longValue() == 1)
         matrix.Array(1).Data(-1).Set(1)
-        val record = dut.GetInternalSignalView("record_in").Struct()
-        record.Array("entries").Struct(-1).Struct("header").Data("tag").Set(17)
+        val records = dut.GetInternalSignalView("packed_records").Array()
+        records.Struct(1).Data("valid").Set(1)
         dut.Step(1)
         assert(dut.matrix_out.U().longValue() == 0xc1)
-        assert(dut.record_out.Array("entries").Struct(-1).Struct("header").Data("tag").U().longValue() == 17)
+        assert(dut.packed_records_out.Struct(1).Data("valid").U().longValue() == 1)
         dut.Finish()
     }
 }
 '''
+
+
+UNPACKED_STRUCT_VPI_ERROR = (
+    "Simulator does not identify the VPI object as a struct or expose its "
+    "RTL-declared member: record_in.enabled"
+)
 
 
 class AggregateViewsTest(unittest.TestCase):
@@ -472,6 +595,12 @@ class AggregateViewsTest(unittest.TestCase):
         cls.picker = os.environ.get("PICKER_BIN", str(cls.root / "build/bin/picker"))
         if not Path(cls.picker).is_file() or not shutil.which("verilator"):
             raise unittest.SkipTest("Built Picker and Verilator are required")
+        version_text = subprocess.check_output(["verilator", "--version"], text=True)
+        version = re.search(r"Verilator (\d+)\.(\d+)", version_text)
+        if version is None:
+            raise RuntimeError(f"Cannot determine Verilator version: {version_text}")
+        cls.verilator_version = tuple(map(int, version.groups()))
+        cls.vpi_builds = {}
 
     def run_command(self, args, *, cwd=None, env=None):
         result = subprocess.run(args, cwd=cwd, env=env, text=True, capture_output=True, timeout=600)
@@ -550,84 +679,93 @@ class AggregateViewsTest(unittest.TestCase):
         self.exercise("python")
 
     def test_vpi_python(self):
-        with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory)
-            output = base / "AggregatePorts"
-            self.run_command([
-                self.picker, "export", str(self.root / "test/data/aggregate_views.sv"),
-                "--sname", "AggregatePorts", "--sdir", str(self.root / "template"),
-                "--tdir", str(output), "--sim", "verilator", "--lang", "python",
-                "--rw", "dpi", "--vpi", "--autobuild", "false",
-            ])
-            self.run_command(["make", "-C", str(output), "NPROC=4"])
-            self.run_command([sys.executable, "-c", VPI_CHECK], cwd=base)
+        self.exercise_vpi_language("python", VPI_CHECK)
 
     def test_vpi_cpp(self):
-        with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory)
-            output = base / "AggregatePorts"
-            self.run_command([
-                self.picker, "export", str(self.root / "test/data/aggregate_views.sv"),
-                "--sname", "AggregatePorts", "--sdir", str(self.root / "template"),
-                "--tdir", str(output), "--sim", "verilator", "--lang", "cpp",
-                "--rw", "dpi", "--vpi", "--autobuild", "false",
-            ])
-            (output / "cpp/example.cpp").write_text(CPP_VPI_CHECK)
-            self.run_command(["make", "-C", str(output), "NPROC=4"])
-            self.run_command([str(output / "UTAggregatePorts_example")], cwd=output)
+        self.exercise_vpi_language("cpp", CPP_VPI_CHECK)
 
-    def exercise_vpi_language(self, language, check):
-        with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory)
+    def exercise_vpi_language(self, language, check, case="basic"):
+        if language in ("golang", "lua", "scala") and not os.environ.get("AGGREGATE_EXTRA_LANGUAGES"):
+            self.skipTest("Set AGGREGATE_EXTRA_LANGUAGES=1 to test Go/Lua/Scala toolchains")
+        if language == "java" and not shutil.which("javac"):
+            self.skipTest("Java toolchain unavailable")
+        if language == "scala":
+            self.require_scala_sdk_compatibility()
+        if language not in self.vpi_builds:
+            # Share only build artifacts: capability cases run in separate
+            # processes and report independently, without doubling model builds.
+            directory = tempfile.TemporaryDirectory(prefix="picker-vpi-")
+            self.addClassCleanup(directory.cleanup)
+            base = Path(directory.name)
             output = base / "AggregatePorts"
+            supported = self.verilator_version >= (5, 52)
+            check = check.replace("__VPI_STRUCT_SUPPORTED__",
+                                  str(supported) if language == "python" else str(supported).lower())
+            check = check.replace("__VPI_STRUCT_ERROR__", UNPACKED_STRUCT_VPI_ERROR)
             self.run_command([
                 self.picker, "export", str(self.root / "test/data/aggregate_views.sv"),
                 "--sname", "AggregatePorts", "--sdir", str(self.root / "template"),
                 "--tdir", str(output), "--sim", "verilator", "--lang", language,
                 "--rw", "dpi", "--vpi", "--autobuild", "false",
             ])
-            source_dir, extension = {
-                "java": ("java", "java"), "golang": ("golang", "go"),
-                "lua": ("lua", "lua"), "scala": ("scala", "scala"),
-            }[language]
-            (output / source_dir / f"example.{extension}").write_text(check)
+            if language != "python":
+                extension = {"cpp": "cpp", "java": "java", "golang": "go",
+                             "lua": "lua", "scala": "scala"}[language]
+                (output / language / f"example.{extension}").write_text(check)
             self.run_command(["make", "-C", str(output), "NPROC=4"])
-            if language == "java":
+            cwd, env = output, None
+            if language == "python":
+                command, cwd = [sys.executable, "-c", check], base
+            elif language == "cpp":
+                command = [str(output / "UTAggregatePorts_example")]
+            elif language == "java":
                 jar = self.run_command([self.picker, "--show_xcom_lib_location_java"]).strip().splitlines()[-1]
-                self.run_command(["java", "-ea", "-cp", os.pathsep.join([
-                    jar, str(output / "UT_AggregatePorts-java.jar")]), "com.ut.example"], cwd=output)
+                command = ["java", "-ea", "-cp", os.pathsep.join([
+                    jar, str(output / "UT_AggregatePorts-java.jar")]), "com.ut.example"]
             elif language == "golang":
                 library = self.run_command([self.picker, "--show_xcom_lib_location_golang"]).strip().splitlines()[-1]
-                self.run_command(["go", "run", "example.go"], cwd=output,
-                    env={**os.environ, "GO111MODULE": "off", "GOPATH": os.pathsep.join([
-                        str(output / "golang"), library])})
+                command = ["go", "run", "example.go"]
+                env = {**os.environ, "GO111MODULE": "off", "GOPATH": os.pathsep.join([
+                    str(output / "golang"), library])}
             elif language == "lua":
-                self.run_command(["lua", "example.lua"], cwd=output)
+                command = ["lua", "example.lua"]
             else:
                 jar = self.run_command([self.picker, "--show_xcom_lib_location_scala"]).strip().splitlines()[-1]
-                self.run_command(["scala", "-cp", os.pathsep.join([
-                    jar, str(output / "UT_AggregatePorts-scala.jar")]), "com.ut.example"], cwd=output)
+                command = ["scala", "-cp", os.pathsep.join([
+                    jar, str(output / "UT_AggregatePorts-scala.jar")]), "com.ut.example"]
+            self.vpi_builds[language] = command, cwd, env
+        command, cwd, env = self.vpi_builds[language]
+        self.run_command([*command, case], cwd=cwd, env=env)
 
     def test_vpi_java(self):
-        if not shutil.which("javac"):
-            self.skipTest("Java toolchain unavailable")
         self.exercise_vpi_language("java", JAVA_VPI_CHECK)
 
     def test_vpi_golang(self):
-        if not os.environ.get("AGGREGATE_EXTRA_LANGUAGES"):
-            self.skipTest("Set AGGREGATE_EXTRA_LANGUAGES=1 to test Go/Lua/Scala toolchains")
         self.exercise_vpi_language("golang", GO_VPI_CHECK)
 
     def test_vpi_lua(self):
-        if not os.environ.get("AGGREGATE_EXTRA_LANGUAGES"):
-            self.skipTest("Set AGGREGATE_EXTRA_LANGUAGES=1 to test Go/Lua/Scala toolchains")
         self.exercise_vpi_language("lua", LUA_VPI_CHECK)
 
     def test_vpi_scala(self):
-        if not os.environ.get("AGGREGATE_EXTRA_LANGUAGES"):
-            self.skipTest("Set AGGREGATE_EXTRA_LANGUAGES=1 to test Go/Lua/Scala toolchains")
-        self.require_scala_sdk_compatibility()
         self.exercise_vpi_language("scala", SCALA_VPI_CHECK)
+
+    def test_vpi_unpacked_struct_python(self):
+        self.exercise_vpi_language("python", VPI_CHECK, "unpacked-struct")
+
+    def test_vpi_unpacked_struct_cpp(self):
+        self.exercise_vpi_language("cpp", CPP_VPI_CHECK, "unpacked-struct")
+
+    def test_vpi_unpacked_struct_java(self):
+        self.exercise_vpi_language("java", JAVA_VPI_CHECK, "unpacked-struct")
+
+    def test_vpi_unpacked_struct_golang(self):
+        self.exercise_vpi_language("golang", GO_VPI_CHECK, "unpacked-struct")
+
+    def test_vpi_unpacked_struct_lua(self):
+        self.exercise_vpi_language("lua", LUA_VPI_CHECK, "unpacked-struct")
+
+    def test_vpi_unpacked_struct_scala(self):
+        self.exercise_vpi_language("scala", SCALA_VPI_CHECK, "unpacked-struct")
 
     def test_integral_struct_fields(self):
         rtl = """package IntegralTypes;
