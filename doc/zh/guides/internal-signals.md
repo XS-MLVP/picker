@@ -62,8 +62,15 @@ python3 inspect.py
 
 `GetInternalSignal()` 默认优先使用模型生成的原生布局信息，否则通过 VPI 查询。`use_vpi=True` 明确选择 VPI。仓库 `example/CacheSignalCFG` 展示了原生访问的完整工程。
 
-VPI 查询返回单个 `XData` 信号。原生布局查询还通过下文的 `is_array` 和 `index` 参数
-提供数组访问。
+`GetInternalSignal(..., use_vpi=True)` 对普通 VPI 叶子返回 `XData`。递归聚合端口请在
+C++、Java、Go、Lua 和 Scala 中使用 `GetInternalSignalView(name)`；Python 的
+`GetInternalSignal(name, use_vpi=True)` 也会返回 `XStruct`/`XArray`。Picker 为 packed
+聚合端口提供 RTL 布局，unpacked 数组与 struct 成员则解析为经过检查的 VPI 句柄。
+Verilator 5.048 支持 packed 聚合和 unpacked 数组视图，但不能提供访问 unpacked struct
+所需的 VPI 成员/类型信息；此类请求会明确报错。unpacked struct 的 VPI 视图要求
+Verilator 5.052 或更新版本。若模拟器提供完整 VPI 类型/成员信息，可发现内部 unpacked
+struct；Picker 当前不会为内部信号生成 packed struct 布局，因此会明确拒绝此类访问。
+实现不会猜测模拟器的 C++ 内存布局。
 
 <a id="native-arrays"></a>
 

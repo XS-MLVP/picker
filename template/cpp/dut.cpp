@@ -29,7 +29,11 @@ UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(std::initializer_list<const
 
 UT{{__TOP_MODULE_NAME__}}::~UT{{__TOP_MODULE_NAME__}}()
 {
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    if (this->vpi_backend) this->vpi_backend->Close();
+    {% endif %}
     delete this->dut;
+    this->dut = nullptr;
     for (auto const& [key, val] : this->signal_map) {
         delete val;
     }

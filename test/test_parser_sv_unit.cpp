@@ -355,6 +355,48 @@ namespace {
         fs::remove_all(base);
     }
 
+    void test_recursive_aggregate_ports()
+    {
+        namespace fs = std::filesystem;
+        const auto base = fs::temp_directory_path() / "picker_test_sv_aggregate_views";
+        fs::create_directories(base);
+        write_text(base / "aggregates.sv", R"(
+package Types;
+    typedef struct packed { logic signed [0:4] tag; bit valid; } header_t;
+    typedef struct { header_t header; logic [64:0] words [3:2]; } entry_t;
+    typedef struct { bit enable; entry_t entries [-1:0]; } packet_t;
+endpackage
+module Aggregates(input Types::header_t header,
+                  input logic [1:0][-2:1] matrix,
+                  input var Types::packet_t packet);
+endmodule
+)");
+        picker::export_opts opts {};
+        opts.file = {(base / "aggregates.sv").string()};
+        opts.source_module_name_list = {"Aggregates"};
+        std::vector<picker::sv_module_define> modules;
+        picker::parser::sv(opts, modules);
+        const auto &header = find_pin(modules.front(), "header");
+        assert(header.logic_pin_hb == 5);
+        auto layout = nlohmann::json::parse(*header.type_layout);
+        assert(layout["kind"] == "struct" && layout["packed"] == true);
+        assert(layout["fields"][0]["name"] == "tag");
+        assert(layout["fields"][0]["offset"] == 1);
+        assert(layout["fields"][0]["type"]["signed"] == true);
+        assert(layout["fields"][0]["type"]["left"] == 0);
+        assert(layout["fields"][1]["offset"] == 0);
+        assert(layout["fields"][1]["type"]["four_state"] == false);
+        layout = nlohmann::json::parse(*find_pin(modules.front(), "matrix").type_layout);
+        assert(layout["width"] == 8 && layout["left"] == 1 && layout["right"] == 0);
+        assert(layout["element"]["left"] == -2 && layout["element"]["right"] == 1);
+        layout = nlohmann::json::parse(*find_pin(modules.front(), "packet").type_layout);
+        assert(layout["packed"] == false && layout["width"] == 0);
+        assert(layout["fields"][1]["type"]["left"] == -1);
+        assert(layout["fields"][1]["type"]["element"]["fields"][1]["type"]["left"] == 3);
+        assert(layout["fields"][1]["type"]["element"]["fields"][1]["type"]["element"]["width"] == 65);
+        fs::remove_all(base);
+    }
+
 } // namespace
 
 int main()
@@ -367,5 +409,6 @@ int main()
     test_filelist_ignores_linker_inputs();
     test_missing_child_modules_do_not_block_top_port_extraction();
     test_fixed_unpacked_array_ports();
+    test_recursive_aggregate_ports();
     return 0;
 }

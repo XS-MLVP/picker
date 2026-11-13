@@ -7,6 +7,7 @@
 #include "slang/ast/symbols/CompilationUnitSymbols.h"
 #include "slang/ast/symbols/InstanceSymbols.h"
 #include "slang/ast/symbols/PortSymbols.h"
+#include "slang/ast/symbols/VariableSymbols.h"
 #include "slang/ast/types/AllTypes.h"
 #include "slang/diagnostics/DiagnosticEngine.h"
 #include "slang/diagnostics/Diagnostics.h"
@@ -269,6 +270,58 @@ namespace picker { namespace parser {
             return packed.elementType.getCanonicalType().kind == SymbolKind::ScalarType;
         }
 
+        nlohmann::json describe_port_type(const Type &source, const std::string &path, unsigned depth = 0)
+        {
+            if (depth >= 128) { PK_FATAL("Port type nesting exceeds 128 at %s", path.c_str()); }
+            const auto &type = source.getCanonicalType();
+            using J = nlohmann::json;
+            J result{{"kind", "bits"}, {"packed", true}, {"width", 0},
+                     {"signed", type.isSigned()}, {"four_state", type.isFourState()}};
+            const auto kind = type.kind;
+            if (kind == SymbolKind::FixedSizeUnpackedArrayType || kind == SymbolKind::PackedArrayType) {
+                const bool packed = kind == SymbolKind::PackedArrayType;
+                const auto &element = packed ? type.as<PackedArrayType>().elementType :
+                                               type.as<FixedSizeUnpackedArrayType>().elementType;
+                const auto range = packed ? type.as<PackedArrayType>().range :
+                                             type.as<FixedSizeUnpackedArrayType>().range;
+                result["kind"] = "array";
+                result["packed"] = packed;
+                result["left"] = range.left;
+                result["right"] = range.right;
+                result["element"] = describe_port_type(element, path + "[]", depth + 1);
+            } else if (kind == SymbolKind::PackedStructType || kind == SymbolKind::UnpackedStructType) {
+                const bool packed = kind == SymbolKind::PackedStructType;
+                result["kind"] = "struct";
+                result["packed"] = packed;
+                result["fields"] = J::array();
+                auto append = [&](const slang::ast::FieldSymbol &field) {
+                    J member{{"name", std::string(field.name)},
+                             {"type", describe_port_type(field.getType(), path + "." + std::string(field.name), depth + 1)}};
+                    if (packed) member["offset"] = field.bitOffset;
+                    result["fields"].push_back(std::move(member));
+                };
+                if (packed) {
+                    for (const auto &field : type.as<slang::ast::PackedStructType>().membersOfType<slang::ast::FieldSymbol>())
+                        append(field);
+                } else {
+                    for (const auto *field : type.as<slang::ast::UnpackedStructType>().fields) append(*field);
+                }
+            } else if (kind != SymbolKind::ScalarType && kind != SymbolKind::PredefinedIntegerType &&
+                       kind != SymbolKind::EnumType) {
+                PK_FATAL("Port %s uses unsupported type '%s'; supported leaves are fixed integral values, "
+                         "packed structs/arrays, and fixed unpacked structs/arrays.",
+                         path.c_str(), type.toString().c_str());
+            }
+            if (result["packed"].get<bool>()) {
+                const auto width = type.getBitWidth();
+                if (!width || width > uint64_t(INT32_MAX)) {
+                    PK_FATAL("Port %s packed width exceeds the supported int range", path.c_str());
+                }
+                result["width"] = kind == SymbolKind::ScalarType ? 0 : width;
+            }
+            return result;
+        }
+
         std::pair<int, int> extract_port_range(const Type &type)
         {
             const auto &canonical = type.getCanonicalType();
@@ -291,10 +344,19 @@ namespace picker { namespace parser {
                 element_type = &array.elementType.getCanonicalType();
             }
             if (!is_supported_flat_port_type(*element_type)) {
-                PK_FATAL("Module %s port %s uses unsupported type '%s'. "
-                         "picker export supports scalar and single-dimension packed bit/logic ports, "
-                         "and fixed-size unpacked arrays of these types.",
-                         module_name.c_str(), std::string(port.name).c_str(), type.toString().c_str());
+                const auto layout = describe_port_type(type, module_name + "." + std::string(port.name));
+                if (pin_type == "inout" && !layout["packed"].get<bool>()) {
+                    PK_FATAL("Module %s port %s uses an unsupported inout unpacked aggregate",
+                             module_name.c_str(), std::string(port.name).c_str());
+                }
+                const bool packed = layout["packed"].get<bool>();
+                const int width = layout["width"].get<int>();
+                picker::sv_signal_define pin{std::string(port.name), pin_type, packed ? width - 1 : -1, 0};
+                pin.type_layout = std::make_shared<const std::string>(layout.dump());
+                pin.unpacked_element_type = std::string(type.isFourState() ? "logic" : "bit") +
+                                            (type.isSigned() ? " signed" : "");
+                pins.push_back(std::move(pin));
+                return;
             }
             if (!dimensions.empty() && pin_type == "inout") {
                 PK_FATAL("Module %s port %s uses an unsupported inout unpacked array; "

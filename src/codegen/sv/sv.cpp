@@ -1,121 +1,12 @@
 #include "codegen/sv.hpp"
+#include "codegen/sv/aggregate.hpp"
+#include "codegen/sv/templates.hpp"
+#include "codegen/sv/waveform.hpp"
 #include <limits>
 
 namespace picker { namespace codegen {
 
     namespace sv {
-        static const std::string sub_module_template =
-            " {{module_name}} {{module_name}}{{module_subfix}}(\n{{pin_connect}}\n );\n";
-        static const std::string pin_connect_template           = "    .{{raw_pin}}({{logic_pin}}),\n";
-        static const std::string logic_pin_declaration_template =
-            "  {{logic_pin_data_type}} {{logic_pin_length}} {{logic_pin}}{{unpacked_dimensions}};\n";
-        static const std::string wire_pin_declaration_template =
-            "  {{wire_pin_data_type}} {{logic_pin_length}} {{logic_pin}}{{unpacked_dimensions}};\n";
-
-        static const std::string dpi_get_export_template =
-            "  export \"DPI-C\" function get_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n";
-        static const std::string dpi_set_export_template =
-            "  export \"DPI-C\" function set_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n";
-
-        static const std::string dpi_get_impl_template =
-            "  function void get_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    output logic {{logic_pin_length}} value;\n"
-            "    value={{logic_pin}};\n"
-            "  endfunction\n\n";
-
-        static const std::string dpi_set_impl_template =
-            "  function void set_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    input logic {{logic_pin_length}} value;\n"
-            "    {{logic_pin}}=value;\n"
-            "  endfunction\n\n";
-
-        static const std::string dpi_array_get_impl_template =
-            "  function void get_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    input int index;\n"
-            "    output logic {{logic_pin_length}} value;\n"
-            "    if (index < 0 || index >= {{array_size}}) value='x;\n"
-            "    else value={{logic_pin}};\n"
-            "  endfunction\n\n";
-
-        static const std::string dpi_array_set_impl_template =
-            "  function void set_{{pin_func_name}}xx{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    input int index;\n"
-            "    input logic {{logic_pin_length}} value;\n"
-            "    if (index >= 0 && index < {{array_size}}) {{logic_pin}}=value;\n"
-            "  endfunction\n\n";
-
-        static const std::string dpi_finish_sv_template =
-            "  export \"DPI-C\" function finish_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void finish_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $finish;\n"
-            "  endfunction\n";
-
-        static const std::string vcs_fsdb_control_sv_template =
-            "  export \"DPI-C\" function vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void vcs_fsdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    input string filename;\n"
-            "    picker_fsdb_configured = 1;\n"
-            "    $fsdbDumpFinish;\n"
-            "    $fsdbDumpfile(filename);\n"
-            "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
-            "  endfunction\n\n"
-            "  export \"DPI-C\" function vcs_fsdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void vcs_fsdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $fsdbDumpFinish;\n"
-            "  endfunction\n\n"
-            "  export \"DPI-C\" function vcs_fsdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void vcs_fsdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $fsdbDumpflush;\n"
-            "  endfunction\n\n"
-            "  export \"DPI-C\" function vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void vcs_fsdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    input byte unsigned enable;\n"
-            "    if (enable) $fsdbDumpon;\n"
-            "    else $fsdbDumpoff;\n"
-            "  endfunction\n";
-
-        static const std::string uvs_usdb_control_sv_template =
-            "  export \"DPI-C\" function uvs_usdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void uvs_usdb_set_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    input string filename;\n"
-            "    picker_usdb_configured = 1;\n"
-            "    $usdbDumpFinish;\n"
-            "    $usdbDumpfile(filename);\n"
-            "    $usdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
-            "  endfunction\n\n"
-            "  export \"DPI-C\" function uvs_usdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void uvs_usdb_finish_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $usdbDumpFinish;\n"
-            "  endfunction\n\n"
-            "  export \"DPI-C\" function uvs_usdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void uvs_usdb_flush_waveform_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $usdbDumpflush;\n"
-            "  endfunction\n\n"
-            "  export \"DPI-C\" function uvs_usdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  function void uvs_usdb_waveform_enable_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    input byte unsigned enable;\n"
-            "    if (enable) $usdbDumpon;\n"
-            "    else $usdbDumpoff;\n"
-            "  endfunction\n";
-
-        static const std::string vcs_coverage_sv_template =
-            "  export \"DPI-C\" task vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  task vcs_coverage_start_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $cg_coverage_control(1);\n"
-            "  endtask\n\n"
-            "  export \"DPI-C\" task vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  task vcs_coverage_stop_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $cg_coverage_control(0);\n"
-            "  endtask\n\n"
-            "  export \"DPI-C\" task vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  task vcs_coverage_reset_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    $coverage_reset();\n"
-            "  endtask\n\n"
-            "  export \"DPI-C\" task vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "  task vcs_coverage_dump_{{__LIB_DPI_FUNC_NAME_HASH__}};\n"
-            "    input string name;\n"
-            "    $coverage_dump(name);\n"
-            "  endtask\n";
 
         /// @brief Export external pin for verilog render, contains pin connect,
         /// @param pin
@@ -164,23 +55,38 @@ namespace picker { namespace codegen {
                         if (!declared_pins.insert(name).second) {
                             PK_FATAL("Exported port name collision: %s", name.c_str());
                         }
-                        logic += env.render(logic_pin_declaration_template, data);
-                        wire += env.render(wire_pin_declaration_template, data);
+                        logic += env.render(templates::logic_pin_declaration, data);
+                        wire += env.render(templates::wire_pin_declaration, data);
                     };
                     auto export_pin = [&](const picker::sv_signal_define &flat_pin) {
                         ret.push_back(flat_pin);
                         if (rw_type == SignalAccessType::MEM_DIRECT || !flat_pin.array_name.empty()) { return; }
                         data["pin_func_name"] = str_replace_all(flat_pin.logic_pin, ".", "_");
-                        dpi_export += env.render(dpi_get_export_template, data);
-                        dpi_impl += env.render(dpi_get_impl_template, data);
+                        dpi_export += env.render(templates::dpi_get_export, data);
+                        dpi_impl += env.render(templates::dpi_get_impl, data);
                         if (flat_pin.logic_pin_type != "output") {
-                            dpi_export += env.render(dpi_set_export_template, data);
-                            dpi_impl += env.render(dpi_set_impl_template, data);
+                            dpi_export += env.render(templates::dpi_set_export, data);
+                            dpi_impl += env.render(templates::dpi_set_impl, data);
                         }
                     };
                     for (int i = 0; i < pin.size(); i++) {
                         picker::sv_signal_define temp_pin = pin[i];
                         temp_pin.logic_pin                = pin_prefix + pin[i].logic_pin;
+                        if (pin[i].type_layout) {
+                            if (!declared_pins.insert(temp_pin.logic_pin).second)
+                                PK_FATAL("Exported port name collision: %s", temp_pin.logic_pin.c_str());
+                            pin_connect += "    ." + pin[i].logic_pin + "(" + temp_pin.logic_pin + "),\n";
+                            auto aggregate = render_aggregate_port(
+                                pin[i], temp_pin.logic_pin,
+                                module.module_name + data["module_subfix"].get<std::string>(), rw_type,
+                                reserved_pins, element_number);
+                            logic += aggregate.logic;
+                            wire += aggregate.wire;
+                            dpi_export += aggregate.dpi_export;
+                            dpi_impl += aggregate.dpi_implementation;
+                            for (auto &leaf : aggregate.pins) ret.push_back(std::move(leaf));
+                            continue;
+                        }
                         data["io_type"]                    = pin[i].logic_pin_type;
                         data["raw_pin"]                    = pin[i].logic_pin;
                         data["logic_pin"]                  = temp_pin.logic_pin;
@@ -200,7 +106,7 @@ namespace picker { namespace codegen {
                         data["logic_pin_data_type"] = dimensions.empty() ? "logic" : pin[i].unpacked_element_type;
                         data["wire_pin_data_type"] = dimensions.empty() ? "wire" :
                             str_replace_all(pin[i].unpacked_element_type, "logic", "wire");
-                        pin_connect += env.render(pin_connect_template, data);
+                        pin_connect += env.render(templates::pin_connect, data);
                         declare_pin();
                         if (pin[i].unpacked_dimensions.empty()) {
                             export_pin(temp_pin);
@@ -235,11 +141,11 @@ namespace picker { namespace codegen {
                             }
                             data["logic_pin"] = element;
                             data["array_size"] = size;
-                            dpi_export += env.render(dpi_get_export_template, data);
-                            dpi_impl += env.render(dpi_array_get_impl_template, data);
+                            dpi_export += env.render(templates::dpi_get_export, data);
+                            dpi_impl += env.render(templates::dpi_array_get_impl, data);
                             if (temp_pin.logic_pin_type != "output") {
-                                dpi_export += env.render(dpi_set_export_template, data);
-                                dpi_impl += env.render(dpi_array_set_impl_template, data);
+                                dpi_export += env.render(templates::dpi_set_export, data);
+                                dpi_impl += env.render(templates::dpi_array_set_impl, data);
                             }
                         }
 
@@ -276,7 +182,7 @@ namespace picker { namespace codegen {
                     pin_connect.pop_back();
                     data["pin_connect"] = pin_connect;
                     // inner module
-                    inner_modules = inner_modules + env.render(sub_module_template, data);
+                    inner_modules = inner_modules + env.render(templates::sub_module, data);
                 }
             }
             return ret;
@@ -303,75 +209,10 @@ namespace picker { namespace codegen {
                                                                        "[" + std::to_string(pin[i].logic_pin_hb) + ":"
                                                                            + std::to_string(pin[i].logic_pin_lb) + "]";
 
-                dpi_export = dpi_export + env.render(dpi_get_export_template, data);
-                dpi_impl   = dpi_impl + env.render(dpi_get_impl_template, data);
+                dpi_export = dpi_export + env.render(templates::dpi_get_export, data);
+                dpi_impl   = dpi_impl + env.render(templates::dpi_get_impl, data);
             }
         };
-
-        void render_sv_waveform(const std::string &simulator, const std::string &wave_file_name, nlohmann::json &data)
-        {
-            inja::Environment env;
-            std::string sv_dump_wave, sv_waveform_control, trace, dum_var_options;
-            dum_var_options = picker::get_env("DUMPVARS_OPTION", "");
-            if (!dum_var_options.empty()) {
-                PK_DEBUG("Find DUMPVARS_OPTION=%s", dum_var_options.c_str());
-                dum_var_options = ", \"" + dum_var_options + "\"";
-            }
-            data["__WAVE_FILE_NAME__"]             = wave_file_name;
-            data["__DUMP_VAR_OPTIONS__"]           = dum_var_options;
-            data["__LIB_DPI_FUNC_NAME_HASH__"]     = std::string(lib_random_hash);
-            if (simulator == "verilator") {
-                if (wave_file_name.length() > 0) {
-                    if (wave_file_name.ends_with(".vcd") || wave_file_name.ends_with(".fst"))
-                        sv_dump_wave =
-                            env.render("  initial begin\n"
-                                       "    $dumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
-                                       "    $dumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
-                                       "  end",
-                                       data);
-                    else
-                        PK_FATAL("Verilator trace file must be .vcd or .fst format.\n");
-                }
-            } else if (simulator == "vcs") {
-                sv_waveform_control = env.render(vcs_fsdb_control_sv_template, data)
-                                    + env.render(vcs_coverage_sv_template, data);
-                if (wave_file_name.length() > 0) {
-                    if (wave_file_name.ends_with(".fsdb") == false) PK_FATAL("VCS trace file must be .fsdb format.\n");
-                    sv_dump_wave =
-                        env.render("  initial begin\n"
-                                   "    if (!picker_fsdb_configured) begin\n"
-                                   "    $fsdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
-                                   "    $fsdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
-                                   "    end\n"
-                                   "  end\n\n",
-                                   data);
-                }
-            } else if (simulator == "uvs") {
-                sv_waveform_control = env.render(uvs_usdb_control_sv_template, data);
-                if (wave_file_name.length() > 0) {
-                    if (wave_file_name.ends_with(".usdb") == false) PK_FATAL("USDB trace file must be .usdb format.\n");
-                    sv_dump_wave =
-                        env.render("  initial begin\n"
-                                   "    if (!picker_usdb_configured) begin\n"
-                                   "    $usdbDumpfile(\"{{__WAVE_FILE_NAME__}}\");\n"
-                                   "    $usdbDumpvars(0, {{__TOP_MODULE_NAME__}}_top{{__DUMP_VAR_OPTIONS__}});\n"
-                                   "    end\n"
-                                   "  end\n\n",
-                                   data);
-                }
-            } else {
-                PK_FATAL("Unsupported simulator: %s\n", simulator.c_str());
-            }
-
-            data["__TRACE__"] = sv_dump_wave.length() > 0 ? wave_file_name.substr(wave_file_name.find_last_of(".") + 1,
-                                                                                  wave_file_name.length()) :
-                                                            "OFF";
-            // Declare the runtime guard before its initial-block use without
-            // changing the waveform/control order or trace enablement above.
-            if (simulator == "vcs") sv_dump_wave = "  bit picker_fsdb_configured = 0;\n" + sv_dump_wave;
-            if (simulator == "uvs") sv_dump_wave = "  bit picker_usdb_configured = 0;\n" + sv_dump_wave;
-            data["__SV_DUMP_WAVE__"] = sv_dump_wave + sv_waveform_control;
-        }
 
         void render_signal_tree(const std::vector<picker::sv_signal_define> &external_pin,
                                 const std::vector<picker::sv_signal_define> &internal_signal, std::string &signal_tree,
@@ -382,7 +223,13 @@ namespace picker { namespace codegen {
             std::vector<picker::sv_signal_define> signal_list;
             std::set<std::string> arrays;
             for (auto pin : external_pin) {
-                if (!pin.array_name.empty()) {
+                if (!pin.aggregate_name.empty()) {
+                    if (!arrays.insert(pin.aggregate_name).second) { continue; }
+                    pin.logic_pin = pin.aggregate_name;
+                    const auto layout = nlohmann::json::parse(*pin.type_layout);
+                    pin.logic_pin_hb = layout["packed"].get<bool>() ? layout["width"].get<int>() - 1 : -1;
+                    pin.unpacked_dimensions.clear();
+                } else if (!pin.array_name.empty()) {
                     if (!arrays.insert(pin.array_name).second) { continue; }
                     pin.logic_pin = pin.array_name;
                 }
@@ -424,6 +271,7 @@ namespace picker { namespace codegen {
                 std::string part_name, pin_type;
                 int high_bit = -1, low_bit = -1;
                 std::vector<std::pair<int, int>> dimensions;
+                std::shared_ptr<const std::string> type_layout;
             };
 
             // Build the TRIE
@@ -444,6 +292,7 @@ namespace picker { namespace codegen {
                 current->low_bit     = signal.logic_pin_lb;
                 current->pin_type    = signal.logic_pin_type;
                 current->dimensions  = signal.unpacked_dimensions;
+                current->type_layout = signal.type_layout;
             }
 
             // Auto merge words with '_', if one node has only one child and not
@@ -471,6 +320,7 @@ namespace picker { namespace codegen {
                         node->low_bit     = temp->low_bit;
                         node->pin_type    = temp->pin_type;
                         node->dimensions  = temp->dimensions;
+                        node->type_layout = temp->type_layout;
                     }
                     delete temp;
                     PK_DEBUG("merge %s", node->part_name.c_str());
@@ -492,6 +342,7 @@ namespace picker { namespace codegen {
                     json["Low"]  = node->low_bit;
                     json["_"]    = true;
                     if (!node->dimensions.empty()) { json["Unpacked"] = node->dimensions; }
+                    if (node->type_layout) { json["Layout"] = nlohmann::json::parse(*node->type_layout); }
                 }
                 std::vector<std::pair<std::string, std::string>> rename_keys;
                 for (const auto &child : node->children) {
@@ -530,7 +381,7 @@ namespace picker { namespace codegen {
             inja::Environment env;
             nlohmann::json data;
             data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
-            extend_sv                          = env.render(dpi_finish_sv_template, data);
+            extend_sv                          = env.render(templates::dpi_finish, data);
         }
 
     } // namespace sv

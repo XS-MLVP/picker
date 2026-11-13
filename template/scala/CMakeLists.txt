@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 project({{__TOP_MODULE_NAME__}} VERSION 0.0.1)
-{% if __HAS_ARRAY_BINDINGS__ %}
+{% if __HAS_ARRAY_BINDINGS__ or __HAS_AGGREGATE_VIEWS__ %}
 include_directories("{{__XSPCOMM_INCLUDE__}}")
 {% endif %}
 

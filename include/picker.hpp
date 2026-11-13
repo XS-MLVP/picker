@@ -167,7 +167,7 @@ inline std::map<std::string, std::string> get_default_conflict_map()
     std::map<std::string, std::string> pin_map;
     std::vector<std::string> conflict_pin = {"xclock",      "xport",   "dut",        "initclock",
                                              "step",        "stepris", "stepfal",    "setwaveform",
-                                              "setcoverage", "finish",  "refreshcomb", "_picker_arrays"};
+                                              "setcoverage", "finish",  "refreshcomb", "_picker_arrays", "_picker_views"};
     for (auto &p : conflict_pin) { pin_map[p] = "pin_"; }
     return pin_map;
 }

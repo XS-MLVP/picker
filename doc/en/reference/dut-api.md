@@ -18,6 +18,15 @@ dut.Finish()
 
 `dut.pin` and `dut["pin"]` return the same port object. Write through `.value` or `Set(value)`. Reading `.value` returns an unsigned Python integer of the full signal width. The port attribute itself is read-only.
 
+Packed structs and multidimensional packed arrays retain the whole `XData`
+under the port name and add an indexed/field container named `port_view` (with
+extra underscores if needed to avoid a port-name collision). Unpacked structs
+use `XStruct` directly; their array and struct fields compose recursively without
+a fabricated whole-object vector. For example, `dut.record.entries[-1].flag`
+is an ordinary `XData`. `Data(name)`, `Struct(name)` and `Array(name)` select
+the desired field interface. See [aggregate export](../guides/export.md#structs-and-multidimensional-packed-arrays)
+for the four storage models, original RTL indexing and examples.
+
 ## Clocks and execution
 
 | Method | Behavior and return value |

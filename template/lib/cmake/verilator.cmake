@@ -10,6 +10,11 @@ if(SIMULATOR STREQUAL "verilator")
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
 	find_package(verilator 5.020 REQUIRED PATHS ${CMD_VERILATOR_ROOT} NO_DEFAULT_PATH)
+{% if __HAS_AGGREGATE_VIEWS__ %}
+	if(verilator_VERSION VERSION_LESS "5.048")
+		message(FATAL_ERROR "Struct and multidimensional packed-array views require Verilator 5.048 or newer (found ${verilator_VERSION})")
+	endif()
+{% endif %}
 	include_directories(${VERILATOR_ROOT}/include
 											${VERILATOR_ROOT}/include/vltstd)
 

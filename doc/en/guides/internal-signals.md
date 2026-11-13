@@ -62,8 +62,18 @@ For your own design, query names with `VPIInternalSignalList()`, then pass the a
 
 By default, `GetInternalSignal()` uses generated native layout information when available and otherwise queries VPI. `use_vpi=True` selects VPI explicitly. `example/CacheSignalCFG` contains a complete native-access project.
 
-VPI lookup returns individual `XData` signals. The native layout lookup also
-provides array access through the `is_array` and `index` arguments described below.
+`GetInternalSignal(..., use_vpi=True)` returns ordinary VPI leaves as `XData`.
+For recursive aggregate ports, use `GetInternalSignalView(name)` in C++, Java,
+Go, Lua and Scala; Python also returns `XStruct`/`XArray` from
+`GetInternalSignal(name, use_vpi=True)`. Picker supplies the port's RTL layout
+for packed aggregates; unpacked arrays and struct members are resolved to
+checked VPI handles. Verilator 5.048 supports packed aggregate and unpacked-array
+views, but cannot provide the VPI member/type information needed for unpacked
+structs; those requests fail explicitly. Unpacked-struct VPI views require
+Verilator 5.052 or newer. Internal unpacked structs can be discovered where the
+simulator exposes their full VPI type/member information, but Picker does not
+currently emit packed-struct layouts for internal signals, so those are rejected
+with an explicit missing-layout error. No simulator C++ memory layout is guessed.
 
 ## Access a native array
 

@@ -11,7 +11,7 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 
 cat > "${TMP_DIR}/complex_port.sv" <<'EOF'
 module ComplexPort(
-    input logic [1:0][3:0] data [1:0]
+    input logic [3:0] data [$]
 );
 endmodule
 EOF
@@ -33,6 +33,6 @@ if env PATH="/usr/bin:/bin" "${PICKER_BIN}" export \
 fi
 
 grep -qi "unsupported type" "${STDERR_LOG}"
-grep -qi "scalar and single-dimension packed" "${STDERR_LOG}"
+grep -qi "supported leaves are fixed integral values" "${STDERR_LOG}"
 
 green "[export-complex-port] OK"

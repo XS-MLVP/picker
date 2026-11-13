@@ -8,7 +8,9 @@ set(source_file
      java.cpp
      scala.cpp
      golang.cpp
-     sv.cpp
+     sv/sv.cpp
+     sv/aggregate.cpp
+     sv/waveform.cpp
      lib.cpp
      lua.cpp
      uvm.cpp
