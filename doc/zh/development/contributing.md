@@ -44,6 +44,10 @@ make unit_tests NPROC=4 BUILD_XSPCOMM_SWIG=python,java
 安装 Go、Lua、Scala 工具链及对应 xcomm 绑定后，运行 `export_aggregate_views` 时设置
 `AGGREGATE_EXTRA_LANGUAGES=1`，即可纳入这些语言的 RTL 测试。
 
+VPI 回归将基础聚合访问与 `test_vpi_unpacked_struct_*` 分开报告。后者在 Verilator 5.048
+上检查缺失成员的明确诊断和路径，不作为跳过项；在 5.052 及更新版本上必须成功读写。
+同一语言复用构建产物，但每个用例在独立进程中运行。
+
 ## 提交改动
 
 在独立分支修改并向 `master` 提交 PR。说明问题的触发方式、修改后的行为和运行过的测试。接口变更同步更新中英文参考和示例。

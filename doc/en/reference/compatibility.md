@@ -71,8 +71,7 @@ addresses/strides come from the generated C++ model.
 | --- | --- | --- |
 | DPI and mem_direct | Python, C++, Java | 5.048, 5.052 |
 | DPI and mem_direct | Go, Lua | 5.048, 5.052 |
-| VPI packed aggregates and unpacked arrays | Python | 5.048, 5.052 |
-| VPI packed aggregates and unpacked arrays | C++, Java, Go, Lua | 5.052 |
+| VPI packed aggregates and unpacked arrays | Python, C++, Java, Go, Lua | 5.048, 5.052 |
 | VPI recursive unpacked structs | Python, C++, Java, Go, Lua | 5.052 |
 
 The tests include nested structs, arrays of structs, mixed-direction bounds,

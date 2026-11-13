@@ -44,6 +44,11 @@ Run the complete integration suite with `make -C test all`, using the correspond
 Set `AGGREGATE_EXTRA_LANGUAGES=1` when running `export_aggregate_views` with the
 Go, Lua and Scala toolchains and xcomm bindings installed to include those RTL tests.
 
+VPI regressions report basic aggregate access separately from `test_vpi_unpacked_struct_*`.
+The latter checks the explicit missing-member diagnostic and path on Verilator 5.048,
+rather than skipping; on 5.052 and newer, reads and writes must succeed. Cases reuse
+each language's build artifacts but run in separate processes.
+
 ## Submit a change
 
 Work on a topic branch and open a PR against `master`. Describe how to reproduce the problem, the resulting behavior, and tests run. Update Chinese and English references and examples when changing an interface.

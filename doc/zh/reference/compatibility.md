@@ -63,8 +63,7 @@ packed/unpacked struct 与多维 packed 数组使用[聚合类型导出](../guid
 | --- | --- | --- |
 | DPI 与 mem_direct | Python、C++、Java | 5.048、5.052 |
 | DPI 与 mem_direct | Go、Lua | 5.048、5.052 |
-| VPI packed 聚合与 unpacked 数组 | Python | 5.048、5.052 |
-| VPI packed 聚合与 unpacked 数组 | C++、Java、Go、Lua | 5.052 |
+| VPI packed 聚合与 unpacked 数组 | Python、C++、Java、Go、Lua | 5.048、5.052 |
 | VPI 递归访问 unpacked struct | Python、C++、Java、Go、Lua | 5.052 |
 
 测试覆盖嵌套 struct、struct 数组、混合方向边界、65 位字段及原始 packed 整体值。
