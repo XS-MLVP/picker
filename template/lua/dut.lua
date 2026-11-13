@@ -187,7 +187,7 @@ function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignal(name, index, is_array, use
                 return nil
             end
             if is_array then
-                signal = self.xcfg:NewXDataArray(name, xname)
+                signal = self.xcfg:NewXArray(name)
                 if signal then
                     self.internal_signals[name] = signal
                 end

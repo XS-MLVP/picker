@@ -91,16 +91,19 @@ Python 数组视图提供 `bounds`（如 `((-1, 1), (2, 3))`）、`shape`、`ind
 
 | 语言 | 元素访问 | 容器 |
 | --- | --- | --- |
-| Python | `dut.matrix[-1][2]` | 保留边界的只读视图 |
-| C++ | `dut.matrix[-1][2]` | 检查边界、返回 `XData&` 的视图 |
-| Java | `dut.matrix.get(-1).get(2)` | 只读嵌套 `Map` |
-| Scala | `dut.matrix(-1)(2)` | 不可变嵌套 `Map` |
-| Go | `dut.Matrix[-1][2]` | 嵌套 `map[int]` |
-| Lua | `dut.matrix[-1][2]` | 嵌套 table |
+| Python | `dut.matrix[-1][2]` | `XArray`，叶子为绑定的 `XData` |
+| C++ | `dut.matrix->Array(-1)->Data(2)` | `shared_ptr<XArray>`，叶子共享所有权 |
+| Java | `dut.matrix.Array(-1).Data(2)` | `XArray` |
+| Scala | `dut.matrix.Array(-1).Data(2)` | `XArray` |
+| Go | `dut.Matrix.Array(-1).Data(2)` | `xspcomm.XArray` |
+| Lua | `dut.matrix:Array(-1):Data(2)` | `XArray` |
 
 C++ 视图对超出声明边界的下标抛出 `std::out_of_range`。
 
-各语言均使用 RTL 原始下标。Java、Scala、Go 和 Lua 的 map 容器保留所属语言的缺失键行为。`signals.json` 使用 `Unpacked: [[left, right], ...]` 按声明顺序记录各维边界。多实例导出沿用原有模块/实例前缀。六种绑定使用同一套数组元素绑定路径，因此各语言的元素访问遵循相同的后端规则和 RTL 下标规则。
+各语言统一使用递归 `XArray` 和经过检查的 RTL 下标，不再使用语言专用 map。
+`Left()`、`Right()` 和 `Size()` 描述当前维度；`LeftBounds()`、`RightBounds()` 和
+`Shape()` 描述连续数组维度。`signals.json` 使用 `Unpacked: [[left, right], ...]`
+按声明顺序记录各维边界。多实例导出沿用原有模块/实例前缀，六种绑定使用同一套数组元素绑定路径。
 
 Verilator `--rw mem_direct` 为每个数组只登记一个基地址和由 `sizeof` 得到的各维字节步长。
 xcomm 在绑定叶子时根据 RTL 各维方向计算元素地址，不生成逐元素地址映射、SV 存储、
@@ -109,7 +112,7 @@ xcomm 在绑定叶子时根据 RTL 各维方向计算元素地址，不生成逐
 `--rw dpi` 为每个输入数组只生成**一个带下标的 getter 和一个 setter**，输出数组只有
 getter。这些函数直接访问原 SV 数组，不经过桥接信号。内部扁平下标按声明顺序排列，
 最后一维变化最快；生成的 SV 代码将其换算为 RTL 下标。两种访问模式均使用 xcomm 中共享
-的 C++ `XDataArray` 后端。每个叶子保存后端引用及 DPI 下标或已计算的原生地址，不保存
+的内部 C++ 数组后端。每个叶子保存后端引用及 DPI 下标或已计算的原生地址，不保存
 逐元素的捕获状态读写回调。对外访问仍使用原 RTL 边界。
 
 Toffee 的 `SignalArray` 支持直接写
@@ -119,7 +122,12 @@ Toffee 的 `SignalArray` 支持直接写
 
 数组视图组织已绑定 `XData` 的引用。DPI 后端每次通过带下标的访问器读写一个元素，
 mem_direct 则直接访问该元素的原生存储。生成的端口视图在初始化时创建叶子并注册到
-`XPort`；C++ `XDataArray` 的 `At(indices)`/`AtFlat(index)` 按需创建并缓存叶子。
+`XPort`；独立的 `XArray.FromDPI` 和 `XArray.FromNative` 工厂通过同一递归接口按需创建、
+缓存叶子。共享绑定和扁平下标属于内部实现。
+
+新接口替代原 `XDataArray` 类型和语言专用端口容器，不保留兼容别名。将完整坐标或扁平
+选择迁移为每层调用 `Array(index)`、叶子调用 `Data(index)`，Python 也可直接索引。
+使用匹配的 Picker/xcomm SDK 重新生成 DUT；原生 ABI 仍为 4。
 
 动态数组、队列、关联数组、union 和 unpacked `inout` 端口不支持。
 

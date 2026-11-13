@@ -12,7 +12,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     var dut = new DutUnifiedBase(vec)
     var xclock = new XClock(this.dut.getPxcStep(), this.dut.getPSelf())
     val internalSignals: scala.collection.mutable.Map[String, XData] = scala.collection.mutable.Map()
-    val internalSignalsList: scala.collection.mutable.Map[String, Array[XData]] = scala.collection.mutable.Map()
+    val internalSignalsList: scala.collection.mutable.Map[String, XArray] = scala.collection.mutable.Map()
     {% if __HAS_AGGREGATE_VIEWS__ %}
     var vpiBackend: XVPI = null
     {% endif %}
@@ -187,26 +187,18 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.vpiBackend.Get(name)
     }
     {% endif %}
-    def GetInternalSignal(name: String, is_array:Boolean): Array[XData] = {
+    def GetInternalSignal(name: String, is_array:Boolean): XArray = {
         if (this.internalSignalsList.contains(name)) {
             return this.internalSignalsList(name)
         }
-        var result = Array.empty[XData]
         if (this.dut.GetXSignalCFGBasePtr() == 0) {
-            return result
+            return null
         }
         if(!is_array){
-            return result
+            return null
         }
-        val xname = "CFG:" + name
-        val signalList = this.xcfg.NewXDataArray(name, xname)
-        if (signalList != null) {
-            signalList.forEach { i =>
-                if (i != null) {
-                    result :+= i
-                }
-            }
-        }
+        val result = this.xcfg.NewXArray(name)
+        this.internalSignalsList(name) = result
         result
     }
     def GetInternalSignalList(prefix:String="", deep:Int=99, use_vpi:Boolean=false): Array[String] = {

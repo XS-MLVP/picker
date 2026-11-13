@@ -83,20 +83,26 @@ struct；Picker 当前不会为内部信号生成 packed struct 布局，因此�
 
 ```python
 memory = dut.GetInternalSignal("Top.memory", is_array=True)
-print(memory[0].value)
-memory[1].value = 42
+print(memory[0][0].value)  # 以二维数组为例
+memory[1][0].value = 42
 ```
 
 将 `Top.memory` 替换为 `GetInternalSignalList()` 列出的实际名称。可写内部数组需要由 Verilator 保留，例如在声明后加 `/*verilator public_flat_rw*/`。不需要 VPI 或 SV 桥接信号。`AsImmWrite()` 模式下写入会立即修改模型存储，再调用 `Step()` 或 `RefreshComb()` 计算读取该存储的电路逻辑。
 
-`is_array=True` 返回按**原生存储顺序**排列的扁平列表，最后一维变化最快。这里的下标是从零开始的存储位置，不是导出端口视图使用的 RTL 边界。例如 `logic [64:0] memory [2:3][-1:1]` 对应六个元素，位置 `row * 3 + column` 对应 RTL 的 `memory[row + 2][column - 1]`。只需访问一个元素时，使用 `dut.GetInternalSignal(name, index=position)`。Python 和 C++ 会在绑定前检查扁平下标，并按各个下标分别缓存。
+`is_array=True` 返回递归 `XArray`，不再返回扁平列表。下标是从零开始的**存储坐标**，
+不是导出端口视图使用的 RTL 边界。例如 `logic [64:0] memory [2:3][-1:1]` 的
+`memory.shape` 为 `(2, 3)`，`memory[row][column]` 对应 RTL 的
+`memory[row + 2][column - 1]`。根节点的 `Size()` 为 2，每行的 `Size()` 为 3。
+单元素接口 `dut.GetInternalSignal(name, index=position)` 仍接受经过检查的扁平存储位置，
+最后一维变化最快。
 
-布局生成器记录各维尺寸和由 `sizeof` 得出的实际步长，在提供扁平接口前检查连续存储。例如 Verilator 的 65 位元素占 12 字节，不是 9 字节。存在 trace 元数据时，还可能列出 `Top.memory[2][-1]` 这样的 RTL 下标名称；直接元素选择会绑定原生偏移，而非表达式后端。应以模型实际列出的名称为准。计算表达式仍是只读派生信号，不能当成可写原生存储。
+布局生成器记录各维尺寸和由 `sizeof` 得出的实际步长。例如 Verilator 的 65 位元素占 12 字节，不是 9 字节。存在 trace 元数据时，还可能列出 `Top.memory[2][-1]` 这样的 RTL 下标名称；直接元素选择会绑定原生偏移，而非表达式后端。应以模型实际列出的名称为准。计算表达式仍是只读派生信号，不能当成可写原生存储。
 
-xcomm 通过共享的原生 `XDataArray` 后端消费维度和步长。
-`dut.xcfg.NewXDataArrayView(name)` 返回提供 `Shape()`、`Strides()`、`At(indices)` 和
-`AtFlat(index)` 的视图，按需创建叶子。这些内部视图使用从零开始的**存储坐标**，
-不是恢复出的 RTL 原始边界。扁平列表及下标查询也走同一后端，不安装逐元素回调。
+xcomm 通过一份内部原生后端消费维度和步长。`dut.xcfg.NewXArray(name)` 返回同一缓存
+递归视图，`Array(index)` 选择子数组、`Data(index)` 选择叶子，按需创建节点。
+`LeftBounds()/RightBounds()/Shape()` 描述存储坐标，需要布局元数据时可查询
+`cfg = dut.xcfg.At(name)` 并保留该配置对象，再读取 `cfg.array_strides`。
+递归与单元素查询共享后端，不安装逐元素回调。
 共享后端只持有元数据，不持有模型内存或 DPI 动态库的生命周期。
 
 内部信号对象在 DUT 存活期间使用，重新创建模型后重新查询。

@@ -4,38 +4,6 @@
 #include <stdexcept>
 #include <tuple>
 using namespace xspcomm;
-{% if __HAS_UNPACKED_ARRAYS__ %}
-#include <type_traits>
-
-#ifndef PICKER_SIGNAL_ARRAY_VIEW_HPP
-#define PICKER_SIGNAL_ARRAY_VIEW_HPP
-// Non-owning leaves reference the DUT's bound XData, with checked RTL indexing.
-template<typename T>
-class PickerSignalArray {
-    int left_ = 0, right_ = -1;
-    std::vector<T> elements_;
-public:
-    PickerSignalArray() = default;
-    PickerSignalArray(int left, int right, std::initializer_list<T> elements)
-        : left_(left), right_(right), elements_(elements) {}
-
-    int left() const { return left_; }
-    int right() const { return right_; }
-    size_t size() const { return elements_.size(); }
-
-    auto &operator[](int index) {
-        const int64_t offset = (int64_t(index) - left_) * (left_ <= right_ ? 1 : -1);
-        if (offset < 0) { throw std::out_of_range("RTL array index out of range"); }
-        auto &element = elements_.at(size_t(offset));
-        if constexpr (std::is_pointer_v<T>) { return *element; }
-        else { return element; }
-    }
-    const auto &operator[](int index) const {
-        return const_cast<PickerSignalArray *>(this)->operator[](index);
-    }
-};
-#endif
-{% endif %}
 // clang-format off
 class UT{{__TOP_MODULE_NAME__}}
 {
@@ -50,7 +18,7 @@ public:
 
     // signal hashmap
     std::map<std::tuple<std::string, int, bool>, XData*> signal_map;
-    std::map<std::string, std::vector<std::shared_ptr<XData>>> signal_list_map;
+    std::map<std::string, std::shared_ptr<XArray>> signal_array_map;
     {% if __HAS_AGGREGATE_VIEWS__ %}
     std::shared_ptr<XVPI> vpi_backend;
     {% endif %}
@@ -213,16 +181,12 @@ public:
         return this->vpi_backend->Get(name);
     }
     {% endif %}
-    std::vector<std::shared_ptr<XData>> GetInternalSignal(std::string name, bool is_array){
+    std::shared_ptr<XArray> GetInternalSignal(std::string name, bool is_array){
         Assert(is_array==true, "GetInternalSignal: is_array must be true");
-        if(this->signal_list_map.find(name) == this->signal_list_map.end()){
-            std::vector<std::shared_ptr<XData>> signal = this->xcfg->NewXDataArray(name, "CFG:" + name);
-            if(signal.size() == 0){
-                return signal;
-            }
-            this->signal_list_map[name] = signal;
+        if(this->signal_array_map.find(name) == this->signal_array_map.end()){
+            this->signal_array_map[name] = this->xcfg->NewXArray(name);
         }
-        return this->signal_list_map[name];
+        return this->signal_array_map[name];
     }
     std::vector<std::string> GetInternalSignalList(std::string prefix = "", int deep = 99, bool use_vpi = false){
         if(!use_vpi){

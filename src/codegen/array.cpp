@@ -35,111 +35,15 @@ namespace picker { namespace codegen {
     bool render_array_ports(const std::vector<picker::sv_signal_define> &pins, const std::string &language,
                             std::string &declarations, std::string &initialization)
     {
-        std::map<std::string, std::vector<const picker::sv_signal_define *>> arrays;
-        for (const auto &pin : pins) {
-            if (!pin.array_name.empty() && pin.aggregate_name.empty()) { arrays[pin.array_name].push_back(&pin); }
-        }
         auto pin_map = picker::get_default_conflict_map();
-        for (const auto &[name, elements] : arrays) {
-            const auto &bounds = elements.front()->unpacked_dimensions;
-            auto attribute = picker::fix_conflict_pin_name(str_replace_all(name, ".", "_"), pin_map,
-                                                          language == "golang");
-            if (language == "python") { attribute = str_replace_all(attribute, "$", "_"); }
-
-            std::function<std::string(size_t)> array_type = [&](size_t rank) -> std::string {
-                if (rank == 0) {
-                    return language == "cpp" ? "XData*" : language == "golang" ? "xspcomm.XData" : "XData";
-                }
-                auto child = array_type(rank - 1);
-                if (language == "cpp") { return "PickerSignalArray<" + child + ">"; }
-                if (language == "java") { return "Map<Integer, " + child + ">"; }
-                if (language == "scala") { return "Map[Int, " + child + "]"; }
-                return "map[int]" + child;
-            };
-            size_t position = 0;
-            std::function<std::string(size_t)> initializer = [&](size_t dimension) -> std::string {
-                if (dimension == bounds.size()) {
-                    auto pin = elements.at(position++);
-                    auto prefix = language == "cpp" ? "&this->" :
-                                  language == "java" || language == "scala" ? "this." : "self.";
-                    return prefix + pin->logic_pin;
-                }
-                const auto [left, right] = bounds[dimension];
-                const int step = left <= right ? 1 : -1;
-                std::string children;
-                for (int64_t index = left;; index += step) {
-                    if (!children.empty()) { children += ", "; }
-                    if (language == "golang") { children += std::to_string(index) + ": "; }
-                    if (language == "scala") { children += std::to_string(index) + " -> "; }
-                    if (language == "lua") { children += "[" + std::to_string(index) + "] = "; }
-                    children += initializer(dimension + 1);
-                    if (index == right) { break; }
-                }
-                if (language == "python") {
-                    std::string ranges;
-                    for (size_t d = dimension; d < bounds.size(); ++d) {
-                        ranges += "(" + std::to_string(bounds[d].first) + ", "
-                                      + std::to_string(bounds[d].second) + "),";
-                    }
-                    return "_SignalArray((" + ranges + "), (" + children + ",))";
-                }
-                if (language == "cpp") {
-                    return array_type(bounds.size() - dimension) + "{" + std::to_string(left) + ", "
-                           + std::to_string(right) + ", {" + children + "}}";
-                }
-                if (language == "java") {
-                    return "signalArray(" + std::to_string(left) + ", " + std::to_string(right) + ", " + children + ")";
-                }
-                if (language == "scala") { return "scala.collection.immutable.ListMap(" + children + ")"; }
-                return (language == "golang" ? array_type(bounds.size() - dimension) : "") + "{" + children + "}";
-            };
-            const auto value = initializer(0);
-            const auto type = array_type(bounds.size());
-            if (language == "cpp") {
-                declarations += "    " + type + " " + attribute + ";\n";
-                initialization += "    this->" + attribute + " = " + value + ";\n";
-            } else if (language == "java") {
-                declarations += "    public " + type + " " + attribute + ";\n";
-                initialization += "        this." + attribute + " = " + value + ";\n";
-            } else if (language == "golang") {
-                declarations += "    " + attribute + " " + type + "\n";
-                initialization += "    self." + attribute + " = " + value + "\n";
-            } else if (language == "scala") {
-                initialization += "    val " + attribute + ": " + type + " = " + value + "\n";
-            } else {
-                initialization += (language == "python" ? "        " : "    ") + std::string("self.")
-                                  + attribute + " = " + value + "\n";
-                if (language == "python") {
-                    initialization += "        self._picker_arrays[" + nlohmann::json(name).dump()
-                                      + "] = self." + attribute + "\n";
-                }
-            }
-        }
-        std::set<std::string> seen;
-        std::set<std::string> attributes;
-        for (const auto &pin : pins) {
-            attributes.insert(pin.logic_pin);
-            if (!pin.aggregate_name.empty()) attributes.insert(pin.aggregate_name);
-            else if (!pin.array_name.empty()) attributes.insert(pin.array_name);
-        }
-        for (const auto &pin : pins) {
-            if (pin.aggregate_name.empty() || !seen.insert(pin.aggregate_name).second) continue;
-            const auto layout = nlohmann::json::parse(*pin.type_layout);
-            if (layout["kind"] == "bits") continue;
-            const bool packed = layout["packed"].get<bool>();
-            const bool structure = layout["kind"] == "struct";
-            auto attribute = pin.aggregate_name;
-            if (packed) {
-                attribute += "_view";
-                while (attributes.contains(attribute)) attribute += "_";
-            }
-            attributes.insert(attribute);
+        auto emit = [&](const std::string &path, std::string attribute, const nlohmann::json &layout,
+                        bool ordinary) {
             attribute = picker::fix_conflict_pin_name(attribute, pin_map, language == "golang");
             if (language == "python") attribute = str_replace_all(attribute, "$", "_");
-            const auto name = nlohmann::json(pin.aggregate_name).dump();
-            const auto description = nlohmann::json(*pin.type_layout).dump();
-            const std::string type = structure ? "XStruct" : "XArray";
-            const std::string method = structure ? "Struct" : "Array";
+            const auto name = nlohmann::json(path).dump();
+            const auto description = nlohmann::json(layout.dump()).dump();
+            const std::string type = layout["kind"] == "struct" ? "XStruct" : "XArray";
+            const std::string method = layout["kind"] == "struct" ? "Struct" : "Array";
             if (language == "cpp") {
                 declarations += "    std::shared_ptr<" + type + "> " + attribute + ";\n";
                 initialization += "    this->" + attribute + " = XView::FromPort(this->xport, " + name +
@@ -147,8 +51,9 @@ namespace picker { namespace codegen {
             } else if (language == "python") {
                 initialization += "        self." + attribute + " = xsp.XView.FromPort(self.xport, " + name +
                                   ", " + description + ")." + method + "()\n";
-                initialization += "        self._picker_views[" + (packed ? nlohmann::json(attribute).dump() : name) +
-                                  "] = self." + attribute + "\n";
+                const auto registry = ordinary ? "_picker_arrays" : "_picker_views";
+                const auto key = layout["packed"].get<bool>() ? nlohmann::json(attribute).dump() : name;
+                initialization += "        self." + std::string(registry) + "[" + key + "] = self." + attribute + "\n";
             } else if (language == "java") {
                 declarations += "    public " + type + " " + attribute + ";\n";
                 initialization += "        this." + attribute + " = XView.FromPort(this.xport, " + name +
@@ -165,6 +70,41 @@ namespace picker { namespace codegen {
                 initialization += "    self." + attribute + " = xsp.XView.FromPort(self.xport, " + name +
                                   ", " + description + "):" + method + "()\n";
             }
+        };
+
+        std::map<std::string, const picker::sv_signal_define *> arrays;
+        std::set<std::string> attributes;
+        for (const auto &pin : pins) {
+            attributes.insert(pin.logic_pin);
+            if (!pin.aggregate_name.empty()) attributes.insert(pin.aggregate_name);
+            else if (!pin.array_name.empty()) {
+                attributes.insert(pin.array_name);
+                arrays.emplace(pin.array_name, &pin);
+            }
+        }
+        for (const auto &[name, pin] : arrays) {
+            nlohmann::json layout{{"kind", "bits"}, {"packed", true},
+                {"width", pin->logic_pin_hb == -1 ? 0 : pin->logic_pin_hb - pin->logic_pin_lb + 1},
+                {"signed", pin->unpacked_element_type.find("signed") != std::string::npos},
+                {"four_state", !pin->unpacked_element_type.starts_with("bit")}};
+            for (auto it = pin->unpacked_dimensions.rbegin(); it != pin->unpacked_dimensions.rend(); ++it) {
+                layout = {{"kind", "array"}, {"packed", false}, {"width", 0},
+                          {"left", it->first}, {"right", it->second}, {"element", std::move(layout)}};
+            }
+            emit(name, str_replace_all(name, ".", "_"), layout, true);
+        }
+        std::set<std::string> seen;
+        for (const auto &pin : pins) {
+            if (pin.aggregate_name.empty() || !seen.insert(pin.aggregate_name).second) continue;
+            const auto layout = nlohmann::json::parse(*pin.type_layout);
+            if (layout["kind"] == "bits") continue;
+            auto attribute = pin.aggregate_name;
+            if (layout["packed"].get<bool>()) {
+                attribute += "_view";
+                while (attributes.contains(attribute)) attribute += "_";
+            }
+            attributes.insert(attribute);
+            emit(pin.aggregate_name, attribute, layout, false);
         }
         return !arrays.empty();
     }

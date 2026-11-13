@@ -13,17 +13,6 @@ import java.util.function.Consumer;
 
 
 public class UT_{{__TOP_MODULE_NAME__}} {
-{% if __HAS_UNPACKED_ARRAYS__ %}
-    @SafeVarargs
-    private static <T> Map<Integer, T> signalArray(int left, int right, T... elements) {
-        Map<Integer, T> result = new LinkedHashMap<>();
-        int step = left <= right ? 1 : -1;
-        for (int i = 0; i < elements.length; ++i) {
-            result.put((int)((long)left + (long)i * step), elements[i]);
-        }
-        return Collections.unmodifiableMap(result);
-    }
-{% endif %}
     private static boolean LIB_LOADED = false;
     public static void loadLibraryFromJar(String path) throws IOException {
         InputStream inputStream = UT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path);
@@ -77,7 +66,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public XClock xclock;
     public XSignalCFG xcfg;
     private Map<String, XData> internalSignals = new java.util.HashMap<String, XData>();
-    private Map<String, List<XData>> internalSignalsList = new java.util.HashMap<String, List<XData>>();
+    private Map<String, XArray> internalSignalsList = new java.util.HashMap<>();
     {% if __HAS_AGGREGATE_VIEWS__ %}
     private XVPI vpiBackend;
     {% endif %}
@@ -249,26 +238,18 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         return this.vpiBackend.Get(name);
     }
     {% endif %}
-    public List<XData> GetInternalSignal(String name, Boolean is_array){
+    public XArray GetInternalSignal(String name, Boolean is_array){
         if (this.internalSignalsList.containsKey(name)) {
             return this.internalSignalsList.get(name);
         }
-        List<XData> result = new ArrayList<>();
         if (this.dut.GetXSignalCFGBasePtr().intValue() == 0) {
-            return result;
+            return null;
         }
         if(!is_array){
-            return result;
+            return null;
         }
-        String xname = "CFG:" + name;
-        XDataVector signalList = this.xcfg.NewXDataArray(name, xname);
-        if (signalList != null) {
-            signalList.forEach((i) -> {
-                if (i != null) {
-                    result.add((XData)i);
-                }
-            });
-        }
+        XArray result = this.xcfg.NewXArray(name);
+        this.internalSignalsList.put(name, result);
         return result;
     }
     public List<String> GetInternalSignalList(){

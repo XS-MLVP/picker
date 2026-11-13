@@ -27,49 +27,6 @@ if _vcs_home:
 del _ctypes, _os
 {% endif %}
 
-{% if __HAS_UNPACKED_ARRAYS__ %}
-from operator import index as _signal_index
-
-
-class _SignalArray:
-    """Read-only array structure indexed by RTL indices, not Python positions."""
-
-    __slots__ = ("_bounds", "_elements")
-
-    def __init__(self, bounds, elements):
-        self._bounds = bounds
-        self._elements = elements
-
-    @property
-    def bounds(self):
-        return self._bounds
-
-    @property
-    def shape(self):
-        return tuple(abs(left - right) + 1 for left, right in self._bounds)
-
-    @property
-    def indices(self):
-        left, right = self._bounds[0]
-        step = 1 if left <= right else -1
-        return range(left, right + step, step)
-
-    def __len__(self):
-        return len(self._elements)
-
-    def __iter__(self):
-        return iter(self._elements)
-
-    def __getitem__(self, index):
-        index = _signal_index(index)
-        left, right = self._bounds[0]
-        offset = (index - left) * (1 if left <= right else -1)
-        if not 0 <= offset < len(self):
-            raise IndexError(f"RTL array index {index} outside [{left}:{right}]")
-        return self._elements[offset]
-{% endif %}
-
-
 class DUT{{__TOP_MODULE_NAME__}}(object):
 
     SIMULATOR = "{{__SIMULATOR__}}"
@@ -218,7 +175,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
                 xname = "CFG:" + name
                 if is_array:
                     assert index < 0, "Index is not supported for array signal"
-                    signal = self.xcfg.NewXDataArray(name, xname)
+                    signal = self.xcfg.NewXArray(name)
                 elif index != -1:
                     signal = self.xcfg.NewXData(name, index, xname)
                 else:
@@ -257,10 +214,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
                     assert signal is not None, f"Internal signal {name} not found (Check VPI is enabled)"
             if signal is None:
                 return None
-            if not isinstance(signal, (xsp.XData,{% if __HAS_AGGREGATE_VIEWS__ %} xsp.XStruct, xsp.XArray,{% endif %})):
-                self.internal_signals[key] = list(signal)
-            else:
-                self.internal_signals[key] = signal
+            self.internal_signals[key] = signal
         return self.internal_signals[key]
 
     def GetInternalSignalList(self, prefix="", deep=99, use_vpi=False):
@@ -319,7 +273,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     def __setattr__(self, name, value):
         assert not isinstance(getattr(self, name, None),
-                               (xsp.XData,{% if __HAS_UNPACKED_ARRAYS__ %} _SignalArray,{% endif %}{% if __HAS_AGGREGATE_VIEWS__ %} xsp.XStruct, xsp.XArray,{% endif %})), \
+                               (xsp.XData,{% if __HAS_UNPACKED_ARRAYS__ %} xsp.XArray,{% endif %}{% if __HAS_AGGREGATE_VIEWS__ %} xsp.XStruct, xsp.XArray,{% endif %})), \
         f"Signal attributes of DUT are read-only; set a signal's value instead of replacing `{name}`."
         return super().__setattr__(name, value)
 

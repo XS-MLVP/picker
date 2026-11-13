@@ -85,22 +85,29 @@ For fixed-size arrays in models with native layout information, obtain the array
 
 ```python
 memory = dut.GetInternalSignal("Top.memory", is_array=True)
-print(memory[0].value)
-memory[1].value = 42
+print(memory[0][0].value)  # Example: a two-dimensional array
+memory[1][0].value = 42
 ```
 
 Replace `Top.memory` with a name returned by `GetInternalSignalList()`. A writable internal array must be retained by Verilator, for example with `/*verilator public_flat_rw*/` on its declaration. Neither VPI nor SV bridge signals are needed. A write in `AsImmWrite()` mode changes the model's storage immediately; call `Step()` or `RefreshComb()` to evaluate logic that reads it.
 
-`is_array=True` returns a flat list in **native storage order**, with the last dimension varying fastest. Its indices are zero-based storage positions, not the RTL bounds used by exported port views. For `logic [64:0] memory [2:3][-1:1]`, the list has six elements and position `row * 3 + column` corresponds to RTL `memory[row + 2][column - 1]`. To bind only one element, use `dut.GetInternalSignal(name, index=position)`. Python and C++ check this flat index before binding and cache each index separately.
+`is_array=True` returns a recursive `XArray`, not a flat list. Its indices are
+zero-based **storage coordinates**, not the RTL bounds used by exported port views.
+For `logic [64:0] memory [2:3][-1:1]`, `memory.shape` is `(2, 3)` and
+`memory[row][column]` corresponds to RTL `memory[row + 2][column - 1]`.
+`Size()` is 2 at the root and 3 in each row. The single-element
+`dut.GetInternalSignal(name, index=position)` API still accepts a checked flat
+storage position, with the last dimension varying fastest.
 
-The layout generator records the dimensions and `sizeof`-derived strides; it checks that the array is contiguous before exposing the flat API. A 65-bit Verilator element occupies 12 bytes, not 9. With trace metadata, RTL-indexed leaf names such as `Top.memory[2][-1]` may also be available; direct element selections bind their native offsets rather than an expression backend. Use the names actually listed by the model. Computed expressions are still read-only derived signals, not writable native storage.
+The layout generator records the dimensions and `sizeof`-derived strides. A 65-bit Verilator element occupies 12 bytes, not 9. With trace metadata, RTL-indexed leaf names such as `Top.memory[2][-1]` may also be available; direct element selections bind their native offsets rather than an expression backend. Use the names actually listed by the model. Computed expressions are still read-only derived signals, not writable native storage.
 
-xcomm consumes the dimensions and strides through a shared native `XDataArray`
-backend. `dut.xcfg.NewXDataArrayView(name)` returns a view with `Shape()`,
-`Strides()`, `At(indices)` and `AtFlat(index)`; leaves are created on demand.
-These internal view bounds are zero-based **storage coordinates**, not recovered
-RTL bounds. The flat list and indexed queries use the same backend without
-per-leaf callbacks. The backend retains metadata, not the model allocation or DPI
-library.
+xcomm consumes dimensions and strides through one shared internal native backend.
+`dut.xcfg.NewXArray(name)` returns the same cached recursive view; `Array(index)`
+selects a subarray and `Data(index)` selects a leaf. Leaves are created on demand.
+`LeftBounds()/RightBounds()/Shape()` describe its storage coordinates, and
+retaining `cfg = dut.xcfg.At(name)` lets Python safely read `cfg.array_strides`
+from the configuration object's layout metadata.
+Recursive and single-element queries share the backend without per-leaf callbacks.
+The backend retains metadata, not the model allocation or DPI library.
 
 Use internal signal objects while their DUT is alive, and query them again after creating a new model.

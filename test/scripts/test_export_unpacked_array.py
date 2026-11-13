@@ -89,6 +89,7 @@ try:
             assert source.IsArrayBound() == target.IsArrayBound() == ('[' in source_name)
 
         data, result = port('data'), port('result')
+        assert isinstance(data, xsp.XArray) and isinstance(port('matrix'), xsp.XArray)
         matrix, matrix_out = port('matrix'), port('matrix_out')
         assert data.bounds == ((4, 2),) and data.shape == (3,)
         assert list(data.indices) == [4, 3, 2]
@@ -188,32 +189,32 @@ CPP_CHECK = """
 
 int main() {
     UTArrays dut;
-    assert(dut.data[4].GetBackendKind() == XDataBackendKind::EXPECTED_BACKEND);
-    assert(dut.data[4].IsArrayBound() && dut.cube[3][-1][5].IsArrayBound());
-    assert(dut.matrix_out[-1][2].GetBackendKind() == XDataBackendKind::EXPECTED_BACKEND);
-    assert(dut.data.left() == 4 && dut.data.right() == 2 && dut.data.size() == 3);
-    assert(dut.matrix.left() == -1 && dut.matrix[-1].left() == 3);
-    assert(dut.xport["data[4]"].CSelf() == dut.data[4].CSelf());
+    assert(dut.data->Data(4)->GetBackendKind() == XDataBackendKind::EXPECTED_BACKEND);
+    assert(dut.data->Data(4)->IsArrayBound() && dut.cube->Array(3)->Array(-1)->Data(5)->IsArrayBound());
+    assert(dut.matrix_out->Array(-1)->Data(2)->GetBackendKind() == XDataBackendKind::EXPECTED_BACKEND);
+    assert(dut.data->Left() == 4 && dut.data->Right() == 2 && dut.data->Size() == 3);
+    assert(dut.matrix->Left() == -1 && dut.matrix->Array(-1)->Left() == 3);
+    assert(dut.xport["data[4]"].CSelf() == dut.data->Data(4)->CSelf());
     const auto &matrix = dut.matrix;
-    assert(matrix[-1][2].mWidth == 5);
+    assert(matrix->Array(-1)->Data(2)->mWidth == 5);
     bool caught = false;
-    try { dut.data[-1]; } catch (const std::out_of_range &) { caught = true; }
+    try { dut.data->At(-1); } catch (const std::out_of_range &) { caught = true; }
     assert(caught);
     caught = false;
-    try { dut.matrix[-1][4]; } catch (const std::out_of_range &) { caught = true; }
+    try { dut.matrix->Array(-1)->At(4); } catch (const std::out_of_range &) { caught = true; }
     assert(caught);
     for (int n = 0; n < 32; ++n) {
-        for (int i = 2; i <= 4; ++i) { dut.data[i].Set((n + i) & 31); }
-        dut.matrix[-1][2].Set(n);
-        dut.negative[3].Set(n);
-        dut.cube[3][-1][5].Set(n);
+        for (int i = 2; i <= 4; ++i) { dut.data->Data(i)->Set((n + i) & 31); }
+        dut.matrix->Array(-1)->Data(2)->Set(n);
+        dut.negative->Data(3)->Set(n);
+        dut.cube->Array(3)->Array(-1)->Data(5)->Set(n);
         dut.data_0.Set(n & 1);
         dut._picker_array_0.Set((n >> 1) & 1);
         dut.Step(1);
-        for (int i = 2; i <= 4; ++i) { assert(dut.result[i].U() == (((n + i) & 31) ^ i)); }
-        assert(dut.matrix_out[-1][2].U() == (n ^ 2));
-        assert(dut.negative_out[3].U() == (n ^ 31));
-        assert(dut.cube_out[3][-1][5].U() == (n ^ 49));
+        for (int i = 2; i <= 4; ++i) { assert(dut.result->Data(i)->U() == (((n + i) & 31) ^ i)); }
+        assert(dut.matrix_out->Array(-1)->Data(2)->U() == (n ^ 2));
+        assert(dut.negative_out->Data(3)->U() == (n ^ 31));
+        assert(dut.cube_out->Array(3)->Array(-1)->Data(5)->U() == (n ^ 49));
         assert(dut.data_0_out.U() == ((n & 1) ^ 1));
         assert(dut.private_out.U() == (((n >> 1) & 1) ^ 1));
     }
@@ -228,26 +229,25 @@ public class example {
     public static void main(String[] args) {
         UT_Arrays dut = new UT_Arrays();
         try {
-            assert dut.data.size() == 3;
-            assert dut.matrix.containsKey(-1);
-            assert !dut.data.containsKey(-1);
-            assert dut.data.get(4).IsArrayBound();
+            assert dut.data.Size().intValue() == 3;
+            assert dut.matrix.Left() == -1;
+            assert dut.data.Data(4).IsArrayBound();
             boolean caught = false;
-            try { dut.data.put(4, dut.data.get(3)); }
-            catch (UnsupportedOperationException e) { caught = true; }
+            try { dut.data.At(-1); }
+            catch (RuntimeException e) { caught = true; }
             assert caught;
             for (int n = 0; n < 32; ++n) {
-                for (int i = 2; i <= 4; ++i) { dut.data.get(i).Set((n + i) & 31); }
-                dut.matrix.get(-1).get(2).Set(n);
-                dut.negative.get(3).Set(n);
-                dut.cube.get(3).get(-1).get(5).Set(n);
+                for (int i = 2; i <= 4; ++i) { dut.data.Data(i).Set((n + i) & 31); }
+                dut.matrix.Array(-1).Data(2).Set(n);
+                dut.negative.Data(3).Set(n);
+                dut.cube.Array(3).Array(-1).Data(5).Set(n);
                 dut.data_0.Set(n & 1);
                 dut._picker_array_0.Set((n >> 1) & 1);
                 dut.Step();
-                for (int i = 2; i <= 4; ++i) { assert dut.result.get(i).U().intValue() == (((n + i) & 31) ^ i); }
-                assert dut.matrix_out.get(-1).get(2).U().intValue() == (n ^ 2);
-                assert dut.negative_out.get(3).U().intValue() == (n ^ 31);
-                assert dut.cube_out.get(3).get(-1).get(5).U().intValue() == (n ^ 49);
+                for (int i = 2; i <= 4; ++i) { assert dut.result.Data(i).U().intValue() == (((n + i) & 31) ^ i); }
+                assert dut.matrix_out.Array(-1).Data(2).U().intValue() == (n ^ 2);
+                assert dut.negative_out.Data(3).U().intValue() == (n ^ 31);
+                assert dut.cube_out.Array(3).Array(-1).Data(5).U().intValue() == (n ^ 49);
                 assert dut.data_0_out.U().intValue() == ((n & 1) ^ 1);
                 assert dut.private_out.U().intValue() == (((n >> 1) & 1) ^ 1);
             }
@@ -255,6 +255,54 @@ public class example {
     }
 }
 """
+
+GO_CHECK = r'''
+package main
+import ut "UT_Arrays"
+func main() {
+    dut := ut.NewUT_Arrays()
+    if dut.Data.Left() != 4 || dut.Data.Right() != 2 || dut.Data.Size() != 3 {
+        panic("ordinary arrays must use RTL-indexed XArray")
+    }
+    if !dut.Cube.Array(3).Array(-1).Data(5).IsArrayBound() { panic("lost shared backend") }
+    for n := 0; n < 32; n++ {
+        for i := 2; i <= 4; i++ { dut.Data.Data(i).SetGo((n + i) & 31) }
+        dut.Matrix.Array(-1).Data(2).SetGo(n)
+        dut.Negative.Data(3).SetGo(n)
+        dut.Cube.Array(3).Array(-1).Data(5).SetGo(n)
+        dut.Step(1)
+        for i := 2; i <= 4; i++ {
+            if dut.Result.Data(i).U64() != uint64(((n + i) & 31) ^ i) { panic("array mismatch") }
+        }
+        if dut.Matrix_out.Array(-1).Data(2).U64() != uint64(n ^ 2) { panic("matrix mismatch") }
+        if dut.Negative_out.Data(3).U64() != uint64(n ^ 31) { panic("signed array mismatch") }
+        if dut.Cube_out.Array(3).Array(-1).Data(5).U64() != uint64(n ^ 49) { panic("cube mismatch") }
+    }
+    dut.Finish()
+}
+'''
+
+LUA_CHECK = r'''
+package.path = "UT_Arrays/?.lua;" .. package.path
+local DUT = require("UT_Arrays")
+local dut = DUT:new()
+assert(dut.data:Left() == 4 and dut.data:Right() == 2 and dut.data:Size() == 3)
+assert(dut.cube:Array(3):Array(-1):Data(5):IsArrayBound())
+local ok = pcall(function() dut.data:At(-1) end)
+assert(not ok)
+for n = 0, 31 do
+    for i = 2, 4 do dut.data:Data(i):Set((n + i) & 31) end
+    dut.matrix:Array(-1):Data(2):Set(n)
+    dut.negative:Data(3):Set(n)
+    dut.cube:Array(3):Array(-1):Data(5):Set(n)
+    dut:Step(1)
+    for i = 2, 4 do assert(dut.result:Data(i):U() == (((n + i) & 31) ~ i)) end
+    assert(dut.matrix_out:Array(-1):Data(2):U() == (n ~ 2))
+    assert(dut.negative_out:Data(3):U() == (n ~ 31))
+    assert(dut.cube_out:Array(3):Array(-1):Data(5):U() == (n ~ 49))
+end
+dut:Finish()
+'''
 
 INTERNAL_RTL = """
 module InternalArrays (
@@ -295,19 +343,18 @@ try:
     cfg = dut.xcfg.At(name)
     assert cfg.array_size == 6 and cfg.mem_bytes == 12 and cfg.rtl_width == 65
     memory = dut.GetInternalSignal(name, is_array=True)
-    array_view = dut.xcfg.NewXDataArrayView(name)
+    array_view = dut.xcfg.NewXArray(name)
     assert tuple(array_view.Shape()) == (2, 3)
-    assert tuple(array_view.Strides()) == (36, 12)
-    assert array_view.FlatIndex((1, 2)) == 5
-    assert array_view.Address(5) == dut.xcfg.Address(name) + 5 * 12
-    assert len(memory) == 6
+    assert tuple(cfg.array_strides) == (36, 12)
+    assert array_view.bounds == ((0, 1), (0, 2))
+    assert len(memory) == 2
     assert memory is dut.GetInternalSignal(name, is_array=True)
     words_name, tiny_name = find('words'), find('tiny')
     words = dut.GetInternalSignal(words_name, is_array=True)
     tiny = dut.GetInternalSignal(tiny_name, is_array=True)
     assert len(words) == len(tiny) == 3
     raw = (ctypes.c_uint32 * 18).from_address(dut.xcfg.Address(name))
-    for index, element in enumerate(memory):
+    for index, element in enumerate(leaf for row in memory for leaf in row):
         assert element.GetBackendKind() == xsp.XDataBackendKind_MemDirect
         assert element.IsArrayBound()
         element.AsImmWrite()
@@ -318,7 +365,7 @@ try:
         selected = dut.GetInternalSignal(name, index=index)
         assert selected.value == value
         assert selected.IsArrayBound()
-        assert array_view.AtFlat(index).value == value
+        assert array_view[index // 3][index % 3].value == value
         assert selected is dut.GetInternalSignal(name, index=index)
         assert selected is not memory
         # With trace metadata, RTL-indexed names resolve to the same native leaf.
@@ -367,10 +414,10 @@ int main() {
     }
     assert(!name.empty());
     auto memory = dut.GetInternalSignal(name, true);
-    assert(memory.size() == 6);
-    auto view = dut.xcfg->NewXDataArrayView(name);
+    assert(memory->Size() == 2);
+    auto view = dut.xcfg->NewXArray(name);
     assert(view->Shape() == std::vector<int>({2, 3}));
-    assert(view->Address(5) == dut.xcfg->Address(name) + 5 * 12);
+    assert(view->Array(1)->Size() == 3);
     auto raw = reinterpret_cast<uint32_t *>(dut.xcfg->Address(name));
     XData *previous = nullptr;
     for (int i = 0; i < 6; ++i) {
@@ -380,7 +427,7 @@ int main() {
         assert(selected->IsArrayBound());
         selected->AsImmWrite(); selected->Set(123 + i);
         assert(raw[i * 3] == uint32_t(123 + i));
-        assert(memory[i]->U() == uint64_t(123 + i));
+        assert(memory->Array(i / 3)->Data(i % 3)->U() == uint64_t(123 + i));
         dut.row.Set(i / 3); dut.col.Set(i % 3); dut.RefreshComb();
         assert(dut.value.U() == uint64_t(123 + i));
         previous = selected;
@@ -563,6 +610,36 @@ struct SLayout {
                 self.run_command(["make", "-C", str(output), "NPROC=4"])
                 self.run_command(["java", "-ea", "-cp", os.pathsep.join([jar, str(output / "UT_Arrays-java.jar")]),
                                   "com.ut.example"], cwd=output)
+
+    @unittest.skipUnless(os.environ.get("ARRAY_EXTRA_LANGUAGES") == "1", "optional Go RTL regression")
+    def test_go_array_io(self):
+        self.exercise_additional_language("golang", GO_CHECK, "example.go")
+
+    @unittest.skipUnless(os.environ.get("ARRAY_EXTRA_LANGUAGES") == "1", "optional Lua RTL regression")
+    def test_lua_array_io(self):
+        self.exercise_additional_language("lua", LUA_CHECK, "example.lua")
+
+    def exercise_additional_language(self, language, check, filename):
+        compiler = "go" if language == "golang" else "lua"
+        if not shutil.which(compiler):
+            self.skipTest(f"{compiler} unavailable")
+        for access in ("dpi", "mem_direct"):
+            with self.subTest(language=language, access=access), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                source = base / "arrays.sv"
+                source.write_text(RTL)
+                output = base / "Arrays"
+                self.run_command([self.picker, "export", str(source), "--sname", "Arrays",
+                    "--sdir", str(self.root / "template"), "--tdir", str(output), "--sim", "verilator",
+                    "--lang", language, "--rw", access, "--autobuild", "false"])
+                (output / language / filename).write_text(check)
+                self.run_command(["make", "-C", str(output), "NPROC=4"])
+                if language == "golang":
+                    library = self.run_command([self.picker, "--show_xcom_lib_location_golang"]).stdout.strip().splitlines()[-1]
+                    self.run_command(["go", "run", filename], cwd=output, env={**os.environ,
+                        "GO111MODULE": "off", "GOPATH": os.pathsep.join([str(output / "golang"), library])})
+                else:
+                    self.run_command(["lua", filename], cwd=output)
 
     def test_internal_array_native_storage(self):
         for language, trace in (("python", None), ("python", "fst"), ("cpp", None)):

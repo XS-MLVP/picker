@@ -74,7 +74,10 @@ static void test_unpacked_array_ports()
                 for (const auto &language : {"python", "cpp", "java", "scala", "golang", "lua"}) {
                     std::string declarations, initialization;
                     assert(picker::codegen::render_array_ports(external, language, declarations, initialization));
-                    assert(contains_line(initialization, external[3].logic_pin));
+                    assert(contains_line(initialization, "XView"));
+                    assert(contains_line(initialization, "FromPort"));
+                    assert(!contains_line(initialization, "_SignalArray"));
+                    assert(!contains_line(declarations, "PickerSignalArray"));
                     assert(contains_line(initialization, "matrix") || contains_line(initialization, "Matrix"));
                     assert(!contains_line(initialization, "matrix_n1"));
                     const auto binding = picker::codegen::render_array_binding(external[4], language, external[4].logic_pin);

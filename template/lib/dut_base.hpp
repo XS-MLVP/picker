@@ -13,7 +13,7 @@
 #endif
 {% if __HAS_ARRAY_BINDINGS__ %}
 #ifndef SWIG
-#include "xspcomm/xarray.h"
+#include "xspcomm/detail/array_binding.h"
 #endif
 {% endif %}
 
@@ -258,7 +258,7 @@ protected:
     std::string coverage_database;
 {% if __HAS_ARRAY_BINDINGS__ %}
     // One shared xcomm backend per array and DUT/library instance.
-    std::map<std::string, std::shared_ptr<xspcomm::XDataArray>> array_bindings;
+    std::map<std::string, std::shared_ptr<xspcomm::detail::ArrayBinding>> array_bindings;
 {% endif %}
 
 #if defined(USE_VERILATOR)
@@ -412,10 +412,10 @@ inline void DutUnifiedBase::BindArrayElement(uint64_t xdata, const std::string &
     if (!signal || index < 0) { XFatal("Invalid array binding %s[%d]", name.c_str(), index); }
     auto found = this->array_bindings.find(name);
     if (found == this->array_bindings.end()) {
-        std::shared_ptr<xspcomm::XDataArray> array;
+        std::shared_ptr<xspcomm::detail::ArrayBinding> array;
 {% for pin in __ARRAY_PORTS__ %}
         if (name == "{{pin.name}}") {
-            array = std::make_shared<xspcomm::XDataArray>({{pin.width}}, std::vector<int>{{pin.left}}, std::vector<int>{{pin.right}});
+            array = std::make_shared<xspcomm::detail::ArrayBinding>({{pin.width}}, std::vector<int>{{pin.left}}, std::vector<int>{{pin.right}});
 {% if __RW_TYPE__ == "DPI" %}
             array->BindDPIPtr(this->GetDPIHandle(name, 0), this->GetDPIHandle(name, 1));
 {% else %}
