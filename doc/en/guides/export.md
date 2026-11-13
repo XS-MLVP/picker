@@ -90,16 +90,21 @@ Python views provide `bounds` (for example, `((-1, 1), (2, 3))`), `shape`, `indi
 
 | Language | Element access | Container |
 | --- | --- | --- |
-| Python | `dut.matrix[-1][2]` | Bounds-aware read-only view |
-| C++ | `dut.matrix[-1][2]` | Bounds-checked view returning `XData&` |
-| Java | `dut.matrix.get(-1).get(2)` | Read-only nested `Map` |
-| Scala | `dut.matrix(-1)(2)` | Immutable nested `Map` |
-| Go | `dut.Matrix[-1][2]` | Nested `map[int]` |
-| Lua | `dut.matrix[-1][2]` | Nested table |
+| Python | `dut.matrix[-1][2]` | `XArray`, with bound `XData` leaves |
+| C++ | `dut.matrix->Array(-1)->Data(2)` | `shared_ptr<XArray>`, with shared leaves |
+| Java | `dut.matrix.Array(-1).Data(2)` | `XArray` |
+| Scala | `dut.matrix.Array(-1).Data(2)` | `XArray` |
+| Go | `dut.Matrix.Array(-1).Data(2)` | `xspcomm.XArray` |
+| Lua | `dut.matrix:Array(-1):Data(2)` | `XArray` |
 
 C++ views throw `std::out_of_range` for an index outside the declared bounds.
 
-Every language uses the original RTL indices. The Java, Scala, Go, and Lua map containers retain their language's missing-key behavior. `signals.json` records unpacked bounds as `Unpacked: [[left, right], ...]` in declaration order. Multi-instance exports keep the usual module/instance prefix. All six bindings use the same array-element binding path, so element access follows the same backend rules and RTL indexing in every language.
+Every language uses the same recursive `XArray` and checked RTL indices, not
+language-specific maps. `Left()`, `Right()` and `Size()` describe the current
+dimension; `LeftBounds()`, `RightBounds()` and `Shape()` describe consecutive
+dimensions. `signals.json` records unpacked bounds as `Unpacked: [[left, right], ...]`
+in declaration order. Multi-instance exports keep the usual module/instance prefix.
+All six bindings use the same array-element binding path.
 
 With Verilator `--rw mem_direct`, each array registers one base address and its
 `sizeof`-derived byte strides. xcomm resolves element addresses when binding the
@@ -111,7 +116,7 @@ With `--rw dpi`, each input array has **one indexed getter and one indexed sette
 an output array has only the getter. These functions access the original SV array,
 not bridge signals. Their internal flat index follows declaration order, with the
 last dimension changing fastest; the generated SV code maps it back to RTL
-subscripts. Both access modes use xcomm's shared C++ `XDataArray` backend. Each
+subscripts. Both access modes use one shared internal C++ array backend. Each
 leaf stores a backend reference and its DPI index or precomputed native address,
 not a captured per-element read/write callback. Public indexing still uses the
 RTL bounds.
@@ -125,8 +130,14 @@ another `XPort`; snapshots retain bounds too. See the
 Views group references to the bound `XData` objects. A DPI backend read or write
 uses the indexed accessor for one element; mem_direct accesses that element's
 native storage directly. Generated port views create their leaves and register
-them with `XPort` during initialization. The C++ `XDataArray` API creates and
-caches leaves on demand with `At(indices)`/`AtFlat(index)`.
+them with `XPort` during initialization. Standalone `XArray.FromDPI` and
+`XArray.FromNative` factories create and cache leaves on demand through the same
+recursive interface. Shared binding and flat indexing are internal details.
+
+This replaces the former `XDataArray` type and language-specific port containers;
+there is no compatibility alias. Migrate full-coordinate/flat selections to one
+`Array(index)` per dimension and `Data(index)` at the leaf (or Python indexing).
+Regenerate DUTs with the matching Picker/xcomm SDK; the native ABI remains 4.
 
 Dynamic arrays, queues, associative arrays, unions, and unpacked `inout` ports are not supported.
 

@@ -11,7 +11,7 @@ type UT_{{__TOP_MODULE_NAME__}} struct {
     Xclock xspcomm.XClock
     Xport xspcomm.XPort
     internalSignals map[string]xspcomm.XData
-    internalSignalsList map[string]*list.List
+    internalSignalsList map[string]xspcomm.XArray
     Xcfg xspcomm.XSignalCFG
     {% if __HAS_AGGREGATE_VIEWS__ %}
     vpiBackend xspcomm.XVPI
@@ -192,20 +192,14 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalView(name string) xspco
 }
 {% endif %}
 
-func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalArray(name string) *list.List {
+func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalArray(name string) xspcomm.XArray {
     if v, ok := self.internalSignalsList[name]; ok {
         return v
     }
-    return_list := list.New()
-    signal_array := self.Xcfg.NewXDataArray(name, "CFG:" + name)
-    if signal_array.Size() == 0 {
-        return return_list
-    }
-    for i := 0; i < int(signal_array.Size()); i++ {
-        return_list.PushBack(signal_array.Get(i))
-    }
-    self.internalSignalsList[name] = return_list
-    return return_list
+    signal_array := self.Xcfg.NewXArray(name)
+    if self.internalSignalsList == nil { self.internalSignalsList = make(map[string]xspcomm.XArray) }
+    self.internalSignalsList[name] = signal_array
+    return signal_array
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalList(args ...interface{}) *list.List {

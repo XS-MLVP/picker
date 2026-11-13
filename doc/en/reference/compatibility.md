@@ -39,8 +39,12 @@ The **DPI and mem_direct** paths for fixed unpacked arrays are supported with
 | mem_direct ports | Python, C++, Java | 5.026, 5.048, 5.052 |
 | mem_direct internal arrays | Python, C++ | 5.026, 5.048, 5.052 |
 
+Optional Go/Lua port-array RTL tests are enabled with `ARRAY_EXTRA_LANGUAGES=1`.
+Scala runtime array tests remain unverified.
+
 All six language generators use the shared array binding implementation.
-Array binding uses xcomm's `XDataArray` API. Use Picker and xcomm as a matched
+Public arrays use xcomm's recursive `XArray` API, backed by shared internal bindings.
+Use Picker and xcomm as a matched
 toolchain, and regenerate and compile DUTs and array layout YAML after upgrades.
 
 Native element addresses and strides are computed by the C++ compiler against

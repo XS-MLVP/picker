@@ -39,7 +39,10 @@
 | mem_direct 端口 | Python、C++、Java | 5.026、5.048、5.052 |
 | mem_direct 内部数组 | Python、C++ | 5.026、5.048、5.052 |
 
-六种语言生成器使用同一套共享数组绑定实现，数组绑定使用 xcomm 的 `XDataArray` API。
+设置 `ARRAY_EXTRA_LANGUAGES=1` 可运行额外的 Go/Lua 端口数组 RTL 回归；
+Scala 数组运行时测试尚未验证。
+
+六种语言生成器使用同一套共享数组绑定实现，公开数组统一使用 xcomm 的递归 `XArray` API。
 Picker 与 xcomm 使用匹配的工具链；升级后重新生成并编译 DUT 和数组布局 YAML。
 
 原生元素地址及步长由 C++ 编译器根据生成模型计算，不按 Verilator 版本硬编码。
