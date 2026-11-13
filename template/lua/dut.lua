@@ -57,6 +57,10 @@ function DUT{{__TOP_MODULE_NAME__}}:new(...)
     self.xclock:Add(self.xport)
     self.xcfg = xsp.XSignalCFG(self.dut:GetXSignalCFGPath(), self.dut:GetXSignalCFGBasePtr())
     self.internal_signals = {}
+    self._finished = false
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    self.vpi_backend = nil
+    {% endif %}
 
     -- set output files
     if kwargs.waveform_filename then
@@ -82,6 +86,17 @@ function DUT{{__TOP_MODULE_NAME__}}:new(...)
 end
 
 function DUT{{__TOP_MODULE_NAME__}}:Finish()
+    if self._finished then
+        return 0
+    end
+    self._finished = true
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    if self.vpi_backend ~= nil then
+        local backend = self.vpi_backend
+        self.vpi_backend = nil
+        backend:Close()
+    end
+    {% endif %}
     self.dut:Finish()
 end
 
@@ -172,7 +187,7 @@ function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignal(name, index, is_array, use
                 return nil
             end
             if is_array then
-                signal = self.xcfg:NewXDataArray(name, xname)
+                signal = self.xcfg:NewXArray(name)
                 if signal then
                     self.internal_signals[name] = signal
                 end
@@ -197,6 +212,27 @@ function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignal(name, index, is_array, use
     end
     return self.internal_signals[name]
 end
+
+{% if __HAS_AGGREGATE_VIEWS__ %}
+function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignalView(name)
+    if self.vpi_backend == nil then
+        self.vpi_backend = xsp.XVPI()
+        self.vpi_backend:Configure(
+            self.dut:GetVPIFuncPtr("vpi_get"),
+            self.dut:GetVPIFuncPtr("vpi_get_value"),
+            self.dut:GetVPIFuncPtr("vpi_put_value"),
+            self.dut:GetVPIFuncPtr("vpi_handle_by_name"),
+            self.dut:GetVPIFuncPtr("vpi_handle_by_index"),
+            self.dut:GetVPIFuncPtr("vpi_handle"),
+            self.dut:GetVPIFuncPtr("vpi_iterate"),
+            self.dut:GetVPIFuncPtr("vpi_scan"),
+            self.dut:GetVPIFuncPtr("vpi_get_str"),
+            self.dut:GetVPIFuncPtr("vpi_release_handle"),
+            self.dut:GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}})
+    end
+    return self.vpi_backend:Get(name)
+end
+{% endif %}
 
 function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignalList(prefix, deep, use_vpi)
     -- prefix: str, deep=99, use_vpi=False

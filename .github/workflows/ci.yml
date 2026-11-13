@@ -61,6 +61,7 @@ jobs:
     needs: branch-or-pr
     if: needs.branch-or-pr.outputs.run_build == 'true'
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-22.04
@@ -190,6 +191,10 @@ jobs:
         if: matrix.full_test == false
         run: |
           make -C test export_cachecfg export_unpacked_array
+
+      - name: Verilator aggregate-view compatibility
+        if: matrix.full_test == false && matrix.verilator_override != 'v5.026'
+        run: make -C test export_aggregate_views
 
       - name: Cleanup generated artifacts
         if: always()

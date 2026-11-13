@@ -11,8 +11,11 @@ type UT_{{__TOP_MODULE_NAME__}} struct {
     Xclock xspcomm.XClock
     Xport xspcomm.XPort
     internalSignals map[string]xspcomm.XData
-    internalSignalsList map[string]*list.List
+    internalSignalsList map[string]xspcomm.XArray
     Xcfg xspcomm.XSignalCFG
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    vpiBackend xspcomm.XVPI
+    {% endif %}
     // Pins
 {{__XDATA_DECL__}}
     // SubPorts
@@ -65,6 +68,13 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) Step(a ...interface{}) {
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) Finish() {
+    {% if __HAS_AGGREGATE_VIEWS__ %}
+    if self.vpiBackend != nil {
+        self.vpiBackend.Close()
+        xspcomm.DeleteXVPI(self.vpiBackend)
+        self.vpiBackend = nil
+    }
+    {% endif %}
     self.Dut.Finish()
 }
 
@@ -161,20 +171,35 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignal(name string, exargs ..
     return self.internalSignals[name]
 }
 
-func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalArray(name string) *list.List {
+{% if __HAS_AGGREGATE_VIEWS__ %}
+func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalView(name string) xspcomm.XView {
+    if self.vpiBackend == nil {
+        self.vpiBackend = xspcomm.NewXVPI()
+        self.vpiBackend.Configure(
+            self.Dut.GetVPIFuncPtr("vpi_get"),
+            self.Dut.GetVPIFuncPtr("vpi_get_value"),
+            self.Dut.GetVPIFuncPtr("vpi_put_value"),
+            self.Dut.GetVPIFuncPtr("vpi_handle_by_name"),
+            self.Dut.GetVPIFuncPtr("vpi_handle_by_index"),
+            self.Dut.GetVPIFuncPtr("vpi_handle"),
+            self.Dut.GetVPIFuncPtr("vpi_iterate"),
+            self.Dut.GetVPIFuncPtr("vpi_scan"),
+            self.Dut.GetVPIFuncPtr("vpi_get_str"),
+            self.Dut.GetVPIFuncPtr("vpi_release_handle"),
+            self.Dut.GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}})
+    }
+    return self.vpiBackend.Get(name)
+}
+{% endif %}
+
+func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalArray(name string) xspcomm.XArray {
     if v, ok := self.internalSignalsList[name]; ok {
         return v
     }
-    return_list := list.New()
-    signal_array := self.Xcfg.NewXDataArray(name, "CFG:" + name)
-    if signal_array.Size() == 0 {
-        return return_list
-    }
-    for i := 0; i < int(signal_array.Size()); i++ {
-        return_list.PushBack(signal_array.Get(i))
-    }
-    self.internalSignalsList[name] = return_list
-    return return_list
+    signal_array := self.Xcfg.NewXArray(name)
+    if self.internalSignalsList == nil { self.internalSignalsList = make(map[string]xspcomm.XArray) }
+    self.internalSignalsList[name] = signal_array
+    return signal_array
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalList(args ...interface{}) *list.List {
@@ -242,7 +267,7 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) RefreshComb(){
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) AtClone(){
-    self.Dut.atClone()
+    self.Dut.AtClone()
 }
 
 /*******************************/

@@ -39,8 +39,12 @@ The **DPI and mem_direct** paths for fixed unpacked arrays are supported with
 | mem_direct ports | Python, C++, Java | 5.026, 5.048, 5.052 |
 | mem_direct internal arrays | Python, C++ | 5.026, 5.048, 5.052 |
 
+Optional Go/Lua port-array RTL tests are enabled with `ARRAY_EXTRA_LANGUAGES=1`.
+Scala runtime array tests remain unverified.
+
 All six language generators use the shared array binding implementation.
-Array binding uses xcomm's `XDataArray` API. Use Picker and xcomm as a matched
+Public arrays use xcomm's recursive `XArray` API, backed by shared internal bindings.
+Use Picker and xcomm as a matched
 toolchain, and regenerate and compile DUTs and array layout YAML after upgrades.
 
 Native element addresses and strides are computed by the C++ compiler against
@@ -55,6 +59,43 @@ symbol names only if the declared C name is absent. Unsupported trace formats
 must be diagnosed, not treated as valid native layouts. See [array port access](../guides/export.md#export-unpacked-array-ports)
 and [internal native arrays](../guides/internal-signals.md#access-a-native-array)
 for the different indexing APIs.
+
+### Struct and packed-array port views
+
+Packed/unpacked structs and multidimensional packed arrays are exported with
+the recursive xcomm containers described in [aggregate export](../guides/export.md#structs-and-multidimensional-packed-arrays).
+Their minimum Verilator version is **5.048**; the generated CMake configuration
+reports an error on older versions. Ordinary unpacked arrays above retain their
+5.026 minimum.
+Packed objects bind one complete `XData`; unpacked objects bind independent
+fields or elements. All layouts are derived from RTL, and native member
+addresses/strides come from the generated C++ model.
+
+| Paths | RTL regression languages | Verified Verilator versions |
+| --- | --- | --- |
+| DPI and mem_direct | Python, C++, Java | 5.048, 5.052 |
+| DPI and mem_direct | Go, Lua | 5.048, 5.052 |
+| VPI packed aggregates and unpacked arrays | Python, C++, Java, Go, Lua | 5.048, 5.052 |
+| VPI recursive unpacked structs | Python, C++, Java, Go, Lua | 5.052 |
+
+The tests include nested structs, arrays of structs, mixed-direction bounds,
+65-bit fields and original whole packed values. Python additionally covers
+packed arrays of structs, multidimensional packed/unpacked composition,
+multiple instances, enums and integer fields. VPI views use VPI handles and
+Picker's RTL type layout; they never infer simulator memory offsets. Verilator
+5.048 supports the tested packed aggregates and unpacked arrays, but does not
+expose enough VPI type/member information to traverse unpacked structs. Such a
+request fails with the inaccessible member path; unpacked-struct VPI views
+require 5.052 or newer. VPI results apply to the tested Python, C++, Java, Go
+and Lua bindings on the tested aggregate-port fixture; Scala aggregate RTL runtime
+behavior (DPI, mem_direct and VPI) has not been verified. Picker currently emits
+packed type layouts for ports, not internal packed structs; an internal packed
+struct request therefore fails instead of guessing offsets. These results do
+not establish aggregate RTL support on VCS, UVS or GSIM.
+
+Use the matching xcomm SDK with native ABI 4 and rebuild generated DUTs.
+DPI setters and mem_direct writes access the selected independent field or
+array element directly, without a whole unpacked-array copy.
 
 ## Languages
 

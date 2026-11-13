@@ -4,4 +4,4 @@ tools:
   node: 20.12.2
   python: 3.11
 dependencies:
-  xcomm: d7a531c6a5ecc246110759963ea7633e05533a28
+  xcomm: acc826aee27ee3871fd14fd1fb966c4bfeadae0b

@@ -33,6 +33,7 @@ make unit_tests NPROC=4 BUILD_XSPCOMM_SWIG=python,java
 | 文件列表 | `make -C test export_filelist` |
 | 复杂端口解析 | `make -C test export_complex_port` |
 | Unpacked 数组端口与内部原生数组 | `make -C test export_unpacked_array` |
+| 递归 struct 与 packed 数组端口视图 | `make -C test export_aggregate_views` |
 | 内部信号与 VPI | `make -C test export_vpi_python` |
 | 事务打包 | `make -C test pack_transaction` |
 | RTL 转事务 | `make -C test pack_from_rtl` |
@@ -40,6 +41,13 @@ make unit_tests NPROC=4 BUILD_XSPCOMM_SWIG=python,java
 | 文档 | [检查与预览](documentation.md) |
 
 完整集成测试使用 `make -C test all`，需要对应语言和模拟器环境。测试的 preflight 会检查绑定，缺失时可能重新构建；需要保留其他构建产物时使用独立 checkout。记录实际执行的测试和工具缺失导致的跳过项。
+安装 Go、Lua、Scala 工具链及对应 xcomm 绑定后，运行 `export_aggregate_views` 时设置
+`AGGREGATE_EXTRA_LANGUAGES=1`，即可纳入这些语言的 RTL 测试。
+普通 unpacked 数组的额外 Go/Lua 回归使用 `ARRAY_EXTRA_LANGUAGES=1`。
+
+VPI 回归将基础聚合访问与 `test_vpi_unpacked_struct_*` 分开报告。后者在 Verilator 5.048
+上检查缺失成员的明确诊断和路径，不作为跳过项；在 5.052 及更新版本上必须成功读写。
+同一语言复用构建产物，但每个用例在独立进程中运行。
 
 ## 提交改动
 

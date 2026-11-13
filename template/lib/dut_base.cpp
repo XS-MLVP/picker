@@ -1127,6 +1127,15 @@ uint64_t DutUnifiedBase::GetVPIHandleObj(std::string name)
     return vpi_handle;
 }
 
+std::string DutUnifiedBase::GetVPIScope() const
+{
+#if defined(USE_VERILATOR) || defined(USE_VCS) || defined(USE_UVS)
+    return this->dut->sv_scope;
+#else
+    return {};
+#endif
+}
+
 std::vector<std::string> DutUnifiedBase::VPIInternalSignalList(char *name, int depth)
 {
     return VPIInternalSignalList(std::string(name), depth);

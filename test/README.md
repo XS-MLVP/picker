@@ -25,12 +25,14 @@ These scripts check the CLI and export/pack flows. Verilator and Python are the 
 
 Python and C++ run full RTL regressions for array ports in both DPI and mem_direct
 modes, and for native internal arrays through mem_direct; Java runs the port-array
-regression when its toolchain is available. Scala, Go, and Lua share the binding
-path but are not covered by an equivalent full-simulation regression here.
+regression when its toolchain is available. Set `ARRAY_EXTRA_LANGUAGES=1` to add
+Go and Lua port-array RTL regressions in both access modes. All arrays use the
+same recursive xcomm interface; Scala runtime coverage remains unverified.
 
 Python 和 C++ 会对 DPI、mem_direct 两种模式的数组端口执行完整 RTL 回归，并通过
-mem_direct 覆盖内部原生数组；Java 工具链可用时运行数组端口回归。Scala、Go 和 Lua 使用
-同一套绑定路径，但这里没有等价的完整仿真回归。
+mem_direct 覆盖内部原生数组；Java 工具链可用时运行数组端口回归。设置
+`ARRAY_EXTRA_LANGUAGES=1` 可增加 Go 和 Lua 两种访问模式的端口数组 RTL 回归。
+各语言数组使用相同的 xcomm 递归接口；Scala 运行时尚未验证。
 
 Tests write generated directories such as picker_out_* and pack_example. `make -C test clean` removes test outputs. The preflight may rebuild missing bindings; use a separate checkout when preserving other build artifacts.
 

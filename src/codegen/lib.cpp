@@ -31,13 +31,26 @@ namespace picker { namespace codegen {
             array["right"] = right + "}";
             array["native_first"] = native;
             array["native_strides"] = strides;
+            if (!pin.binding_native.empty()) {
+                array["native_first"] = pin.binding_native;
+                array["native_strides"] = pin.binding_strides;
+            }
             arrays.push_back(array);
         }
         const bool enabled = !arrays.empty();
+        const bool aggregates = std::any_of(pins.begin(), pins.end(),
+            [](const auto &pin) { return bool(pin.type_layout); });
         data["__HAS_ARRAY_BINDINGS__"] = enabled;
+        data["__HAS_AGGREGATE_VIEWS__"] = aggregates;
         data["__ARRAY_PORTS__"] = arrays;
+        nlohmann::json layouts = nlohmann::json::object();
+        for (const auto &pin : pins) {
+            if (!pin.aggregate_name.empty() && pin.type_layout)
+                layouts[pin.aggregate_name] = nlohmann::json::parse(*pin.type_layout);
+        }
+        data["__AGGREGATE_LAYOUTS_JSON__"] = nlohmann::json(layouts.dump()).dump();
         data["__RW_TYPE__"] = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
-        if (enabled && !data.contains("__XSPCOMM_INCLUDE__")) {
+        if ((enabled || aggregates) && !data.contains("__XSPCOMM_INCLUDE__")) {
             std::string error;
             auto include = picker::get_xcomm_lib("include", error);
             if (include.empty()) { PK_FATAL("%s\n", error.c_str()); }

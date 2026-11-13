@@ -33,6 +33,7 @@ Choose integration tests for the change:
 | File lists | `make -C test export_filelist` |
 | Complex ports | `make -C test export_complex_port` |
 | Unpacked array ports and native internal arrays | `make -C test export_unpacked_array` |
+| Recursive struct and packed-array port views | `make -C test export_aggregate_views` |
 | Internal signals and VPI | `make -C test export_vpi_python` |
 | Transaction packing | `make -C test pack_transaction` |
 | RTL to transactions | `make -C test pack_from_rtl` |
@@ -40,6 +41,14 @@ Choose integration tests for the change:
 | Documentation | [Checks and preview](documentation.md) |
 
 Run the complete integration suite with `make -C test all`, using the corresponding language and simulator environments. Test preflight checks bindings and may rebuild missing ones; use a separate checkout when preserving other build outputs. Record the tests executed and any skips caused by missing tools.
+Set `AGGREGATE_EXTRA_LANGUAGES=1` when running `export_aggregate_views` with the
+Go, Lua and Scala toolchains and xcomm bindings installed to include those RTL tests.
+Set `ARRAY_EXTRA_LANGUAGES=1` for additional Go/Lua `export_unpacked_array` tests.
+
+VPI regressions report basic aggregate access separately from `test_vpi_unpacked_struct_*`.
+The latter checks the explicit missing-member diagnostic and path on Verilator 5.048,
+rather than skipping; on 5.052 and newer, reads and writes must succeed. Cases reuse
+each language's build artifacts but run in separate processes.
 
 ## Submit a change
 

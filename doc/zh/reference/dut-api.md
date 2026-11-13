@@ -18,6 +18,12 @@ dut.Finish()
 
 `dut.pin` 和 `dut["pin"]` 返回同一个端口对象。通过 `.value` 或 `Set(value)` 写入，`.value` 读取完整位宽的无符号 Python 整数。端口属性本身只读。
 
+packed struct 和多维 packed 数组在端口原名下保留完整 `XData`，并增加 `port_view`
+字段/下标容器（与端口重名时追加下划线）。unpacked struct 直接使用 `XStruct`；其中的
+数组与 struct 字段递归组合，不伪造整体位向量。例如 `dut.record.entries[-1].flag`
+仍是普通 `XData`。`Data(name)`、`Struct(name)`、`Array(name)` 选择字段接口。
+四种存储模型、原始 RTL 下标与示例见[聚合类型导出](../guides/export.md#struct-packed)。
+
 ## 时钟与执行
 
 | 方法 | 行为与返回值 |
