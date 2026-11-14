@@ -31,7 +31,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 
     SIMULATOR = "{{__SIMULATOR__}}"
 
-    {% if __HAS_AGGREGATE_VIEWS__ %}
+    {% if __HAS_VPI_VIEWS__ %}
     @staticmethod
     def _picker_view_value(view):
         if view.Kind() == "bits":
@@ -51,10 +51,10 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         self.internal_signals = {}
         self._picker_arrays = {}
         self._picker_views = {}
-        {% if __HAS_AGGREGATE_VIEWS__ %}
+        {% if __HAS_VPI_VIEWS__ %}
         self._vpi_backend = None
         {% endif %}
-        self.xcfg = xsp.XSignalCFG(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr())
+        self.xcfg = xsp.XSignalCFG(self.dut.GetXSignalCFGPath(), self.dut.GetXSignalCFGBasePtr(), "{{__CONFIG_MODEL_ID__}}")
         {% if __SIMULATOR__ == "gsim" %}
         # Set fast mode for GSim
         self.xclock.SetFastMode(xsp.FastMode_ONLY_STEP_RIS)
@@ -181,7 +181,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
                 else:
                     signal = self.xcfg.NewXData(name, xname)
             else:
-                {% if __HAS_AGGREGATE_VIEWS__ %}
+                {% if __HAS_VPI_VIEWS__ %}
                 if self._vpi_backend is None:
                     self._vpi_backend = xsp.XVPI()
                     self._vpi_backend.Configure(
@@ -223,18 +223,22 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
         else:
             return self.dut.VPIInternalSignalList(prefix, deep)
 
-    {% if __HAS_AGGREGATE_VIEWS__ %}
-    def GetInternalSignalView(self, name: str):
-        """Return the recursive VPI view for an internal signal or aggregate."""
+    def GetInternalSignalView(self, name: str, use_vpi=False):
+        """Return an RTL-indexed view; prefer native metadata unless VPI is selected."""
+        if self.dut.GetXSignalCFGBasePtr() != 0 and not use_vpi:
+            return self.xcfg.NewXView(name)
+        {% if __HAS_VPI_VIEWS__ %}
         self.GetInternalSignal(name, use_vpi=True)
         return self._vpi_backend.Get(name)
-    {% endif %}
+        {% else %}
+        raise RuntimeError("VPI is not enabled; rebuild with --vpi or use --rw mem_direct")
+        {% endif %}
 
     def VPIInternalSignalList(self, prefix="", deep=99):
         return self.dut.VPIInternalSignalList(prefix, deep)
 
     def Finish(self):
-        {% if __HAS_AGGREGATE_VIEWS__ %}
+        {% if __HAS_VPI_VIEWS__ %}
         if getattr(self, "_vpi_backend", None) is not None:
             backend = self._vpi_backend
             self._vpi_backend = None

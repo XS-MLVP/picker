@@ -63,6 +63,10 @@ For your own design, query names with `VPIInternalSignalList()`, then pass the a
 By default, `GetInternalSignal()` uses generated native layout information when available and otherwise queries VPI. `use_vpi=True` selects VPI explicitly. `example/CacheSignalCFG` contains a complete native-access project.
 
 `GetInternalSignal(..., use_vpi=True)` returns ordinary VPI leaves as `XData`.
+Automatic discovery treats a single packed bit-vector dimension (including a
+one-bit vector) as one `XData`; an unpacked array of such vectors is an `XArray`
+with `XData` elements. Multidimensional packed values and Picker's explicit
+recursive RTL layouts retain their array/struct views and declared bounds.
 For recursive aggregate ports, use `GetInternalSignalView(name)` in C++, Java,
 Go, Lua and Scala; Python also returns `XStruct`/`XArray` from
 `GetInternalSignal(name, use_vpi=True)`. Picker supplies the port's RTL layout
@@ -71,9 +75,94 @@ checked VPI handles. Verilator 5.048 supports packed aggregate and unpacked-arra
 views, but cannot provide the VPI member/type information needed for unpacked
 structs; those requests fail explicitly. Unpacked-struct VPI views require
 Verilator 5.052 or newer. Internal unpacked structs can be discovered where the
-simulator exposes their full VPI type/member information, but Picker does not
-currently emit packed-struct layouts for internal signals, so those are rejected
+simulator exposes their full VPI type/member information, but the VPI path does not
+currently register internal packed-struct layouts with XVPI, so those are rejected
 with an explicit missing-layout error. No simulator C++ memory layout is guessed.
+
+## RTL types joined to native storage
+
+Verilator `--rw mem_direct` exports reuse the internal types from the same Slang
+elaboration and verify them against generated C++ storage. Every DUT exposes
+`GetInternalSignalView(name, use_vpi=False)`: it prefers native metadata, otherwise
+uses compiled-in VPI; `use_vpi=True` forces VPI. Without either backend, the call
+reports the required build options. Aggregate ports are no longer a prerequisite
+for generating this API.
+
+For example, given these internal declarations:
+
+```systemverilog
+typedef struct packed { logic [7:0] tag; logic [23:0] data; } packet_t;
+packet_t packet;
+logic [1:0][31:0] lanes;
+logic [64:0] memory [3:2][-1:1];
+```
+
+Use the full names actually returned by `GetInternalSignalList()`:
+
+```python
+packet = dut.GetInternalSignalView("Top.packet").Struct()
+packet.Data("tag").value = 0x12  # Only the high eight bits of the shared value.
+lanes = dut.GetInternalSignalView("Top.lanes").Array()
+lanes.Data(0).value = 0x12345678
+memory = dut.GetInternalSignalView("Top.memory").Array()
+memory.Array(3).Data(-1).value = (1 << 64) | 0x55
+```
+
+These arrays use **RTL coordinates**, and ordinary single-dimension bit vectors
+are `XData` leaves. The existing `GetInternalSignal(..., is_array=True)` retains
+zero-based **storage coordinates**. Dynamically queried native-view leaves default
+to immediate writes without clock callbacks; call `Step()` or `RefreshComb()` to
+evaluate the affected logic. Whole packed values remain accessible through the
+existing `GetInternalSignal(name)` or the view's `PackedData()`.
+
+Fixed unpacked structs and arrays of them are supported when every member can be
+matched to a real generated C++ member. Address differences and `sizeof` determine
+padding, sizes and strides. Packed fields share their complete parent value;
+unpacked fields bind independent storage. Neither VPI nor waveform tracing is
+required.
+
+Each export delivers one `<module>.xscfg` binary database containing port metadata,
+interned types, native storage, member bindings and derived signals. There are no
+default `signals.json`, `native_layouts.json`, offset YAML or index sidecars.
+Java/Scala include the same database in the JAR and extract one temporary resource
+per class, rather than copying it for each DUT. Neither the Slang AST nor array
+elements are serialized.
+
+Build-time candidate types live in the same file. Native address generation removes
+candidate records and retains only types reachable from verified bindings.
+Ordinary values and homogeneous arrays reuse offsets/strides; unpacked structs add
+homogeneous field-group `bindings`, not per-element registrations.
+
+The database uses shared path prefixes, compact integers, a built-in read-only
+lookup index and independent compressed blocks. POSIX readers map the file and
+decompress only requested blocks, with a 2 MiB decompressed-block cache. They do not
+populate maps for every signal. Full name enumeration still scans data blocks;
+`String()` is an explicit full-inspection operation. The file format has its own
+version; native ABI remains 4. Readers verify the model identifier, file bounds and
+checksums of accessed blocks, rejecting another build's database. A first access
+to an uncached block has decompression cost; not every lookup will be faster than
+an already fully loaded map.
+
+Explicit inspection prints JSON to standard output without creating more files:
+
+```sh
+picker config Top.xscfg
+picker config Top.xscfg --section metadata --name ports
+picker config Top.xscfg --section variables --name Top.packet
+```
+
+Python can also call `json.loads(dut.xcfg.Metadata("ports"))` to obtain the original
+port JSON structure. Third-party tools that only accept `signals.json` must adapt
+to this entry point; no compatibility copy is generated by default.
+
+Not every RTL name has writable retained storage. Optimized or relocated objects
+may remain unaligned; width, shape, type or member mismatches do not receive a
+view. Dynamic arrays, unions, strings and unrecognized native representations are
+not supported here. Trace can supplement names, but temporary values and general
+expressions are not writable addresses. Unbindable trace entries are marked
+`unavailable` rather than aborting the whole signal-table build. Use native views
+only while their DUT is alive. RTL four-state metadata does not make two-state
+simulator storage preserve X/Z.
 
 ## Access a native array
 

@@ -36,6 +36,9 @@ namespace picker { namespace parser {
                  << "    type: " << var.type << "\n"
                  << "    width: " << var.width << "\n";
             if (var.array_size > 0) { *out << "    array_size: " << var.array_size << "\n"; }
+            if (!var.layout.empty()) *out << "    layout_id: " << var.layout << "\n";
+            if (!var.public_name.empty()) *out << "    public_name: " << var.public_name << "\n";
+            if (!var.view_error.empty()) *out << "    view_error: \"Native RTL/storage layout mismatch\"\n";
         }
         *out << "  - total: " << vars.size() << "\n";
         out->flush();
@@ -60,6 +63,10 @@ namespace verilator {
         while (getline(file, line)) {
             line = trim(line);
             if (line.empty()) continue;
+            if (line.find("DESIGN SPECIFIC STATE") != std::string::npos && no_struct == -1) {
+                no_struct = 1;
+                continue;
+            }
 
             if (line.find("struct {") != std::string::npos) {
                 structDepth++;
@@ -145,6 +152,9 @@ namespace verilator {
     {
         std::vector<cpp_variableInfo> vars;
         std::regex varRegex(R"(^(.+[^\s])\s+([a-zA-Z_]\w*);$)");
+        // Large models contain hundreds of thousands of members but far fewer
+        // distinct storage types. Parse each type once, never each array value.
+        std::map<std::string, cpp_variableInfo> type_cache;
 
         for (const auto &decl : declarations) {
             std::smatch match;
@@ -153,7 +163,9 @@ namespace verilator {
                 std::string varName = trim(match[2]);
 
                 PK_DEBUG("typeStr: %s, varName: %s", typeStr.c_str(), varName.c_str());
-                cpp_variableInfo info = parseType(typeStr);
+                auto [cached, inserted] = type_cache.try_emplace(typeStr);
+                if (inserted) cached->second = parseType(typeStr);
+                cpp_variableInfo info = cached->second;
                 info.name         = varName;
                 if (!info.type.empty()) vars.push_back(info);
             }

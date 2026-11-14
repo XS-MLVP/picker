@@ -19,3 +19,4 @@ set(source_file
 )
 
 add_library(codegen_ STATIC ${source_file})
+target_link_libraries(codegen_ PUBLIC ${PICKER_ZLIB_LIBRARY})

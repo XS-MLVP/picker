@@ -507,15 +507,16 @@ struct SLayout {
                 ])
                 executable = output / "export.bin"
                 self.run_command(["c++", "-std=c++17", "-I", str(base),
-                                  *map(str, sorted(output.glob("*.cpp"))), "-o", str(executable)])
-                config = self.run_command([str(executable)]).stdout
-                self.assertIn("array_dimensions: [2, 3]", config)
-                self.assertIn("array_strides: [40, 12]" if simulator == "verilator" else
-                              "array_strides: [12, 4]", config)
-                self.assertIn("mem_bytes: 12" if simulator == "verilator" else "mem_bytes: 4", config)
-                scalar = re.search(r"(?ms)^  - name: scalar\n(.*?)(?=^  - name:|\Z)", config)
-                self.assertIsNotNone(scalar)
-                self.assertNotIn("array_", scalar.group(1))
+                                  "-I",str(self.root/"dependence/xcomm/include"),
+                                  *map(str, sorted(output.glob("*.cpp"))), "-lz", "-o", str(executable)])
+                database=base/"Layout.xscfg"
+                self.run_command([str(executable),str(database)])
+                config=json.loads(self.run_command([self.picker,"config",str(database),"--section","variables"]).stdout)
+                arrays=[v for v in config.values() if v.get("array_dimensions")==[2,3]]
+                self.assertTrue(arrays)
+                self.assertTrue(any(v["array_strides"]==([40,12] if simulator=="verilator" else [12,4]) for v in arrays))
+                self.assertTrue(any(v["mem_bytes"]==(12 if simulator=="verilator" else 4) for v in arrays))
+                self.assertNotIn("array_size",config["scalar"])
 
     def test_array_io(self):
         for access in ("dpi", "mem_direct"):
@@ -541,7 +542,8 @@ struct SLayout {
                         if isinstance(child, dict):
                             collect(child, prefix + "_" + name if prefix else name)
 
-                collect(json.loads((output / "signals.json").read_text()))
+                collect(json.loads(self.run_command([self.picker,"config",str(output/"Arrays.xscfg"),
+                    "--section","metadata","--name","ports"]).stdout))
                 for prefix in prefixes or [""]:
                     self.assertEqual(leaves[prefix + "matrix"]["Unpacked"], [[-1, 0], [3, 2]])
                     self.assertEqual(leaves[prefix + "matrix_out"]["Unpacked"], [[-1, 0], [2, 3]])
@@ -661,9 +663,10 @@ struct SLayout {
                 else:
                     (output / "cpp/example.cpp").write_text(CPP_INTERNAL_CHECK)
                 self.run_command(["make", "-C", str(output), "NPROC=4"])
-                config = (output / "InternalArrays_offset.yaml").read_text()
-                self.assertIn("array_dimensions: [2, 3]", config)
-                self.assertIn("array_strides: [36, 12]", config)
+                database = next(output.rglob("InternalArrays.xscfg"))
+                config = json.loads(self.run_command([self.picker,"config",str(database),"--section","variables"]).stdout)
+                self.assertTrue(any(v.get("array_dimensions")==[2,3] and v.get("array_strides")==[36,12]
+                    for v in config.values()))
                 if language == "python":
                     self.run_command([sys.executable, "-c", INTERNAL_CHECK, trace or "none"], cwd=base)
                 else:

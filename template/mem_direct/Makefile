@@ -58,7 +58,7 @@ LDLIBS += -lpthread -lz -ldl
 {% endif %}
 
 # OBJS contains the list of object files generated from all .cpp files in the directory
-CXXFLAGS += $(MEM_DIRECT_CXX_STANDARD)
+CXXFLAGS += $(MEM_DIRECT_CXX_STANDARD) -I{{__XSPCOMM_INCLUDE__}}
 
 OBJS = $(patsubst %.cpp, %.o, $(wildcard *.cpp))
 

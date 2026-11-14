@@ -194,7 +194,7 @@ jobs:
 
       - name: Verilator aggregate-view compatibility
         if: matrix.full_test == false && matrix.verilator_override != 'v5.026'
-        run: make -C test export_aggregate_views
+        run: make -C test export_aggregate_views export_native_views
 
       - name: Cleanup generated artifacts
         if: always()

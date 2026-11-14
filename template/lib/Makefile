@@ -26,6 +26,7 @@ all: release
 
 compile:
 	mkdir -p build
+	@test -f {{__TOP_MODULE_NAME__}}.xscfg || cp ${TARGET}/{{__TOP_MODULE_NAME__}}.xscfg {{__TOP_MODULE_NAME__}}.xscfg
 	cp pli.tab build/pli.tab
 	@echo -n "[TIME LOG] {{__SIMULATOR__}} generate START: "  && date +%s.%3N
 	/usr/bin/time cmake . -Bbuild -DSIMULATOR=$(SIMULATOR) -DTRACE=$(TRACE) -DPROJECT=$(PROJECT) -DCMAKE_BUILD_PARALLEL=$(NPROC) -DRW_TYPE=$(RW_TYPE)
@@ -47,7 +48,7 @@ ifeq ($(wildcard ${MEM_DIRECT_TARGET_FILE}),)
 endif
 	@echo -n "[TIME LOG] mem_direct gen START: " && date +%s.%3N
 	@cd mem_direct && make -j$(NPROC) TOP_NAME={{__TOP_MODULE_NAME__}}
-	@./mem_direct/export.bin > mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml
+	@./mem_direct/export.bin {{__TOP_MODULE_NAME__}}.xscfg
 	@rm -rf mem_direct_tmp
 	@echo -n "[TIME LOG] mem_direct gen END: " && date +%s.%3N
 endif
@@ -66,7 +67,7 @@ endif
 	@cp build/_SRC/*.h ${TARGET}/ 2>/dev/null|| true
 	@cp build/_SRC/*.hpp ${TARGET}/ 2>/dev/null|| true
 	@cp *.hpp ${TARGET}/
-	@cp mem_direct/{{__TOP_MODULE_NAME__}}_offset.yaml ${TARGET}/{{__TOP_MODULE_NAME__}}_offset.yaml 2>/dev/null|| true
+	@mv {{__TOP_MODULE_NAME__}}.xscfg ${TARGET}/{{__TOP_MODULE_NAME__}}.xscfg
 	@make -f mk/${TLANG}.mk
 	
 

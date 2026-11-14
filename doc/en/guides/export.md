@@ -129,7 +129,7 @@ C++ views throw `std::out_of_range` for an index outside the declared bounds.
 Every language uses the same recursive `XArray` and checked RTL indices, not
 language-specific maps. `Left()`, `Right()` and `Size()` describe the current
 dimension; `LeftBounds()`, `RightBounds()` and `Shape()` describe consecutive
-dimensions. `signals.json` records unpacked bounds as `Unpacked: [[left, right], ...]`
+dimensions. The database's `ports` metadata records unpacked bounds as `Unpacked: [[left, right], ...]`
 in declaration order. Multi-instance exports keep the usual module/instance prefix.
 All six bindings use the same array-element binding path.
 
@@ -149,7 +149,9 @@ not a captured per-element read/write callback. Public indexing still uses the
 RTL bounds.
 
 With Toffee's `SignalArray` support, use `Bundle(matrix=dut.matrix)`
-directly or bind the `Unpacked` metadata in `signals.json`. Toffee retains the
+directly or adapt its metadata binding to the database's `ports` record. Tools
+that only read `signals.json` need this migration; no duplicate file is generated.
+Toffee retains the
 same leaves and original indices without rebinding their backend or registering
 another `XPort`; snapshots retain bounds too. See the
 [Toffee array guide](https://github.com/XS-MLVP/toffee/blob/main/docs/en/guides/data.md).
@@ -210,7 +212,7 @@ commit policy. Views do not add `XPort` registrations or simulator backends.
 Unpacked fields bind independently; a homogeneous field within an unpacked
 array shares one indexed DPI getter/setter pair, or one native base with
 compiler-derived byte strides. Native access uses actual generated C++ members,
-not assumed C++ struct packing. `signals.json` records the recursive type under
+not assumed C++ struct packing. The database's `ports` record stores the recursive type under
 `Layout`, including fields, packed offsets, bounds, widths, signing and state kind.
 DPI and mem_direct both access the selected independent field or array element
 directly, without copying an entire unpacked array for a single-element write.

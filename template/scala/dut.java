@@ -7,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.function.Consumer;
+import java.util.Map;
+import java.util.HashMap;
 
 import com.xspcomm.*;
 
@@ -28,21 +30,24 @@ public class JavaUT_{{__TOP_MODULE_NAME__}} { //this class is used for scala ext
         }
         System.load(tempFile.getAbsolutePath());
     }
-    public static void loadFileInJar(String path, Consumer<String> cb) throws IOException {
-        InputStream inputStream = JavaUT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path);
-        if (inputStream == null) {
-            throw new IOException("Could not find file: " + path);
-        }
-        File tempFile = File.createTempFile("tmp", "tmp");
-        tempFile.deleteOnExit();
-        try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
+    private static final Map<String, String> RESOURCE_FILES = new HashMap<>();
+    public static synchronized void loadFileInJar(String path, Consumer<String> cb) throws IOException {
+        String cached = RESOURCE_FILES.get(path);
+        if (cached == null) {
+            try (InputStream inputStream = JavaUT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path)) {
+                if (inputStream == null) throw new IOException("Could not find file: " + path);
+                File tempFile = File.createTempFile("picker-config-", ".xscfg");
+                tempFile.deleteOnExit();
+                try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+                    byte[] buffer = new byte[65536];
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(buffer)) != -1) outputStream.write(buffer, 0, bytesRead);
+                }
+                cached = tempFile.getAbsolutePath();
+                RESOURCE_FILES.put(path, cached);
             }
         }
-        cb.accept(tempFile.getAbsolutePath());
+        cb.accept(cached);
     }
     static {
         try {
@@ -60,4 +65,3 @@ public class JavaUT_{{__TOP_MODULE_NAME__}} { //this class is used for scala ext
         System.out.printf("Dependency loaded: %b\n", LIB_LOADED);
     }
 }
-

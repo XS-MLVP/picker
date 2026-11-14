@@ -13,7 +13,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     var xclock = new XClock(this.dut.getPxcStep(), this.dut.getPSelf())
     val internalSignals: scala.collection.mutable.Map[String, XData] = scala.collection.mutable.Map()
     val internalSignalsList: scala.collection.mutable.Map[String, XArray] = scala.collection.mutable.Map()
-    {% if __HAS_AGGREGATE_VIEWS__ %}
+    {% if __HAS_VPI_VIEWS__ %}
     var vpiBackend: XVPI = null
     {% endif %}
     var xport = new XPort()
@@ -22,8 +22,8 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
     def newXCFG(): XSignalCFG = {
         var ret: XSignalCFG = null
         try {
-            JavaUT_{{__TOP_MODULE_NAME__}}.loadFileInJar("/{{__TOP_MODULE_NAME__}}_offset.yaml", (p) => {
-                ret = new XSignalCFG(p, dut.GetXSignalCFGBasePtr())
+            JavaUT_{{__TOP_MODULE_NAME__}}.loadFileInJar("/{{__TOP_MODULE_NAME__}}.xscfg", (p) => {
+                ret = new XSignalCFG(p, dut.GetXSignalCFGBasePtr(), "{{__CONFIG_MODEL_ID__}}")
             })
         } catch {
             case e: Exception => {
@@ -31,7 +31,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
                     println("Error: " + e.getMessage)
                     return null
                 }
-                ret = new XSignalCFG("/{{__TOP_MODULE_NAME__}}_offset.yaml", dut.GetXSignalCFGBasePtr())
+                ret = new XSignalCFG("/{{__TOP_MODULE_NAME__}}.xscfg", dut.GetXSignalCFGBasePtr(), "{{__CONFIG_MODEL_ID__}}")
             }
         }
         ret
@@ -105,7 +105,7 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         this.xclock.StepFal(callback)
     }
     def Finish(): Unit  = {
-        {% if __HAS_AGGREGATE_VIEWS__ %}
+        {% if __HAS_VPI_VIEWS__ %}
         if (this.vpiBackend != null) {
             this.vpiBackend.Close()
             this.vpiBackend.delete()
@@ -167,8 +167,9 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
         }
         signal
     }
-    {% if __HAS_AGGREGATE_VIEWS__ %}
-    def GetInternalSignalView(name: String): XView = {
+    def GetInternalSignalView(name: String, use_vpi: Boolean = false): XView = {
+        if (!use_vpi && this.dut.GetXSignalCFGBasePtr().signum() != 0) return this.xcfg.NewXView(name)
+        {% if __HAS_VPI_VIEWS__ %}
         if (this.vpiBackend == null) {
             this.vpiBackend = new XVPI()
             this.vpiBackend.Configure(
@@ -185,8 +186,10 @@ class UT_{{__TOP_MODULE_NAME__}}(args: Array[String]) extends JavaUT_{{__TOP_MOD
                 this.dut.GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}})
         }
         this.vpiBackend.Get(name)
+        {% else %}
+        throw new IllegalStateException("VPI is not enabled; rebuild with --vpi or use --rw mem_direct")
+        {% endif %}
     }
-    {% endif %}
     def GetInternalSignal(name: String, is_array:Boolean): XArray = {
         if (this.internalSignalsList.contains(name)) {
             return this.internalSignalsList(name)

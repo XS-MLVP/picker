@@ -63,6 +63,16 @@ Quote arguments containing spaces, for example `-V '--trace -Wno-fatal'`. See [s
 
 See [UVM transaction bridges](../guides/uvm-tlm.md) for generated directories and examples.
 
+## config
+
+`picker config <module>.xscfg` reports the format, model identifier, byte size and
+record count. `--section metadata|variables|signals|types|candidates` inspects a
+section; `--name NAME` selects one record without decoding the entire database.
+Output is JSON on stdout; no sidecars are created. `candidates` is a build-time
+section removed when native storage is finalized. Every export ships one database,
+including DPI/VPI-only projects; JVM bindings embed it in their JAR.
+See [internal signals](../guides/internal-signals.md).
+
 ## Environment variables
 
 `DUMPVARS_OPTION` passes options to VCS `$fsdbDumpvars`, for example:

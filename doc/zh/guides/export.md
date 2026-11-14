@@ -126,7 +126,7 @@ C++ 视图对超出声明边界的下标抛出 `std::out_of_range`。
 
 各语言统一使用递归 `XArray` 和经过检查的 RTL 下标，不再使用语言专用 map。
 `Left()`、`Right()` 和 `Size()` 描述当前维度；`LeftBounds()`、`RightBounds()` 和
-`Shape()` 描述连续数组维度。`signals.json` 使用 `Unpacked: [[left, right], ...]`
+`Shape()` 描述连续数组维度。配置库的 `ports` 元数据使用 `Unpacked: [[left, right], ...]`
 按声明顺序记录各维边界。多实例导出沿用原有模块/实例前缀，六种绑定使用同一套数组元素绑定路径。
 
 Verilator `--rw mem_direct` 为每个数组只登记一个基地址和由 `sizeof` 得到的各维字节步长。
@@ -140,7 +140,8 @@ getter。这些函数直接访问原 SV 数组，不经过桥接信号。内部�
 逐元素的捕获状态读写回调。对外访问仍使用原 RTL 边界。
 
 Toffee 的 `SignalArray` 支持直接写
-`Bundle(matrix=dut.matrix)`，或通过带 `Unpacked` 的 `signals.json` 绑定。Toffee 保留同一
+`Bundle(matrix=dut.matrix)`，或将元数据绑定入口适配到配置库的 `ports` 记录。仅支持
+`signals.json` 文件的工具需要迁移，不会再默认生成重复文件。Toffee 保留同一
 批叶子和原始下标，不改写后端或自动登记其他 `XPort`；数组快照也保留边界。详见
 [Toffee 数组指南](https://github.com/XS-MLVP/toffee/blob/main/docs/zh/guides/data.md)。
 
@@ -192,7 +193,7 @@ Python 的 `bounds`、`shape`、`indices` 与 unpacked 数组遵循相同规则�
 packed 字段写入合并到父信号，遵循父信号原有写模式与边沿提交策略；视图不额外注册
 `XPort` 或仿真器后端。unpacked 字段独立绑定，数组中的同类字段共享一对索引式 DPI
 getter/setter，或一份由 C++ 编译器计算的原生基址与字节步长。原生访问使用实际生成的
-C++ 成员，不假设 C++ struct 没有 padding。`signals.json` 的 `Layout` 记录递归类型，
+C++ 成员，不假设 C++ struct 没有 padding。配置库 `ports` 记录的 `Layout` 描述递归类型，
 包括字段名、packed 位偏移、边界、位宽、有符号性和二态/四态类型。
 DPI 与 mem_direct 均直接访问选中的独立字段或数组元素，单元素写入不会复制整个
 unpacked 数组。

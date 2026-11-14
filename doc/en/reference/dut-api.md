@@ -80,13 +80,15 @@ Bits 0–5 of `GetCovMetrics()` represent line, cond, fsm, toggle, branch, and a
 
 | Method | Behavior and return value |
 | --- | --- |
-| `GetInternalSignal(name, index=-1, is_array=False, use_vpi=False)` | Return a signal object by name, or a list with `is_array=True` |
+| `GetInternalSignal(name, index=-1, is_array=False, use_vpi=False)` | Return a signal object; `is_array=True` returns a recursive `XArray` using zero-based storage coordinates |
+| `GetInternalSignalView(name, use_vpi=False)` | Return an RTL-indexed recursive `XView`, preferring native metadata; `use_vpi=True` forces VPI |
+| `dut.xcfg.Metadata("ports")` | Explicitly read port metadata from the single `.xscfg` database as JSON; no separate `signals.json` is shipped |
 | `GetInternalSignalList(prefix="", deep=99, use_vpi=False)` | List accessible names, preferring native layout information and then VPI |
 | `VPIInternalSignalList(prefix="", deep=99)` | Enumerate hierarchical names through VPI |
 
-For native lookup, `prefix` is a substring filter. For VPI, `prefix` and `deep` select the starting hierarchy and search depth. VPI lookup of internal signals returns individual signals; `index` and `is_array` apply only to native layout lookup.
+For native lookup, `prefix` is a substring filter. For VPI, `prefix` and `deep` select the starting hierarchy and search depth.
 
-Successful results are cached by name and lookup options; later calls with the same arguments reuse the first object. An ordinary failed lookup returns `None`; an explicit `use_vpi=True` lookup failure raises an assertion. See [access internal signals](../guides/internal-signals.md) for examples.
+Successful results are cached by name and lookup options; later calls with the same arguments reuse the first object. An ordinary failed lookup returns `None`; an explicit `use_vpi=True` lookup failure raises an assertion. Native single-element `index` uses a flat storage position; VPI array selection uses that dimension's RTL index. See [access internal signals](../guides/internal-signals.md) for examples.
 
 ## Python asynchronous methods
 

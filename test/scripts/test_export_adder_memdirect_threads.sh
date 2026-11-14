@@ -47,17 +47,17 @@ blue "[export-adder-memdirect-threads] Building generated project"
 make -C "${OUTDIR}" compile NPROC="$(nproc 2>/dev/null || echo 2)"
 
 ROOT_HEADER="${OUTDIR}/build/DPIAdder/VAdder___024root.h"
-OFFSET_YAML="${OUTDIR}/mem_direct/Adder_offset.yaml"
+CONFIG_DB="${OUTDIR}/Adder.xscfg"
 
 test -f "${ROOT_HEADER}"
-test -f "${OFFSET_YAML}"
+test -f "${CONFIG_DB}"
 if grep -Eq 'alignas\(VL_CACHE_LINE_BYTES\).*Adder_top__DOT__cin' "${ROOT_HEADER}"; then
   blue "[export-adder-memdirect-threads] Verifying generated alignas declarations"
 else
   blue "[export-adder-memdirect-threads] Verilator did not emit an aligned cin declaration"
 fi
 grep -Fq 'Adder_top__DOT__cin' "${ROOT_HEADER}"
-grep -Fq 'source: "Adder_top.cin"' "${OFFSET_YAML}"
+"${PICKER_BIN}" config "${CONFIG_DB}" --section variables --name Adder_top.cin > /dev/null
 
 blue "[export-adder-memdirect-threads] Verifying --timing model C++ flags"
 python3 "${SCRIPT_DIR}/test_mem_direct_timing.py" -v

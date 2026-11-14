@@ -6,7 +6,7 @@
 namespace picker { namespace codegen {
 
     static const std::string yaml_varible_info =
-        "    cpp_variableInfo {{var_hash}} = {\"{{var_name}}\", \"{{var_type}}\", {{var_width}}, {{var_array_size}}, (uint64_t)&(base.{{var_raw_name}}) - (uint64_t)&base, {{var_dimensions}}, {{var_strides}}, {{var_mem_bytes}} };\n"
+        "    cpp_variableInfo {{var_hash}} = {\"{{var_name}}\", \"{{var_type}}\", {{var_width}}, {{var_array_size}}, (uint64_t)&(base.{{var_raw_name}}) - (uint64_t)&base, {{var_dimensions}}, {{var_strides}}, {{var_mem_bytes}}, {{var_layout}}, {{var_error}}, {{var_groups}} };\n"
         "    all_vars.push_back({{var_hash}});\n";
 
     std::string replace_dot(const std::string &varName)
@@ -36,11 +36,37 @@ namespace picker { namespace codegen {
 
         for (auto &var : varibles) {
             // calc hash from name
-            data["var_hash"]       = "hash_" + std::to_string(std::hash<std::string>{}(var.name));
+            data["var_hash"]       = "hash_" + std::to_string(std::hash<std::string>{}(var.public_name.empty() ? var.name : var.public_name));
             data["var_raw_name"]   = var.name;
-            data["var_name"]       = replace_dot(var.name);
+            data["var_name"]       = var.public_name.empty() ? replace_dot(var.name) : var.public_name;
             data["var_type"]       = var.type;
             data["var_width"]      = var.width;
+            data["var_layout"] = nlohmann::json(var.layout).dump();
+            data["var_error"] = nlohmann::json(var.view_error).dump();
+            std::string groups = "{";
+            auto first_member = var.name;
+            for (size_t d = 0; d < var.array_dimensions.size(); ++d) first_member += "[0]";
+            const bool reuse_storage = var.native_groups.size() == 1 && var.width > 0 &&
+                var.native_groups.front().member == first_member &&
+                var.native_groups.front().width == var.width &&
+                var.native_groups.front().dimensions == var.array_dimensions;
+            for (const auto &group : var.native_groups) {
+                if (reuse_storage) break; // Only a type reference is new for ordinary native values.
+                if (groups.size() > 1) groups += ", ";
+                groups += "{" + nlohmann::json(group.path).dump() + ", " + std::to_string(group.width) +
+                    ", sizeof(base." + group.member + "), (uint64_t)&(base." + group.member + ") - (uint64_t)&base, {";
+                for (size_t i = 0; i < group.dimensions.size(); ++i) {
+                    if (i) groups += ", ";
+                    groups += std::to_string(group.dimensions[i]);
+                }
+                groups += "}, {";
+                for (size_t i = 0; i < group.strides.size(); ++i) {
+                    if (i) groups += ", ";
+                    groups += "sizeof(base." + group.strides[i] + ")";
+                }
+                groups += "}}";
+            }
+            data["var_groups"] = groups + "}";
             data["var_array_size"] = var.array_size;
             std::string dimensions = "{", strides = "{", member = "base." + var.name;
             for (size_t dimension = 0; dimension < var.array_dimensions.size(); ++dimension) {
@@ -85,7 +111,8 @@ namespace picker { namespace codegen {
         }
     }
 
-    void render_md_addr_generator(const std::vector<cpp_variableInfo> &varibles, picker::export_opts &opts)
+    void render_md_addr_generator(const std::vector<cpp_variableInfo> &varibles, picker::export_opts &opts,
+                                  const nlohmann::json &types)
     {
         if (varibles.size() == 0) { return; }
         inja::Environment env;
@@ -104,6 +131,8 @@ namespace picker { namespace codegen {
         generate_offset(varibles, offset_array, offset_funcs, offset_funcs_define);
         split_offset(offset_array, src_dir, dst_dir_tmp);
         data["__TOP_MODULE_NAME__"] = opts.source_module_name_list[0];
+        data["__NATIVE_TYPE_IDS__"] = nlohmann::json::array();
+        for (const auto &[id, type] : types.items()) data["__NATIVE_TYPE_IDS__"].push_back(nlohmann::json(id).dump());
         data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
         for (int i = 0; i < offset_array.size(); i++)
             data["__yaml_varible_info_" + std::to_string(i) + "__"] = offset_array[i];
@@ -112,6 +141,7 @@ namespace picker { namespace codegen {
         auto cpplib_location = picker::get_xcomm_lib("lib", erro_message);
         if (cpplib_location.empty()) { PK_FATAL("%s", erro_message.c_str()); }
         data["__XSPCOMM_LIB__"] = cpplib_location;
+        data["__XSPCOMM_INCLUDE__"] = picker::get_xcomm_lib("include", erro_message);
         data["__SIMULATOR__"] = opts.sim;
         recursive_render(dst_dir_tmp, dst_dir, data, env);
     }

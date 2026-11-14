@@ -63,6 +63,14 @@
 
 生成目录和使用示例见 [UVM 事务桥指南](../guides/uvm-tlm.md)。
 
+## config
+
+`picker config <module>.xscfg` 显示格式版本、模型标识、文件字节数与记录数。
+`--section metadata|variables|signals|types|candidates` 查看指定区域，`--name NAME`
+只读取一个记录，不解码全库。结果以 JSON 打印到标准输出，不生成旁路文件。
+`candidates` 是原生存储生成完成后移除的构建期区域。每个工程只交付一个配置库，
+也包括仅 DPI/VPI 的工程；JVM 封装将它嵌入 JAR。见[内部信号](../guides/internal-signals.md)。
+
 ## 环境变量
 
 `DUMPVARS_OPTION` 传给 VCS 的 `$fsdbDumpvars` 选项，例如：

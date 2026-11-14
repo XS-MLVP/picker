@@ -19,7 +19,7 @@ public:
     // signal hashmap
     std::map<std::tuple<std::string, int, bool>, XData*> signal_map;
     std::map<std::string, std::shared_ptr<XArray>> signal_array_map;
-    {% if __HAS_AGGREGATE_VIEWS__ %}
+    {% if __HAS_VPI_VIEWS__ %}
     std::shared_ptr<XVPI> vpi_backend;
     {% endif %}
 
@@ -160,9 +160,10 @@ public:
         }
         return this->signal_map[key];
     }
-    {% if __HAS_AGGREGATE_VIEWS__ %}
-    XView GetInternalSignalView(std::string name)
+    XView GetInternalSignalView(std::string name, bool use_vpi = false)
     {
+        if (!use_vpi && this->dut->GetXSignalCFGBasePtr() != 0) return this->xcfg->NewXView(name);
+        {% if __HAS_VPI_VIEWS__ %}
         if (!this->vpi_backend) {
             this->vpi_backend = std::make_shared<XVPI>();
             this->vpi_backend->Configure(
@@ -179,8 +180,10 @@ public:
                 this->dut->GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}});
         }
         return this->vpi_backend->Get(name);
+        {% else %}
+        throw std::runtime_error("VPI is not enabled; rebuild with --vpi or use --rw mem_direct");
+        {% endif %}
     }
-    {% endif %}
     std::shared_ptr<XArray> GetInternalSignal(std::string name, bool is_array){
         Assert(is_array==true, "GetInternalSignal: is_array must be true");
         if(this->signal_array_map.find(name) == this->signal_array_map.end()){
@@ -200,7 +203,7 @@ public:
     }
     void Finish()
     {
-        {% if __HAS_AGGREGATE_VIEWS__ %}
+        {% if __HAS_VPI_VIEWS__ %}
         if (this->vpi_backend) {
             this->vpi_backend->Close();
             this->vpi_backend.reset();

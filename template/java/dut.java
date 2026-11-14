@@ -30,21 +30,24 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         }
         System.load(tempFile.getAbsolutePath());
     }
-    public static void loadFileInJar(String path, Consumer<String> cb) throws IOException {
-        InputStream inputStream = UT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path);
-        if (inputStream == null) {
-            throw new IOException("Could not find file: " + path);
-        }
-        File tempFile = File.createTempFile("tmp", "tmp");
-        tempFile.deleteOnExit();
-        try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
+    private static final Map<String, String> RESOURCE_FILES = new HashMap<>();
+    public static synchronized void loadFileInJar(String path, Consumer<String> cb) throws IOException {
+        String cached = RESOURCE_FILES.get(path);
+        if (cached == null) {
+            try (InputStream inputStream = UT_{{__TOP_MODULE_NAME__}}.class.getResourceAsStream(path)) {
+                if (inputStream == null) throw new IOException("Could not find file: " + path);
+                File tempFile = File.createTempFile("picker-config-", ".xscfg");
+                tempFile.deleteOnExit();
+                try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+                    byte[] buffer = new byte[65536];
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(buffer)) != -1) outputStream.write(buffer, 0, bytesRead);
+                }
+                cached = tempFile.getAbsolutePath();
+                RESOURCE_FILES.put(path, cached);
             }
         }
-        cb.accept(tempFile.getAbsolutePath());
+        cb.accept(cached);
     }
     static {
         try {
@@ -67,7 +70,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     public XSignalCFG xcfg;
     private Map<String, XData> internalSignals = new java.util.HashMap<String, XData>();
     private Map<String, XArray> internalSignalsList = new java.util.HashMap<>();
-    {% if __HAS_AGGREGATE_VIEWS__ %}
+    {% if __HAS_VPI_VIEWS__ %}
     private XVPI vpiBackend;
     {% endif %}
 
@@ -81,15 +84,15 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         this.xclock.Add(this.xport);
         // init xcfg
         try {
-            UT_{{__TOP_MODULE_NAME__}}.loadFileInJar("/{{__TOP_MODULE_NAME__}}_offset.yaml", (path -> {
-                this.xcfg = new XSignalCFG(path, this.dut.GetXSignalCFGBasePtr());
+            UT_{{__TOP_MODULE_NAME__}}.loadFileInJar("/{{__TOP_MODULE_NAME__}}.xscfg", (path -> {
+                this.xcfg = new XSignalCFG(path, this.dut.GetXSignalCFGBasePtr(), "{{__CONFIG_MODEL_ID__}}");
             }));
         } catch (Exception e) {
             if(this.dut.GetXSignalCFGBasePtr().intValue() != 0) {
-                System.err.println("Error load {{__TOP_MODULE_NAME__}}_offset.yaml fail:");
+                System.err.println("Error load {{__TOP_MODULE_NAME__}}.xscfg fail:");
                 e.printStackTrace();
             }else{
-                this.xcfg = new XSignalCFG("/{{__TOP_MODULE_NAME__}}_offset.yaml", this.dut.GetXSignalCFGBasePtr());
+                this.xcfg = new XSignalCFG("/{{__TOP_MODULE_NAME__}}.xscfg", this.dut.GetXSignalCFGBasePtr(), "{{__CONFIG_MODEL_ID__}}");
             }
         }
         // new pins
@@ -218,8 +221,12 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         }
         return signal;
     }
-    {% if __HAS_AGGREGATE_VIEWS__ %}
     public XView GetInternalSignalView(String name) {
+        return this.GetInternalSignalView(name, false);
+    }
+    public XView GetInternalSignalView(String name, Boolean use_vpi) {
+        if (!use_vpi && this.dut.GetXSignalCFGBasePtr().signum() != 0) return this.xcfg.NewXView(name);
+        {% if __HAS_VPI_VIEWS__ %}
         if (this.vpiBackend == null) {
             this.vpiBackend = new XVPI();
             this.vpiBackend.Configure(
@@ -236,8 +243,10 @@ public class UT_{{__TOP_MODULE_NAME__}} {
                 this.dut.GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}});
         }
         return this.vpiBackend.Get(name);
+        {% else %}
+        throw new IllegalStateException("VPI is not enabled; rebuild with --vpi or use --rw mem_direct");
+        {% endif %}
     }
-    {% endif %}
     public XArray GetInternalSignal(String name, Boolean is_array){
         if (this.internalSignalsList.containsKey(name)) {
             return this.internalSignalsList.get(name);
@@ -276,7 +285,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
         return this.VPIInternalSignalList(prefix, deep);
     }
     public void Finish(){
-        {% if __HAS_AGGREGATE_VIEWS__ %}
+        {% if __HAS_VPI_VIEWS__ %}
         if (this.vpiBackend != null) {
             this.vpiBackend.Close();
             this.vpiBackend.delete();
