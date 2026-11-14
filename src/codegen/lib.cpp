@@ -38,6 +38,10 @@ namespace picker { namespace codegen {
                 array["native_first"] = pin.binding_native;
                 array["native_strides"] = pin.binding_strides;
             }
+            if (opts.sim == "verilator") {
+                array["native_first"] = verilator_member_expression(array["native_first"].get<std::string>());
+                for (auto &stride : array["native_strides"]) stride = verilator_member_expression(stride.get<std::string>());
+            }
             arrays.push_back(array);
         }
         const bool enabled = !arrays.empty();
@@ -382,6 +386,7 @@ namespace picker { namespace codegen {
             if (!pin.array_name.empty()) continue; // Arrays register one base/stride layout, not N element addresses.
             nlohmann::json expin;
             expin["name"] = pin.logic_pin;
+            expin["native_name"] = verilator_identifier(pin.logic_pin);
             expin["type"] = (pin.logic_pin_type[0] == 'i') ? "In" : "Out";
             expin["hb"]   = pin.logic_pin_hb;
             expin["lb"]   = pin.logic_pin_lb;

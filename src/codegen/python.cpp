@@ -23,18 +23,17 @@ namespace picker { namespace codegen {
         /// @param xport_add
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &xdata_init,
-                                 std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant, SignalAccessType rw_type)
+                                 std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant,
+                                 SignalAccessType rw_type, const MemberNames &names)
         {
             inja::Environment env;
             nlohmann::json data;
-            auto pin_map = picker::get_default_conflict_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["signal_name"]    = signal_name(pin[i]);
-                auto pin_uniq_name = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
-                data["pin_uniq_name"]  = str_replace_all(str_replace_all(pin_uniq_name, "$$", "_"), "$", "_");
+                data["pin_uniq_name"]  = names.Pin(pin[i].logic_pin);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
                                                0 :
@@ -63,17 +62,17 @@ namespace picker { namespace codegen {
         /// @param xport_add
         /// @param comments
         void render_internal_signal(std::vector<picker::sv_signal_define> pin, std::string &xdata_init,
-                                    std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant)
+                                    std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant,
+                                    const MemberNames &names)
         {
             inja::Environment env;
             nlohmann::json data;
-            auto pin_map = picker::get_default_conflict_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["signal_name"]    = data["pin_func_name"];
-                data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
+                data["pin_uniq_name"]  = names.Pin(pin[i].logic_pin);
 
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
                                                0 :
@@ -86,7 +85,8 @@ namespace picker { namespace codegen {
             }
         };
 
-        void render_cascaded_signals(std::string prefix, nlohmann::json &signal_tree_json, std::string &cascaded_ports)
+        void render_cascaded_signals(std::string prefix, nlohmann::json &signal_tree_json, std::string &cascaded_ports,
+                                     const MemberNames &names)
         {
             nlohmann::json data;
             inja::Environment env;
@@ -95,10 +95,10 @@ namespace picker { namespace codegen {
                     continue;
                 } else {
                     std::string port_name = prefix.empty() ? key : prefix + "_" + key;
-                    data["port_name"]     = port_name;
+                    data["port_name"]     = names.Cascade(port_name);
                     data["prefix_key"]    = port_name;
                     cascaded_ports += env.render(xport_cascaded_template, data);
-                    render_cascaded_signals(port_name, port, cascaded_ports);
+                    render_cascaded_signals(port_name, port, cascaded_ports, names);
                 }
             }
         }
@@ -118,13 +118,14 @@ namespace picker { namespace codegen {
         std::string xdata_init, xdata_bindrw, xport_add, swig_constant, cascaded_signals;
 
         // Generate External Pin
-        py::render_external_pin(external_pin, xdata_init, xdata_bindrw, xport_add, swig_constant, opts.rw_type);
+        const MemberNames names(external_pin, internal_signal, signal_tree_json, "python", dst_module_name);
+        py::render_external_pin(external_pin, xdata_init, xdata_bindrw, xport_add, swig_constant, opts.rw_type, names);
         // Generate Internal Signal
-        py::render_internal_signal(internal_signal, xdata_init, xdata_bindrw, xport_add, swig_constant);
+        py::render_internal_signal(internal_signal, xdata_init, xdata_bindrw, xport_add, swig_constant, names);
         // Generate Cascaded Porst
-        py::render_cascaded_signals("", signal_tree_json, cascaded_signals);
+        py::render_cascaded_signals("", signal_tree_json, cascaded_signals, names);
         std::string array_declarations;
-        const bool has_arrays = render_array_ports(external_pin, "python", array_declarations, cascaded_signals);
+        const bool has_arrays = render_array_ports(external_pin, "python", array_declarations, cascaded_signals, &names);
 
         // Simulator
         std::transform(simulator.begin(), simulator.end(), simulator.begin(),

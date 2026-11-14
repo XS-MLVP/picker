@@ -1,4 +1,5 @@
 #include "codegen/lib.hpp"
+#include <optional>
 
 namespace picker { namespace codegen {
 
@@ -33,13 +34,13 @@ namespace picker { namespace codegen {
     }
 
     bool render_array_ports(const std::vector<picker::sv_signal_define> &pins, const std::string &language,
-                            std::string &declarations, std::string &initialization)
+                            std::string &declarations, std::string &initialization, const MemberNames *names)
     {
-        auto pin_map = picker::get_default_conflict_map();
-        auto emit = [&](const std::string &path, std::string attribute, const nlohmann::json &layout,
+        std::optional<MemberNames> local_names;
+        if (!names) { local_names.emplace(pins, std::vector<picker::sv_signal_define>{}, nlohmann::json::object(), language); names = &*local_names; }
+        auto emit = [&](const std::string &path, const nlohmann::json &layout,
                         bool ordinary) {
-            attribute = picker::fix_conflict_pin_name(attribute, pin_map, language == "golang");
-            if (language == "python") attribute = str_replace_all(attribute, "$", "_");
+            const auto &attribute = names->View(path);
             const auto name = nlohmann::json(path).dump();
             const auto description = nlohmann::json(layout.dump()).dump();
             const std::string type = layout["kind"] == "struct" ? "XStruct" : "XArray";
@@ -73,12 +74,8 @@ namespace picker { namespace codegen {
         };
 
         std::map<std::string, const picker::sv_signal_define *> arrays;
-        std::set<std::string> attributes;
         for (const auto &pin : pins) {
-            attributes.insert(pin.logic_pin);
-            if (!pin.aggregate_name.empty()) attributes.insert(pin.aggregate_name);
-            else if (!pin.array_name.empty()) {
-                attributes.insert(pin.array_name);
+            if (pin.aggregate_name.empty() && !pin.array_name.empty()) {
                 arrays.emplace(pin.array_name, &pin);
             }
         }
@@ -91,20 +88,14 @@ namespace picker { namespace codegen {
                 layout = {{"kind", "array"}, {"packed", false}, {"width", 0},
                           {"left", it->first}, {"right", it->second}, {"element", std::move(layout)}};
             }
-            emit(name, str_replace_all(name, ".", "_"), layout, true);
+            emit(name, layout, true);
         }
         std::set<std::string> seen;
         for (const auto &pin : pins) {
             if (pin.aggregate_name.empty() || !seen.insert(pin.aggregate_name).second) continue;
             const auto layout = nlohmann::json::parse(*pin.type_layout);
             if (layout["kind"] == "bits") continue;
-            auto attribute = pin.aggregate_name;
-            if (layout["packed"].get<bool>()) {
-                attribute += "_view";
-                while (attributes.contains(attribute)) attribute += "_";
-            }
-            attributes.insert(attribute);
-            emit(pin.aggregate_name, attribute, layout, false);
+            emit(pin.aggregate_name, layout, false);
         }
         return !arrays.empty();
     }

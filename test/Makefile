@@ -89,6 +89,7 @@ export_unpacked_array: preflight
 	python3 "$(SCRIPT_DIR)/test_export_unpacked_array.py"
 
 export_aggregate_views: preflight
+	python3 "$(SCRIPT_DIR)/test_codegen_review.py"
 	python3 "$(SCRIPT_DIR)/test_export_aggregate_views.py"
 
 export_native_views: preflight

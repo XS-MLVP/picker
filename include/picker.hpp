@@ -165,9 +165,21 @@ inline std::string capitalize_first_letter(const std::string &input)
 inline std::map<std::string, std::string> get_default_conflict_map()
 {
     std::map<std::string, std::string> pin_map;
-    std::vector<std::string> conflict_pin = {"xclock",      "xport",   "dut",        "initclock",
-                                             "step",        "stepris", "stepfal",    "setwaveform",
-                                              "setcoverage", "finish",  "refreshcomb", "_picker_arrays", "_picker_views", "getinternalsignalview"};
+    // Shared wrapper members, including optional backends. Keep names stable
+    // when flags change; target-language keywords are handled by MemberNames.
+    std::vector<std::string> conflict_pin = {
+        "dut", "xclock", "xport", "xcfg", "event", "signal_map", "signal_array_map",
+        "internal_signals", "internalsignals", "internalsignalslist", "vpi_backend",
+        "_vpi_backend", "vpibackend", "_finished", "_picker_arrays", "_picker_views",
+        "_picker_view_value", "simulator", "lib_loaded", "resource_files", "vec", "args",
+        "init", "initdut", "new", "newxcfg", "loadlibraryfromjar", "loadfileinjar", "main",
+        "initclock", "step", "stepris", "stepfal", "finish", "refreshcomb", "atclone",
+        "getxclock", "getxport", "resumewaveformdump", "pausewaveformdump", "waveformpaused",
+        "setwaveform", "getwaveformat", "flushwaveform", "setcoverage", "resetcoverage",
+        "getcovmetrics", "getcoveragepath", "getsimulator", "checkpoint", "restore",
+        "getinternalsignal", "getinternalsignalarray", "getinternalsignalview",
+        "getinternalsignallist", "vpiinternalsignallist", "astep", "acondition", "runstep",
+        "__init__", "__del__", "__getitem__", "__setattr__", "__index", "__gc"};
     for (auto &p : conflict_pin) { pin_map[p] = "pin_"; }
     return pin_map;
 }

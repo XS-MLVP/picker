@@ -45,21 +45,20 @@ namespace codegen {
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &xdata_declaration,
                                  std::string &xdata_reinit, std::string &xdata_bindrw, std::string &xport_add,
-                                 std::string &comments, SignalAccessType rw_type)
+                                 std::string &comments, SignalAccessType rw_type, const MemberNames &names)
         {
             inja::Environment env;
             nlohmann::json data;
-            auto pin_map = picker::get_default_conflict_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["signal_name"]    = signal_name(pin[i]);
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
-                data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
+                data["pin_uniq_name"]  = names.Pin(pin[i].logic_pin);
 
                 // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
                 // render
-                data["logic_pin_type"] = first_uppercase(pin[i].logic_pin_type);
+                data["logic_pin_type"] = pin[i].logic_pin_type == "inout" ? "InOut" : first_uppercase(pin[i].logic_pin_type);
 
                 BIND_DPI_RW;
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector
@@ -91,17 +90,16 @@ namespace codegen {
         /// @param comments
         void render_internal_signal(std::vector<picker::sv_signal_define> pin, std::string &xdata_declaration,
                                     std::string &xdata_reinit, std::string &xdata_bindrw, std::string &xport_add,
-                                    std::string &comments)
+                                    std::string &comments, const MemberNames &names)
         {
             inja::Environment env;
             nlohmann::json data;
-            auto pin_map = picker::get_default_conflict_map();
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
                 data["signal_name"]    = pin[i].logic_pin;
                 data["logic_pin_type"] = pin[i].logic_pin_type;
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
-                data["pin_uniq_name"]  = picker::fix_conflict_pin_name(data["pin_func_name"], pin_map, false);
+                data["pin_uniq_name"]  = names.Pin(pin[i].logic_pin);
 
                 // Set empty or [hb:lb] for verilog render
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? "" :
@@ -122,7 +120,8 @@ namespace codegen {
         };
 
         void render_cascaded_signals(std::string prefix, nlohmann::json &signal_tree_json,
-                                     std::string &cascaded_ports_dec, std::string &cascaded_ports_sgn)
+                                     std::string &cascaded_ports_dec, std::string &cascaded_ports_sgn,
+                                     const MemberNames &names)
         {
             nlohmann::json data;
             inja::Environment env;
@@ -131,11 +130,11 @@ namespace codegen {
                     continue;
                 } else {
                     std::string port_name = prefix.empty() ? key : prefix + "_" + key;
-                    data["port_name"]     = port_name;
+                    data["port_name"]     = names.Cascade(port_name);
                     data["prefix_key"]    = port_name;
                     cascaded_ports_dec += env.render(xport_cascaded_dec_template, data);
                     cascaded_ports_sgn += env.render(xport_cascaded_sgn_template, data);
-                    render_cascaded_signals(port_name, port, cascaded_ports_dec, cascaded_ports_sgn);
+                    render_cascaded_signals(port_name, port, cascaded_ports_dec, cascaded_ports_sgn, names);
                 }
             }
         }
@@ -155,15 +154,16 @@ namespace codegen {
             xdata_bindrw, xport_add, cascaded_signals_dec, cascaded_signals_sgn;
 
         // Generate External Pin
+        const MemberNames names(external_pin, internal_signal, signal_tree_json, "cpp", dst_module_name);
         cxx::render_external_pin(external_pin, xdata_declaration, xdata_reinit, xdata_bindrw, xport_add, comments,
-                                 opts.rw_type);
+                                 opts.rw_type, names);
 
         // Generate Internal Signal
         cxx::render_internal_signal(internal_signal, xdata_declaration, xdata_reinit, xdata_bindrw, xport_add,
-                                    comments);
+                                    comments, names);
         // Generate Cascaded Ports
-        cxx::render_cascaded_signals("", signal_tree_json, cascaded_signals_dec, cascaded_signals_sgn);
-        const bool has_arrays = render_array_ports(external_pin, "cpp", cascaded_signals_dec, cascaded_signals_sgn);
+        cxx::render_cascaded_signals("", signal_tree_json, cascaded_signals_dec, cascaded_signals_sgn, names);
+        const bool has_arrays = render_array_ports(external_pin, "cpp", cascaded_signals_dec, cascaded_signals_sgn, &names);
 
         std::string erro_message;
         auto cpplib_location = picker::get_xcomm_lib("lib", erro_message);
