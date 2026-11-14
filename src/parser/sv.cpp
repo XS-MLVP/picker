@@ -2,6 +2,8 @@
 #include "filelist.hpp"
 #include "parser/sv.hpp"
 
+#include "rtl_config.hpp"
+
 #include "slang/ast/Compilation.h"
 #include "slang/ast/SemanticFacts.h"
 #include "slang/ast/symbols/CompilationUnitSymbols.h"
@@ -468,6 +470,68 @@ namespace picker { namespace parser {
             }
         }
 
+        // Every requested --rtl-param must map to a parameter this wrapper can
+        // actually pin. Anything else would elaborate differently from the
+        // generated model, so it is rejected instead of silently ignored.
+        void validate_requested_parameters(const std::vector<std::string> &requested_raw,
+                                           const std::vector<const InstanceSymbol *> &instances)
+        {
+            const auto requested = picker::rtl::parse_params(requested_raw, "--rtl-param");
+            if (requested.empty()) { return; }
+
+            for (const auto &[name, value] : requested) {
+                (void)value;
+                bool assignable = false;
+                std::vector<std::string> available;
+                for (const auto *instance : instances) {
+                    const auto module_name = std::string(instance->name);
+                    for (const auto *parameter : instance->body.getParameters()) {
+                        const auto parameter_name = std::string(parameter->symbol.name);
+                        if (parameter->symbol.kind == SymbolKind::TypeParameter) {
+                            if (parameter_name == name) {
+                                PK_FATAL("--rtl-param %s: '%s' is a type parameter of module %s. Type "
+                                         "parameters cannot be set by a value; give it a default in the RTL.",
+                                         name.c_str(), name.c_str(), module_name.c_str());
+                            }
+                            continue;
+                        }
+                        if (parameter->isLocalParam()) {
+                            if (parameter_name == name) {
+                                PK_FATAL("--rtl-param %s: '%s' is a localparam of module %s and cannot be "
+                                         "overridden.", name.c_str(), name.c_str(), module_name.c_str());
+                            }
+                            continue;
+                        }
+                        if (!parameter->isPortParam()) {
+                            if (parameter_name == name) {
+                                PK_FATAL("--rtl-param %s: '%s' is declared in the body of module %s. A body "
+                                         "parameter cannot be set by an instance parameter assignment and "
+                                         "Verilator rejects overriding it; move it into the parameter port "
+                                         "list.",
+                                         name.c_str(), name.c_str(), module_name.c_str());
+                            }
+                            continue;
+                        }
+                        available.push_back(module_name + "." + parameter_name);
+                        if (parameter_name == name) { assignable = true; }
+                    }
+                }
+                if (assignable) { continue; }
+
+                std::string candidates;
+                for (const auto &candidate : available) {
+                    if (!candidates.empty()) { candidates += ", "; }
+                    candidates += candidate;
+                }
+                if (candidates.empty()) {
+                    PK_FATAL("--rtl-param %s: the selected top module has no assignable parameters.",
+                             name.c_str());
+                }
+                PK_FATAL("--rtl-param %s: no parameter with this name. Assignable parameters: %s",
+                         name.c_str(), candidates.c_str());
+            }
+        }
+
         picker::sv_module_define convert_instance_to_module_define(const InstanceSymbol &instance, int module_nums)
         {
             picker::sv_module_define result;
@@ -512,6 +576,9 @@ namespace picker { namespace parser {
                     args.push_back("--cmd-ignore");
                     args.push_back(rule);
                 }
+            }
+            for (const auto &[name, value] : picker::rtl::parse_params(opts.rtl_param, "--rtl-param")) {
+                args.push_back("-G" + name + "=" + value);
             }
             for (const auto &flag : opts.sflag) { args.push_back(flag); }
 
@@ -597,6 +664,7 @@ namespace picker { namespace parser {
                 top_instances.emplace(std::string(instance->name), instance);
             }
 
+            std::vector<const InstanceSymbol *> selected_instances;
             for (const auto &module_name : resolved_module_names) {
                 auto iter = top_instances.find(module_name);
                 if (iter == top_instances.end()) {
@@ -604,9 +672,12 @@ namespace picker { namespace parser {
                 }
 
                 const auto *instance = iter->second;
+                selected_instances.push_back(instance);
                 const int module_nums = has_explicit_requests ? requested_module_counts.at(module_name) : 1;
                 sv_module_result.push_back(convert_instance_to_module_define(*instance, module_nums));
             }
+
+            validate_requested_parameters(opts.rtl_param, selected_instances);
 
             return 0;
         }

@@ -19,6 +19,7 @@ include(codegen_filelist)
 include(codegen_sv_param)
 include(codegen_recursive_render)
 include(codegen_sv_param_multi)
+include(rtl_config)
 
 set(PICKER_EXAMPLE_DIR "${PROJECT_SOURCE_DIR}/example")
 set(PICKER_TEST_DATA_DIR "${PROJECT_SOURCE_DIR}/test/data")
@@ -44,6 +45,7 @@ add_test(NAME test_codegen_filelist COMMAND test_codegen_filelist)
 add_test(NAME test_codegen_sv_param COMMAND test_codegen_sv_param)
 add_test(NAME test_codegen_recursive_render COMMAND test_codegen_recursive_render)
 add_test(NAME test_codegen_sv_param_multi COMMAND test_codegen_sv_param_multi)
+add_test(NAME test_rtl_config COMMAND test_rtl_config)
 
 add_test(NAME test_parser_verilator_trace_dtype_scope
     COMMAND test_parser_verilator_trace_dtype_unit "${PICKER_TEST_DATA_DIR}/verilator_trace/dtype")
