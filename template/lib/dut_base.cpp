@@ -645,7 +645,7 @@ void DutVerilatorBase::init(int argc, char **argv)
     // Init pin mem address
     {% if __SIMULATOR__ == "verilator" %}
     {% for pin in __MODULE_EXTERNAL_PINS__ %}
-    this->pin_address_map["{{pin.name}}"] = (uint64_t)(&(((V{{__TOP_MODULE_NAME__}} *)this->top)->rootp->{{__TOP_MODULE_NAME__}}_top__DOT__{{pin.name}}));
+    this->pin_address_map["{{pin.name}}"] = (uint64_t)(&(((V{{__TOP_MODULE_NAME__}} *)this->top)->rootp->{{__TOP_MODULE_NAME__}}_top__DOT__{{pin.native_name}}));
     {% endfor %}
     {% if __RW_TYPE__ == "MEM_DIRECT" %}
     {% for pin in __ARRAY_PORTS__ %}

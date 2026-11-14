@@ -202,6 +202,22 @@ unpacked 数组。
 Python/C++/Java RTL 回归。Picker 须与包含 `XStruct`、`XArray`、原生 ABI 4 的匹配
 xcomm SDK 配套使用，并用该 SDK 重新编译生成的 DUT。
 
+## 生成成员名
+
+端口叶子、聚合视图和层次子端口统一分配成员名。普通标识符保持原拼写（Go 首字母大写），
+封装成员、方法及目标语言关键字受到保护；冲突端口添加 `pin_` 前缀，如果改名后仍有
+冲突，则添加数字后缀。例如同时存在 `vpi_backend` 和 `pin_vpi_backend` 两个端口时，
+Python 将前者暴露为 `pin_vpi_backend_2`，后者保持不变。开启 VPI 或改变端口声明顺序
+不会改变分配结果。
+
+这里只修改封装属性名。RTL 路径、`XPort` 键和配置库端口元数据仍使用逻辑原名。
+消费元数据时应使用 `dut["vpi_backend"]` 或对应语言的 `XPort` 查询，不要假设
+`getattr(dut, name)` 一定取得端口；仅按属性绑定的外部适配器需要处理改名。
+Verilator 的原生标识符转义与这些宿主语言成员名相互独立。
+
+C++ 对 packed 和向量 `inout` 端口生成 `IOType::InOut`，保留方向元数据；这不代表新增
+三态总线解析能力，也不阻止模拟器将无驱动的 `inout` 优化成常量。
+
 ## 添加调试功能
 
 - 使用 `-w trace.fst` 生成波形支持，具体操作见[记录仿真结果](simulation.md#recording)。

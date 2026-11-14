@@ -3,6 +3,7 @@ include_directories(../../include/codegen)
 include_directories(../../include/parse)
 set(source_file
      array.cpp
+     names.cpp
      cpp.cpp
      python.cpp
      java.cpp

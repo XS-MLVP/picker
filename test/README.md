@@ -10,6 +10,7 @@ These scripts check the CLI and export/pack flows. Verilator and Python are the 
 | --- | --- |
 | `python3 test/scripts/test_python_simulator_metadata.py` | VCS/Verilator metadata generation; override binary with `PICKER_BIN`; no simulator license required / 仿真器元数据生成 |
 | `python3 test/scripts/test_config_database.py -v` | One XSCFG artifact, read-only JSON inspection and invalid-format checks; no DUT build / 单配置库交付、只读查看与损坏格式检查 |
+| `python3 test/scripts/test_codegen_review.py -v` | Reserved member collisions and C++ packed/vector inout in DPI/mem_direct; `REVIEW_EXTRA_LANGUAGES=1` adds Go/Lua / 保留名冲突和 C++ inout 生成回归 |
 | `python3 test/scripts/test_vcs_coverage_runtime.py` | Native VCS coverage, FSDB, relocation and post-Finish execution / VCS 原生覆盖率与结束行为 |
 | `make -C test all` | Integration suite / 集成测试 |
 | `make -C test smoke` | CLI smoke, without DUT builds / CLI 冒烟，不构建 DUT |

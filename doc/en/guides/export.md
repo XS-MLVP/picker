@@ -221,6 +221,27 @@ Run `make -C test export_aggregate_views` for the Python/C++/Java RTL regression
 using `test/data/aggregate_views.sv`. Use the matching xcomm SDK containing
 `XStruct`, `XArray` and native ABI 4, and rebuild generated DUTs with that SDK.
 
+## Generated member names
+
+Leaf ports, aggregate views and hierarchy subports share one member-name
+allocator. Ordinary identifiers keep their spelling (Go capitalizes the first
+letter). Wrapper members, methods and target-language keywords are protected;
+conflicting ports use a `pin_` prefix, with a numeric suffix if that name is
+already occupied. For example, with both `vpi_backend` and `pin_vpi_backend`
+ports, Python exposes the former as `pin_vpi_backend_2` and leaves the latter
+unchanged. Names remain stable when enabling VPI or changing declaration order.
+
+Only wrapper attributes are renamed. RTL paths, `XPort` keys and the database's
+port metadata keep their logical names. Use `dut["vpi_backend"]` or the language's
+`XPort` lookup when consuming metadata, rather than assuming `getattr(dut, name)`
+always refers to the port. External attribute-only metadata adapters must account
+for renamed members. Verilator's native identifier escaping is separate from
+these host-language names.
+
+C++ emits `IOType::InOut` for packed and vector `inout` ports. This preserves
+direction metadata; it does not add tri-state resolution or prevent a simulator
+from optimizing an undriven `inout` to a constant.
+
 ## Add debugging features
 
 - Use `-w trace.fst` to enable waveforms; see [record simulation results](simulation.md#recording).

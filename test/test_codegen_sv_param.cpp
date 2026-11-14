@@ -356,6 +356,49 @@ static void test_waveform_and_finish_fragments()
     }
 }
 
+static void test_wrapper_member_name_allocation()
+{
+    using picker::codegen::MemberNames;
+    assert(picker::codegen::verilator_identifier("pin__data$") == "pin___05Fdata__024");
+    assert(picker::codegen::verilator_member_expression("pin__data[0].__PVT__field__x") ==
+           "pin___05Fdata[0].__PVT__field___05Fx");
+    const std::vector<picker::sv_signal_define> pins{
+        {"dut", "input", -1, 0}, {"pin_dut", "input", -1, 0},
+        {"vpi_backend", "input", -1, 0}, {"pin_vpi_backend", "input", -1, 0},
+        {"_vpi_backend", "input", -1, 0}, {"vpiBackend", "input", -1, 0},
+        {"_finished", "input", -1, 0}, {"_picker_view_value", "input", -1, 0},
+        {"signal_array_map", "input", -1, 0}, {"xcfg", "input", -1, 0},
+        {"foo", "input", -1, 0}, {"Foo", "input", -1, 0},
+        {"cost$", "input", -1, 0}, {"cost_", "input", -1, 0},
+        {"for", "input", -1, 0}, {"GetInternalSignalView", "input", -1, 0}};
+    const nlohmann::json tree{{"dut", {{"sub", {{"_", true}}}}}};
+    for (const std::string language : {"cpp", "python", "java", "scala", "golang", "lua"}) {
+        const MemberNames names(pins, {}, tree, language);
+        std::set<std::string> allocated;
+        for (const auto &pin : pins) assert(allocated.insert(names.Pin(pin.logic_pin)).second);
+        assert(allocated.insert(names.Cascade("dut")).second);
+        const auto original = language == "golang" ? "Pin_dut" : "pin_dut";
+        assert(names.Pin("pin_dut") == original);
+        assert(names.Pin("dut") != original);
+        assert(names.Pin("vpi_backend") != names.Pin("pin_vpi_backend"));
+        assert(names.Pin("for") != (language == "golang" ? "For" : "for"));
+        auto reversed = pins;
+        std::reverse(reversed.begin(), reversed.end());
+        const MemberNames again(reversed, {}, tree, language);
+        for (const auto &pin : pins) assert(names.Pin(pin.logic_pin) == again.Pin(pin.logic_pin));
+        auto aggregates = std::vector<picker::sv_signal_define>{{"cost$", "input", 7, 0}, {"cost_", "input", 7, 0}};
+        for (auto &pin : aggregates) {
+            pin.aggregate_name = pin.logic_pin;
+            pin.type_layout = std::make_shared<const std::string>(R"({"kind":"struct","packed":true,"width":8})");
+        }
+        const MemberNames first(aggregates, {}, {}, language);
+        std::reverse(aggregates.begin(), aggregates.end());
+        const MemberNames second(aggregates, {}, {}, language);
+        for (const auto &pin : aggregates) assert(first.View(pin.logic_pin) == second.View(pin.logic_pin));
+        assert(first.View("cost$") != first.View("cost_"));
+    }
+}
+
 int main()
 {
     test_unpacked_array_ports();
@@ -365,6 +408,7 @@ int main()
     test_struct_member_array_setter();
     test_packed_struct_dpi_fragments();
     test_waveform_and_finish_fragments();
+    test_wrapper_member_name_allocation();
     test_module_parameter_assignments();
     nlohmann::json data;
     data["__TOP_MODULE_NAME__"] = "Top";

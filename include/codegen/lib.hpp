@@ -1,6 +1,7 @@
 #pragma once
 
 #include "picker.hpp"
+#include "codegen/names.hpp"
 #include "parser/sv.hpp"
 #include "parser/firrtl.hpp"
 
@@ -23,7 +24,8 @@ namespace picker { namespace codegen {
 
     // Add language-native array views over the already bound XData elements.
     bool render_array_ports(const std::vector<picker::sv_signal_define> &pins, const std::string &language,
-                            std::string &declarations, std::string &initialization);
+                            std::string &declarations, std::string &initialization,
+                            const MemberNames *names = nullptr);
 
     /// @brief render all svdpi files, build related files and copy other files
     /// @param opts
