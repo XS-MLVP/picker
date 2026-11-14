@@ -54,6 +54,9 @@ typedef struct export_opts {
     // --rtl-param NAME=VALUE entries; evaluated by the RTL frontend and pinned
     // in the generated wrapper. Never forwarded to the simulator.
     std::vector<std::string> rtl_param;
+    // --rtl-define NAME[=VALUE] entries; forwarded to both the RTL frontend and
+    // the simulator, because macros cannot be evaluated once and reused.
+    std::vector<std::string> rtl_define;
 } export_opts;
 
 typedef struct pack_opts {

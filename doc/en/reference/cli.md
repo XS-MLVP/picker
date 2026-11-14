@@ -35,6 +35,7 @@ Use `picker --help`, `picker export --help`, and `picker pack --help` for comman
 | `--verdi-mode` | `legacy` | VCS Verdi integration; modern selects the newer debug setup |
 | `--cp_lib, --copy_xspcomm_lib` | `true` | Copy runtime libraries |
 | `--rtl-param` | `NAME=VALUE`, repeatable | Override an RTL parameter port; evaluated by the RTL frontend and pinned in the generated wrapper |
+| `--rtl-define` | `NAME[=VALUE]`, repeatable | Define an RTL preprocessor macro for both the RTL frontend and the simulator |
 | `-V, --vflag` | String | Simulator compilation options |
 | `-S, --sflag` | String list | slang parsing options |
 | `-C, --cflag` | String | C++ compiler options |
@@ -45,7 +46,7 @@ Use `picker --help`, `picker export --help`, and `picker pack --help` for comman
 
 Quote arguments containing spaces, for example `-V '--trace -Wno-fatal'`. See [simulator support](compatibility.md) for tool environments.
 
-`--rtl-param` describes the design rather than the tools, so prefer it over the raw passthroughs. A simulator parameter override in `-V` cannot reach the instantiated module. Picker evaluates parameters with the RTL frontend once and writes the constants into the generated `<module>_top.sv`, so the simulator needs no parameter arguments of its own, and it warns when it sees `-G` in `-V`.
+`--rtl-param` and `--rtl-define` describe the design rather than the tools, so prefer them over the raw passthroughs. A simulator parameter override in `-V` cannot reach the instantiated module, and a macro in `-S` is invisible to the simulator (a macro in `-V` is invisible to the RTL frontend). Picker evaluates parameters with the RTL frontend once and writes the constants into the generated `<module>_top.sv`, so the simulator needs no parameter arguments of its own; macros are forwarded to both sides. Both structured options take precedence over a raw passthrough (`-S`/`-V`), and `--rtl-define` also overrides the same macro in a filelist.
 
 ## pack
 

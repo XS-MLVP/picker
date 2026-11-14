@@ -32,6 +32,7 @@ Choose integration tests for the change:
 | Python export and templates | `make -C test export_python` |
 | File lists | `make -C test export_filelist` |
 | Complex ports | `make -C test export_complex_port` |
+| RTL parameters and macros | `make -C test export_rtl_params` |
 | Unpacked array ports and native internal arrays | `make -C test export_unpacked_array` |
 | Recursive struct and packed-array port views | `make -C test export_aggregate_views` |
 | Internal signals and VPI | `make -C test export_vpi_python` |
