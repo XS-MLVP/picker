@@ -41,7 +41,8 @@ make -C build/MultiFileRTLTop -j4
 
 | 选项 | 作用阶段 | 常见用途 |
 | --- | --- | --- |
-| `-S` | slang 解析 | 解析器选项、顶层参数配置 |
+| `--rtl-param` | RTL elaboration | 设计参数；求值结果固化到生成的外壳中 |
+| `-S` | slang 解析 | 解析器选项 |
 | `-V` | 模拟器编译 | 模拟器的诊断或优化选项 |
 | `-C` | C++ 编译 | 编译器选项 |
 
@@ -51,6 +52,25 @@ make -C build/MultiFileRTLTop -j4
 picker export example/Adder/Adder.v --sname Adder --lang python \
     --tdir build/AdderDebug -V '-Wno-fatal' --autobuild false
 ```
+
+Picker 会生成 `<module>_top.sv` 外壳并在其中实例化设计，因此模拟器看到的顶层是外壳。
+这正是设计参数需要专用选项的原因：picker 用 RTL 前端求值 `--rtl-param`，再把得到的常量
+写入实例化语句；这也是导出「参数没有默认值」的模块的唯一方式。
+
+```sh
+picker export t.sv --sname t --tdir out \
+    --rtl-param A=8 --rtl-param C=2
+```
+
+```verilog
+ t #(
+    .A(8),
+    .B(4),
+    .C(2)
+ ) t(
+```
+
+`-V` 中的参数覆盖永远不会作用到被实例化的模块；Picker 检测到时会给出提示。
 
 ## 将多个模块组合导出
 

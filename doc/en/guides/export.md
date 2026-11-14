@@ -41,7 +41,8 @@ File lists support nested `-f` / `-F`, `+incdir+`, and `+define+` entries. Put t
 
 | Option | Stage | Common uses |
 | --- | --- | --- |
-| `-S` | slang parsing | Parser options and top-level parameters |
+| `--rtl-param` | RTL elaboration | Design parameters; the value is pinned in the generated wrapper |
+| `-S` | slang parsing | Parser options |
 | `-V` | Simulator compilation | Simulator diagnostics or optimization |
 | `-C` | C++ compilation | Compiler options |
 
@@ -51,6 +52,28 @@ Quote arguments containing spaces. For example, pass a warning option to Verilat
 picker export example/Adder/Adder.v --sname Adder --lang python \
     --tdir build/AdderDebug -V '-Wno-fatal' --autobuild false
 ```
+
+Picker generates a `<module>_top.sv` wrapper and instantiates the design inside it, so
+the simulator's top module is the wrapper. That is why design parameters have a
+dedicated option: picker evaluates `--rtl-param` with the RTL frontend and writes the
+resulting constants into the instantiation, which is also the only way to export a
+module whose parameters have no default value.
+
+```sh
+picker export t.sv --sname t --tdir out \
+    --rtl-param A=8 --rtl-param C=2
+```
+
+```verilog
+ t #(
+    .A(8),
+    .B(4),
+    .C(2)
+ ) t(
+```
+
+A parameter override in `-V` never reaches the instantiated module; picker warns when
+it sees one.
 
 ## Export several modules together
 

@@ -51,6 +51,9 @@ typedef struct export_opts {
     SignalAccessType rw_type;
     std::vector<std::string> transaction;
     std::string rname;
+    // --rtl-param NAME=VALUE entries; evaluated by the RTL frontend and pinned
+    // in the generated wrapper. Never forwarded to the simulator.
+    std::vector<std::string> rtl_param;
 } export_opts;
 
 typedef struct pack_opts {

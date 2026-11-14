@@ -17,6 +17,7 @@
 #include "parser/parser_map.hpp"
 #include "parser/internalcfg.hpp"
 #include "parser/sv.hpp"
+#include "rtl_config.hpp"
 #include "parser/uvm.hpp"
 #include "parser/verilator_trace.hpp"
 
@@ -162,6 +163,16 @@ int set_options_export_rtl(CLI::App &top_app)
     //     "User defined gcc/clang compile command, passthrough. Eg:'-O3
     //     -std=c++17 -I./include'");
 
+    // Design parameters are an RTL elaboration input. Picker evaluates them
+    // with the RTL frontend and pins the resulting constants in the generated
+    // wrapper, so the simulator never needs its own -G.
+    app->add_option("--rtl-param", export_opts.rtl_param,
+                    "RTL design parameter override, NAME=VALUE. Repeatable.\n"
+                    "Only parameters declared in the module parameter port list are accepted.\n"
+                    "The value may be an expression; the generated wrapper pins the evaluated constant.\n"
+                    "Do not pass -G to -V: the generated wrapper is the simulator's top module.")
+        ->type_name("NAME=VALUE");
+
     app->add_flag("--verbose", export_opts.verbose, "Verbose mode");
     app->add_flag("-e,--example", export_opts.example, "Build example project, default is OFF");
     app->add_option("--autobuild", export_opts.autobuild, "Auto build the generated project, default is true")
@@ -263,9 +274,57 @@ int show_xcom_lib_location()
     return 0;
 }
 
+namespace {
+
+    std::vector<std::string> split_cli_tokens(const std::string &text)
+    {
+        std::vector<std::string> tokens;
+        std::string current;
+        for (char c : text) {
+            if (std::isspace(static_cast<unsigned char>(c))) {
+                if (!current.empty()) { tokens.push_back(current); }
+                current.clear();
+            } else {
+                current += c;
+            }
+        }
+        if (!current.empty()) { tokens.push_back(current); }
+        return tokens;
+    }
+
+    // -S and -V are uninterpreted passthroughs. A simulator parameter override
+    // cannot reach the instantiated design, so point at the structured option
+    // instead of failing silently.
+    void warn_about_raw_overrides(const picker::export_opts &opts)
+    {
+        bool warned_param = false;
+        for (const auto &token : split_cli_tokens(opts.vflag)) {
+            if (!warned_param && (token.starts_with("-G") || token.starts_with("-pvalue+"))) {
+                warned_param = true;
+                PK_OUTPUT(stderr, "%s", "\033[33m");
+                PK_OUTPUT(stderr,
+                          "[Warning] -V contains '%s'. A simulator parameter override cannot reach the "
+                          "instantiated design; use --rtl-param NAME=VALUE.\n",
+                          token.c_str());
+                PK_OUTPUT(stderr, "%s", "\033[0m");
+            }
+        }
+    }
+
+} // namespace
+
 int check_picker_support()
 {
     std::string err_message;
+
+    // Validate the structured RTL configuration before any expensive work, so a
+    // typo fails immediately instead of after elaboration.
+    picker::rtl::parse_params(export_opts.rtl_param, "--rtl-param");
+    if (export_opts.sim == "gsim" && !export_opts.rtl_param.empty()) {
+        PK_FATAL("--rtl-param requires a SystemVerilog frontend (verilator, vcs, uvs); "
+                 "--sim gsim consumes FIRRTL input.");
+    }
+    warn_about_raw_overrides(export_opts);
 
     // check if the xspcomm lib is available
     if (main_opts.check) {

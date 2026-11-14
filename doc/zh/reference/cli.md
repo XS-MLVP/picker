@@ -34,6 +34,7 @@
 | `-F, --frequency` | `100MHz` | VCS 时间配置，支持 Hz/KHz/MHz/GHz 单位 |
 | `--verdi-mode` | `legacy` | VCS Verdi 集成；modern 对应较新的调试方式 |
 | `--cp_lib, --copy_xspcomm_lib` | `true` | 复制配套运行库 |
+| `--rtl-param` | `NAME=VALUE`，可重复 | 覆盖 RTL 参数端口；由 RTL 前端求值并固化到生成的外壳中 |
 | `-V, --vflag` | 字符串 | 传给模拟器的编译参数 |
 | `-S, --sflag` | 字符串列表 | 传给 slang 的解析参数 |
 | `-C, --cflag` | 字符串 | 传给 C++ 编译器的参数 |
@@ -43,6 +44,8 @@
 | `--verbose` | flag，关闭 | 增加诊断输出 |
 
 含空格的参数需要 shell 引号，例如 `-V '--trace -Wno-fatal'`。各模拟器的工具环境见[模拟器支持](compatibility.md)。
+
+`--rtl-param` 描述的是设计本身而不是工具，应优先于裸透传。`-V` 中的仿真器参数覆盖无法作用到被实例化的模块。Picker 只用 RTL 前端求值一次参数，并把常量写入生成的 `<module>_top.sv`，因此模拟器侧不需要自己的参数覆盖；检测到 `-V` 中出现 `-G` 时会给出提示。
 
 ## pack
 
