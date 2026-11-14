@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <unordered_set>
 #include "picker.hpp"
 #include "codegen/lib.hpp"
@@ -173,6 +174,14 @@ int set_options_export_rtl(CLI::App &top_app)
                     "Do not pass -G to -V: the generated wrapper is the simulator's top module.")
         ->type_name("NAME=VALUE");
 
+    // Macros must be visible to both the RTL frontend and the simulator, so
+    // picker translates one entry into each tool's syntax.
+    app->add_option("--rtl-define", export_opts.rtl_define,
+                    "RTL preprocessor macro, NAME or NAME=VALUE. Repeatable.\n"
+                    "Applied to the RTL frontend and the simulator, and takes precedence over\n"
+                    "the same macro in a filelist. Use this instead of -S '-D...' + -V.")
+        ->type_name("NAME[=VALUE]");
+
     app->add_flag("--verbose", export_opts.verbose, "Verbose mode");
     app->add_flag("-e,--example", export_opts.example, "Build example project, default is OFF");
     app->add_option("--autobuild", export_opts.autobuild, "Auto build the generated project, default is true")
@@ -292,12 +301,13 @@ namespace {
         return tokens;
     }
 
-    // -S and -V are uninterpreted passthroughs. A simulator parameter override
-    // cannot reach the instantiated design, so point at the structured option
-    // instead of failing silently.
+    // -S and -V are uninterpreted passthroughs. Two settings look like they
+    // work there but cannot: a simulator -G never reaches the instantiated
+    // design, and a macro given to only one frontend desynchronizes the port
+    // widths. Point at the structured options instead of failing silently.
     void warn_about_raw_overrides(const picker::export_opts &opts)
     {
-        bool warned_param = false;
+        bool warned_param = false, warned_define = false, warned_frontend_define = false;
         for (const auto &token : split_cli_tokens(opts.vflag)) {
             if (!warned_param && (token.starts_with("-G") || token.starts_with("-pvalue+"))) {
                 warned_param = true;
@@ -307,8 +317,87 @@ namespace {
                           "instantiated design; use --rtl-param NAME=VALUE.\n",
                           token.c_str());
                 PK_OUTPUT(stderr, "%s", "\033[0m");
+            } else if (!warned_define && (token.starts_with("+define+") || token.starts_with("-D"))) {
+                warned_define = true;
+                PK_OUTPUT(stderr, "%s", "\033[33m");
+                PK_OUTPUT(stderr,
+                          "[Warning] -V contains '%s'. The RTL frontend will not see this macro; "
+                          "use --rtl-define NAME[=VALUE] to define it for both.\n",
+                          token.c_str());
+                PK_OUTPUT(stderr, "%s", "\033[0m");
             }
         }
+        for (const auto &token : opts.sflag) {
+            if (!warned_frontend_define && (token.starts_with("-D") || token.starts_with("+define+"))) {
+                warned_frontend_define = true;
+                PK_OUTPUT(stderr, "%s", "\033[33m");
+                PK_OUTPUT(stderr,
+                          "[Warning] -S contains '%s'. The simulator will not see this macro; "
+                          "use --rtl-define NAME[=VALUE] to define it for both.\n",
+                          token.c_str());
+                PK_OUTPUT(stderr, "%s", "\033[0m");
+            }
+        }
+    }
+
+    // --rtl-define must reach the simulator as well as the RTL frontend. The
+    // simulator side is a compile flag, so it is appended to the passthrough
+    // string that the templates already carry. Parameters intentionally do not
+    // follow this path: they are pinned in the generated wrapper instead.
+    void apply_rtl_defines_to_vflag(picker::export_opts &opts)
+    {
+        const auto defines = picker::rtl::parse_defines(opts.rtl_define, "--rtl-define");
+        if (defines.empty()) { return; }
+        std::string extra;
+        for (const auto &define : defines) {
+            if (!extra.empty()) { extra += " "; }
+            extra += picker::rtl::simulator_define_argument(define);
+        }
+        if (!opts.vflag.empty()) { opts.vflag += " "; }
+        opts.vflag += extra;
+    }
+
+    // Verilator treats a differing macro redefinition as a fatal REDEFMACRO
+    // warning, so a filelist macro overridden by --rtl-define must be removed
+    // from the generated filelist rather than repeated after it.
+    void filter_generated_filelist(const std::string &path,
+                                   const std::unordered_set<std::string> &overridden)
+    {
+        if (overridden.empty()) { return; }
+        std::ifstream input(path);
+        if (!input.is_open()) { return; }
+        std::vector<std::string> lines;
+        std::string line;
+        while (std::getline(input, line)) {
+            auto text = picker::trim(line);
+            if (text.size() >= 2 && text.front() == '"' && text.back() == '"') {
+                text = text.substr(1, text.size() - 2);
+            }
+            std::string name, replacement;
+            std::vector<std::string> argv;
+            if (text.starts_with("+define+")) {
+                name = "+define";
+                argv = {text};
+            } else if (text.starts_with("-D")) {
+                const auto space = text.find(' ');
+                if (space == std::string::npos) {
+                    name = text.substr(0, text.find('='));
+                    argv = {text};
+                } else {
+                    name = text.substr(0, space);
+                    argv = {name, picker::trim(text.substr(space + 1))};
+                }
+            } else {
+                lines.push_back(line);
+                continue;
+            }
+            if (!picker::rtl::filter_filelist_define(name, argv, overridden, replacement)) { continue; }
+            lines.push_back(replacement.empty() ? line : replacement);
+        }
+        input.close();
+
+        std::ofstream output(path, std::ios::trunc);
+        for (const auto &kept : lines) { output << kept << "\n"; }
     }
 
 } // namespace
@@ -320,8 +409,9 @@ int check_picker_support()
     // Validate the structured RTL configuration before any expensive work, so a
     // typo fails immediately instead of after elaboration.
     picker::rtl::parse_params(export_opts.rtl_param, "--rtl-param");
-    if (export_opts.sim == "gsim" && !export_opts.rtl_param.empty()) {
-        PK_FATAL("--rtl-param requires a SystemVerilog frontend (verilator, vcs, uvs); "
+    picker::rtl::parse_defines(export_opts.rtl_define, "--rtl-define");
+    if (export_opts.sim == "gsim" && (!export_opts.rtl_param.empty() || !export_opts.rtl_define.empty())) {
+        PK_FATAL("--rtl-param and --rtl-define require a SystemVerilog frontend (verilator, vcs, uvs); "
                  "--sim gsim consumes FIRRTL input.");
     }
     warn_about_raw_overrides(export_opts);
@@ -477,8 +567,21 @@ int main(int argc, char **argv)
         input_parser(export_opts, sv_module_result);
         picker::parser::internal(export_opts, internal_signal_result);
 
+        // Macros must reach the simulator too. The frontend side was already
+        // applied while preparing the RTL parse.
+        apply_rtl_defines_to_vflag(export_opts);
         auto sv_pin_result =
             picker::codegen::lib(export_opts, sv_module_result, internal_signal_result, signal_tree_json);
+
+        // The frontend read the original filelists; only the generated one is
+        // handed to the simulator, so overridden macro definitions are dropped
+        // here instead of being repeated after the command-line value.
+        std::unordered_set<std::string> overridden_defines;
+        for (const auto &define : picker::rtl::parse_defines(export_opts.rtl_define, "--rtl-define")) {
+            overridden_defines.insert(define.name);
+        }
+        filter_generated_filelist(export_opts.target_dir + "/filelist.f", overridden_defines);
+
 
         std::map<std::string, std::function<void(picker::export_opts &, std::vector<picker::sv_signal_define>,
                                                  std::vector<picker::sv_signal_define>, nlohmann::json &)>>

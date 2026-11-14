@@ -42,6 +42,7 @@ make -C build/MultiFileRTLTop -j4
 | 选项 | 作用阶段 | 常见用途 |
 | --- | --- | --- |
 | `--rtl-param` | RTL elaboration | 设计参数；求值结果固化到生成的外壳中 |
+| `--rtl-define` | RTL 与模拟器 | RTL 使用的预处理宏 |
 | `-S` | slang 解析 | 解析器选项 |
 | `-V` | 模拟器编译 | 模拟器的诊断或优化选项 |
 | `-C` | C++ 编译 | 编译器选项 |
@@ -59,7 +60,7 @@ Picker 会生成 `<module>_top.sv` 外壳并在其中实例化设计，因此模
 
 ```sh
 picker export t.sv --sname t --tdir out \
-    --rtl-param A=8 --rtl-param C=2
+    --rtl-param A=8 --rtl-param C=2 --rtl-define DATA_WIDTH=16
 ```
 
 ```verilog
@@ -70,7 +71,10 @@ picker export t.sv --sname t --tdir out \
  ) t(
 ```
 
-`-V` 中的参数覆盖永远不会作用到被实例化的模块；Picker 检测到时会给出提示。
+`-V` 中的参数覆盖永远不会作用到被实例化的模块；只给一侧的宏会让外壳端口与编译出的模型
+不一致，Picker 检测到这两种写法时会给出提示。`--rtl-define` 会以 `-D` 形式传给 RTL 前端，
+以 `+define+` 形式传给模拟器，并优先于 filelist 中的同名宏，因此不同取值的重复定义不会被
+传递两次。
 
 ## 将多个模块组合导出
 

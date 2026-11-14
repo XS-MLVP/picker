@@ -507,7 +507,7 @@ namespace picker { namespace parser {
                                 PK_FATAL("--rtl-param %s: '%s' is declared in the body of module %s. A body "
                                          "parameter cannot be set by an instance parameter assignment and "
                                          "Verilator rejects overriding it; move it into the parameter port "
-                                         "list.",
+                                         "list, or use --rtl-define for a macro.",
                                          name.c_str(), name.c_str(), module_name.c_str());
                             }
                             continue;
@@ -576,6 +576,13 @@ namespace picker { namespace parser {
                     args.push_back("--cmd-ignore");
                     args.push_back(rule);
                 }
+            }
+            // Structured RTL configuration goes first: the frontend keeps the
+            // first definition of a macro (and the first -G), so an explicit
+            // --rtl-define/--rtl-param wins over a raw -S passthrough, and the
+            // generated filelist drops the macros overridden here.
+            for (const auto &define : picker::rtl::parse_defines(opts.rtl_define, "--rtl-define")) {
+                args.push_back(picker::rtl::slang_define_argument(define));
             }
             for (const auto &[name, value] : picker::rtl::parse_params(opts.rtl_param, "--rtl-param")) {
                 args.push_back("-G" + name + "=" + value);

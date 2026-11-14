@@ -42,6 +42,7 @@ File lists support nested `-f` / `-F`, `+incdir+`, and `+define+` entries. Put t
 | Option | Stage | Common uses |
 | --- | --- | --- |
 | `--rtl-param` | RTL elaboration | Design parameters; the value is pinned in the generated wrapper |
+| `--rtl-define` | RTL and simulator | Preprocessor macros used by the RTL |
 | `-S` | slang parsing | Parser options |
 | `-V` | Simulator compilation | Simulator diagnostics or optimization |
 | `-C` | C++ compilation | Compiler options |
@@ -61,7 +62,7 @@ module whose parameters have no default value.
 
 ```sh
 picker export t.sv --sname t --tdir out \
-    --rtl-param A=8 --rtl-param C=2
+    --rtl-param A=8 --rtl-param C=2 --rtl-define DATA_WIDTH=16
 ```
 
 ```verilog
@@ -72,8 +73,11 @@ picker export t.sv --sname t --tdir out \
  ) t(
 ```
 
-A parameter override in `-V` never reaches the instantiated module; picker warns when
-it sees one.
+A parameter override in `-V` never reaches the instantiated module, and a macro given
+to only one side makes the wrapper ports disagree with the compiled model. Picker warns
+when it sees either pattern. `--rtl-define` is forwarded to the RTL frontend as `-D` and
+to the simulator as `+define+`; it also takes precedence over the same macro in a filelist,
+so a differing redefinition is never passed twice.
 
 ## Export several modules together
 
