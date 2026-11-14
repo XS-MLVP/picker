@@ -6,12 +6,14 @@
 #include "slang/ast/SemanticFacts.h"
 #include "slang/ast/symbols/CompilationUnitSymbols.h"
 #include "slang/ast/symbols/InstanceSymbols.h"
+#include "slang/ast/symbols/ParameterSymbols.h"
 #include "slang/ast/symbols/PortSymbols.h"
 #include "slang/ast/symbols/VariableSymbols.h"
 #include "slang/ast/types/AllTypes.h"
 #include "slang/diagnostics/DiagnosticEngine.h"
 #include "slang/diagnostics/Diagnostics.h"
 #include "slang/driver/Driver.h"
+#include "slang/numeric/ConstantValue.h"
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/syntax/SyntaxVisitor.h"
 #include "slang/text/SourceManager.h"
@@ -37,6 +39,7 @@ namespace picker { namespace parser {
         using slang::ast::FixedSizeUnpackedArrayType;
         using slang::ast::InstanceSymbol;
         using slang::ast::PackedArrayType;
+        using slang::ast::ParameterSymbol;
         using slang::ast::PortSymbol;
         using slang::ast::SymbolKind;
         using slang::ast::Type;
@@ -377,11 +380,100 @@ namespace picker { namespace parser {
                             std::move(dimensions), element_name});
         }
 
+        // Render an elaborated parameter as a literal that stands on its own in
+        // the generated wrapper: unknown bits are kept exact and aggregate
+        // values use assignment patterns, so the wrapper does not need the
+        // original scope (packages, typedefs) to be visible.
+        std::string render_parameter_value(const ParameterSymbol &parameter, const std::string &module_name)
+        {
+            const auto &value = parameter.getValue();
+            if (value.bad()) {
+                PK_FATAL("Parameter '%s' of module %s has no elaborated constant value",
+                         std::string(parameter.name).c_str(), module_name.c_str());
+            }
+            return value.toString(slang::SVInt::DefaultStringAbbreviationThresholdBits,
+                                  /*exactUnknowns=*/true, /*useAssignmentPatterns=*/true);
+        }
+
+        bool definition_parameter_has_default(const slang::ast::InstanceBodySymbol &body,
+                                              std::string_view name)
+        {
+            for (const auto &declaration : body.getDefinition().parameters) {
+                if (declaration.name == name) { return declaration.hasDefault(); }
+            }
+            // Unknown declaration metadata: prefer an explicit, equivalent value.
+            return false;
+        }
+
+        // ParameterSymbol::isOverridden() only tracks instantiation-time
+        // initializers. Command-line -G overrides and defparams are applied
+        // through the hierarchy override tree, so check that as well.
+        bool parameter_is_overridden(const slang::ast::InstanceBodySymbol &body,
+                                     const ParameterSymbol &parameter)
+        {
+            if (parameter.isOverridden()) { return true; }
+            const auto *overrides = body.hierarchyOverrideNode;
+            const auto *syntax = parameter.getSyntax();
+            return overrides && syntax &&
+                   overrides->paramOverrides.find(syntax) != overrides->paramOverrides.end();
+        }
+
+        void append_module_parameters(std::vector<picker::sv_parameter_define> &parameters,
+                                      const slang::ast::InstanceBodySymbol &body,
+                                      const std::string &module_name)
+        {
+            std::vector<const ParameterSymbol *> port_parameters;
+            bool needs_explicit_assignments = false;
+            for (const auto *parameter : body.getParameters()) {
+                // Type parameters cannot be expressed by a value assignment, and
+                // slang never applies -G to them. Their instantiation default is
+                // therefore already the elaborated value.
+                if (parameter->symbol.kind == SymbolKind::TypeParameter) { continue; }
+                // Localparams are not overridable; naming them in #() is illegal.
+                if (parameter->isLocalParam()) { continue; }
+
+                const auto &symbol = parameter->symbol.as<ParameterSymbol>();
+                if (!parameter->isPortParam()) {
+                    // Body parameters cannot be overridden by a named parameter
+                    // assignment. If slang applied an override (CLI, defparam or
+                    // config), the generated model would silently diverge from
+                    // the elaboration used to derive the interface.
+                    if (parameter_is_overridden(body, symbol)) {
+                        PK_FATAL("Parameter '%s' of module %s is declared in the module body. "
+                                 "Picker cannot carry an override of a body parameter into the "
+                                 "generated wrapper; move it into the parameter port list.",
+                                 std::string(parameter->symbol.name).c_str(), module_name.c_str());
+                    }
+                    continue;
+                }
+                port_parameters.push_back(&symbol);
+                if (parameter_is_overridden(body, symbol) ||
+                    !definition_parameter_has_default(body, parameter->symbol.name)) {
+                    // A required parameter cannot elaborate without an explicit
+                    // value, and an override must be reproduced in the wrapper.
+                    needs_explicit_assignments = true;
+                }
+            }
+
+            // Keep the generated text byte-for-byte identical when Verilator
+            // would evaluate exactly the same defaults on the copied RTL.
+            if (!needs_explicit_assignments) { return; }
+
+            // Once the wrapper needs a parameter list, pin every port parameter
+            // so the instantiation is fully equivalent to the elaboration that
+            // produced the port signatures.
+            for (const auto *parameter : port_parameters) {
+                parameters.push_back({std::string(parameter->name),
+                                      render_parameter_value(*parameter, module_name)});
+            }
+        }
+
         picker::sv_module_define convert_instance_to_module_define(const InstanceSymbol &instance, int module_nums)
         {
             picker::sv_module_define result;
             result.module_name = std::string(instance.name);
             result.module_nums = module_nums;
+            append_module_parameters(result.parameters, instance.body, result.module_name);
 
             for (const auto *port_symbol : instance.body.getPortList()) {
                 switch (port_symbol->kind) {

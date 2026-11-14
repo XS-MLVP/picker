@@ -1,6 +1,7 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -397,6 +398,111 @@ endmodule
         fs::remove_all(base);
     }
 
+    void test_elaborated_port_parameters()
+    {
+        namespace fs = std::filesystem;
+        const fs::path base = fs::temp_directory_path() / "picker_test_sv_port_parameters";
+        fs::remove_all(base);
+        fs::create_directories(base);
+
+        write_text(base / "params.sv",
+                   "module ParamTop #(\n"
+                   "    parameter A,\n"
+                   "    parameter [7:0] B = 8'd4,\n"
+                   "    parameter C,\n"
+                   "    localparam L = A + B,\n"
+                   "    parameter type T = logic\n"
+                   ") (\n"
+                   "    input logic [A-1:0] din,\n"
+                   "    output logic [B-1:0] dout\n"
+                   ");\n"
+                   "    parameter BODY = 2;\n"
+                   "endmodule\n");
+
+        picker::export_opts opts {};
+        opts.file = {(base / "params.sv").string()};
+        opts.source_module_name_list = {"ParamTop"};
+        opts.sflag = {"-GA=8", "-GB=7", "-GC=2"};
+
+        std::vector<picker::sv_module_define> modules;
+        picker::parser::sv(opts, modules);
+
+        const auto &module = find_module(modules, "ParamTop");
+        assert(module.pins.size() == 2);
+        const auto &din = find_pin(module, "din");
+        assert(din.logic_pin_hb == 7 && din.logic_pin_lb == 0);
+        // B is overridden to 7, so the width proves the elaborated value is
+        // used instead of the default initializer.
+        const auto &dout = find_pin(module, "dout");
+        assert(dout.logic_pin_hb == 6 && dout.logic_pin_lb == 0);
+
+        std::map<std::string, std::string> values;
+        for (const auto &parameter : module.parameters) { values[parameter.name] = parameter.value; }
+        assert(values.size() == 3);
+        assert(values.at("A") == "8");
+        // The literal keeps B's declared 8-bit width, so the generated
+        // override cannot change the parameter's type.
+        assert(values.at("B") == "8'd7");
+        assert(values.at("C") == "2");
+        // Localparams, type parameters and body parameters cannot appear in a
+        // named parameter assignment.
+        assert(!values.contains("L") && !values.contains("T") && !values.contains("BODY"));
+
+        fs::remove_all(base);
+    }
+
+    void test_parameter_assignments_are_emitted_only_when_needed()
+    {
+        namespace fs = std::filesystem;
+        const fs::path base = fs::temp_directory_path() / "picker_test_sv_defaulted_parameters";
+        fs::remove_all(base);
+        fs::create_directories(base);
+
+        write_text(base / "defaults.sv",
+                   "module DefaultedTop #(parameter int W = 4, parameter int D = 2) (\n"
+                   "    input logic [W-1:0] data\n"
+                   ");\n"
+                   "endmodule\n");
+
+        picker::export_opts opts {};
+        opts.file = {(base / "defaults.sv").string()};
+        opts.source_module_name_list = {"DefaultedTop"};
+
+        // All parameters have defaults and Verilator can evaluate them itself:
+        // the generated wrapper must stay unchanged.
+        std::vector<picker::sv_module_define> modules;
+        picker::parser::sv(opts, modules);
+        assert(find_pin(modules.front(), "data").logic_pin_hb == 3);
+        assert(modules.front().parameters.empty());
+
+        // One overridden parameter switches the whole module to an explicit,
+        // width-preserving parameter list.
+        opts.sflag = {"-GD=5"};
+        modules.clear();
+        picker::parser::sv(opts, modules);
+        std::map<std::string, std::string> values;
+        for (const auto &parameter : modules.front().parameters) {
+            values[parameter.name] = parameter.value;
+        }
+        assert(values.size() == 2);
+        assert(values.at("W") == "4");
+        assert(values.at("D") == "5");
+        assert(find_pin(modules.front(), "data").logic_pin_hb == 3);
+
+        // defparam-style -G overrides are detected as well.
+        opts.sflag = {"-GDefaultedTop.D=6"};
+        modules.clear();
+        picker::parser::sv(opts, modules);
+        values.clear();
+        for (const auto &parameter : modules.front().parameters) {
+            values[parameter.name] = parameter.value;
+        }
+        assert(values.size() == 2);
+        assert(values.at("D") == "6");
+
+        fs::remove_all(base);
+    }
+
 } // namespace
 
 int main()
@@ -410,5 +516,7 @@ int main()
     test_missing_child_modules_do_not_block_top_port_extraction();
     test_fixed_unpacked_array_ports();
     test_recursive_aggregate_ports();
+    test_elaborated_port_parameters();
+    test_parameter_assignments_are_emitted_only_when_needed();
     return 0;
 }

@@ -87,10 +87,21 @@ typedef struct sv_signal_define {
     std::vector<std::string> binding_strides;
 } sv_signal_define;
 
+// A parameter override for the generated wrapper instantiation. The value is
+// the elaborated constant rendered as a self-contained SystemVerilog literal,
+// so the generated code does not depend on the original default expression.
+typedef struct sv_parameter_define {
+    std::string name;
+    std::string value;
+} sv_parameter_define;
+
 typedef struct sv_module_define {
     std::string module_name;
     int module_nums;
     std::vector<sv_signal_define> pins;
+    // Overridable port-list parameters; body parameters and localparams are
+    // not representable in a named parameter assignment.
+    std::vector<sv_parameter_define> parameters;
 } sv_module_define;
 
 typedef struct uvm_parameter {

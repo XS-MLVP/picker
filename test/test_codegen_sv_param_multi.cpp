@@ -12,6 +12,16 @@ static bool contains_line(const std::string &haystack, const std::string &needle
     return haystack.find(needle) != std::string::npos;
 }
 
+static size_t count_occurrences(const std::string &haystack, const std::string &needle)
+{
+    size_t count = 0;
+    for (size_t pos = haystack.find(needle); pos != std::string::npos;
+         pos = haystack.find(needle, pos + needle.size())) {
+        ++count;
+    }
+    return count;
+}
+
 int main()
 {
     nlohmann::json data;
@@ -22,6 +32,8 @@ int main()
     mod.module_nums = 2;
     mod.pins.push_back({"clk", "input", -1, 0});
     mod.pins.push_back({"rst", "input", -1, 0});
+    mod.parameters.push_back({"W", "9"});
+    mod.parameters.push_back({"U", "8'd3"});
 
     std::vector<picker::sv_module_define> modules{mod};
     std::vector<picker::sv_signal_define> internal{};
@@ -38,8 +50,12 @@ int main()
     );
 
     const auto inner = data["__INNER_MODULES__"].get<std::string>();
-    assert(contains_line(inner, "dut dut_0("));
-    assert(contains_line(inner, "dut dut_1("));
+    assert(contains_line(inner, "dut #("));
+    assert(contains_line(inner, "dut_0("));
+    assert(contains_line(inner, "dut_1("));
+    // Every instance repeats the module's parameter assignments.
+    assert(count_occurrences(inner, "    .W(9),") == 2);
+    assert(count_occurrences(inner, "    .U(8'd3)") == 2);
 
     const auto logic_decl = data["__LOGIC_PIN_DECLARATION__"].get<std::string>();
     assert(contains_line(logic_decl, "logic  dut_0_clk;"));
