@@ -14,6 +14,44 @@ static bool contains_line(const std::string &haystack, const std::string &needle
     return haystack.find(needle) != std::string::npos;
 }
 
+static size_t count_occurrences(const std::string &haystack, const std::string &needle)
+{
+    size_t count = 0;
+    for (size_t pos = haystack.find(needle); pos != std::string::npos;
+         pos = haystack.find(needle, pos + needle.size())) {
+        ++count;
+    }
+    return count;
+}
+
+static void test_module_parameter_assignments()
+{
+    picker::sv_module_define mod{"ParamTop", 2, {{"clk", "input", -1, 0}},
+                                 {{"A", "8"}, {"B", "8'd7"}, {"C", "-32'sd2"}}};
+    nlohmann::json data{{"__TOP_MODULE_NAME__", "Top"}}, tree;
+    picker::codegen::gen_sv_param(data, {mod}, {}, tree, "", "verilator",
+                                  picker::SignalAccessType::DPI);
+    const auto inner = data["__INNER_MODULES__"].get<std::string>();
+    assert(contains_line(inner, "ParamTop #("));
+    assert(contains_line(inner, "    .A(8),"));
+    assert(contains_line(inner, "    .B(8'd7),"));
+    assert(contains_line(inner, "    .C(-32'sd2)"));
+    // Parameters are per module; every generated instance emits them again.
+    assert(count_occurrences(inner, "    .A(8),") == 2);
+    assert(count_occurrences(inner, " #(") == 2);
+    assert(contains_line(inner, "ParamTop_0("));
+    assert(contains_line(inner, "ParamTop_1("));
+
+    // A parameterless module must not grow an empty parameter assignment.
+    picker::sv_module_define plain{"Plain", 1, {{"a", "input", -1, 0}}};
+    nlohmann::json plain_data{{"__TOP_MODULE_NAME__", "Top"}}, plain_tree;
+    picker::codegen::gen_sv_param(plain_data, {plain}, {}, plain_tree, "", "verilator",
+                                  picker::SignalAccessType::DPI);
+    const auto plain_inner = plain_data["__INNER_MODULES__"].get<std::string>();
+    assert(!contains_line(plain_inner, "#("));
+    assert(contains_line(plain_inner, " Plain Plain("));
+}
+
 static void test_unpacked_array_ports()
 {
     picker::sv_module_define mod{"ArrayTop", 1, {
@@ -327,6 +365,7 @@ int main()
     test_struct_member_array_setter();
     test_packed_struct_dpi_fragments();
     test_waveform_and_finish_fragments();
+    test_module_parameter_assignments();
     nlohmann::json data;
     data["__TOP_MODULE_NAME__"] = "Top";
 

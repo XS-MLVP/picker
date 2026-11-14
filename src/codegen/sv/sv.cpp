@@ -8,6 +8,21 @@ namespace picker { namespace codegen {
 
     namespace sv {
 
+        // Named parameter assignments in the same layout as pin_connect. Empty
+        // when the module needs no explicit assignments, which keeps generated
+        // output for all-default modules byte-for-byte unchanged.
+        std::string render_module_parameters(const std::vector<picker::sv_parameter_define> &parameters)
+        {
+            if (parameters.empty()) { return ""; }
+            std::string result = " #(\n";
+            for (size_t i = 0; i < parameters.size(); ++i) {
+                result += "    ." + parameters[i].name + "(" + parameters[i].value + ")";
+                result += i + 1 == parameters.size() ? "\n" : ",\n";
+            }
+            result += " )";
+            return result;
+        }
+
         /// @brief Export external pin for verilog render, contains pin connect,
         /// @param pin
         /// @param pin_connect
@@ -37,6 +52,7 @@ namespace picker { namespace codegen {
             for (int diff_index = 0; diff_index < module_diffs; diff_index++) {
                 auto &module = sv_module_result[diff_index];
                 PK_DEBUG("module_name: %s, module_nums: %d", module.module_name.c_str(), module.module_nums);
+                const auto module_params = render_module_parameters(module.parameters);
                 for (int count_index = 0; count_index < module.module_nums; count_index++) {
                     nlohmann::json data;
                     std::string pin_connect, pin_prefix;
@@ -48,6 +64,7 @@ namespace picker { namespace codegen {
                     } else
                         data["module_subfix"] = "";
                     data["module_name"] = module.module_name;
+                    data["module_params"] = module_params;
                     PK_DEBUG("module_subfix: %s, pin_prefix: %s", data["module_subfix"].dump().c_str(),
                              pin_prefix.c_str());
                     auto declare_pin = [&]() {

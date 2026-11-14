@@ -6,7 +6,7 @@ namespace picker::codegen::sv::templates {
 
 // Shared module, port and DPI fragments. Simulator waveform/coverage fragments
 // stay with their renderer in src/codegen/sv/waveform.cpp.
-inline const std::string sub_module = " {{module_name}} {{module_name}}{{module_subfix}}(\n{{pin_connect}}\n );\n";
+inline const std::string sub_module = " {{module_name}}{{module_params}} {{module_name}}{{module_subfix}}(\n{{pin_connect}}\n );\n";
 inline const std::string pin_connect = "    .{{raw_pin}}({{logic_pin}}),\n";
 inline const std::string logic_pin_declaration =
     "  {{logic_pin_data_type}} {{logic_pin_length}} {{logic_pin}}{{unpacked_dimensions}};\n";
