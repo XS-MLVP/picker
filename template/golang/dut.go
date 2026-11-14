@@ -13,7 +13,7 @@ type UT_{{__TOP_MODULE_NAME__}} struct {
     internalSignals map[string]xspcomm.XData
     internalSignalsList map[string]xspcomm.XArray
     Xcfg xspcomm.XSignalCFG
-    {% if __HAS_AGGREGATE_VIEWS__ %}
+    {% if __HAS_VPI_VIEWS__ %}
     vpiBackend xspcomm.XVPI
     {% endif %}
     // Pins
@@ -42,7 +42,7 @@ func NewUT_{{__TOP_MODULE_NAME__}}(a ...interface{}) *UT_{{__TOP_MODULE_NAME__}}
     }
     self.Xclock = xspcomm.NewXClock(self.Dut.GetPxcStep(), self.Dut.GetPSelf())
     self.Xport = xspcomm.NewXPort()
-    self.Xcfg = xspcomm.NewXSignalCFG(self.Dut.GetXSignalCFGPath(), self.Dut.GetXSignalCFGBasePtr())
+    self.Xcfg = xspcomm.NewXSignalCFG(self.Dut.GetXSignalCFGPath(), self.Dut.GetXSignalCFGBasePtr(), "{{__CONFIG_MODEL_ID__}}")
     // Create
 {{__XDATA_INIT__}}
     // Bind
@@ -68,7 +68,7 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) Step(a ...interface{}) {
 }
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) Finish() {
-    {% if __HAS_AGGREGATE_VIEWS__ %}
+    {% if __HAS_VPI_VIEWS__ %}
     if self.vpiBackend != nil {
         self.vpiBackend.Close()
         xspcomm.DeleteXVPI(self.vpiBackend)
@@ -171,8 +171,10 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignal(name string, exargs ..
     return self.internalSignals[name]
 }
 
-{% if __HAS_AGGREGATE_VIEWS__ %}
-func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalView(name string) xspcomm.XView {
+func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalView(name string, useVpi ...bool) xspcomm.XView {
+    vpi := len(useVpi) > 0 && useVpi[0]
+    if !vpi && self.Dut.GetXSignalCFGBasePtr() != 0 { return self.Xcfg.NewXView(name) }
+    {% if __HAS_VPI_VIEWS__ %}
     if self.vpiBackend == nil {
         self.vpiBackend = xspcomm.NewXVPI()
         self.vpiBackend.Configure(
@@ -189,8 +191,10 @@ func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalView(name string) xspco
             self.Dut.GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}})
     }
     return self.vpiBackend.Get(name)
+    {% else %}
+    panic("VPI is not enabled; rebuild with --vpi or use --rw mem_direct")
+    {% endif %}
 }
-{% endif %}
 
 func (self *UT_{{__TOP_MODULE_NAME__}}) GetInternalSignalArray(name string) xspcomm.XArray {
     if v, ok := self.internalSignalsList[name]; ok {

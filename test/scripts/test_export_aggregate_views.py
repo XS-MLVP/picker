@@ -610,7 +610,11 @@ class AggregateViewsTest(unittest.TestCase):
     def require_scala_sdk_compatibility(self):
         if not shutil.which("scalac"):
             self.skipTest("Scala compiler unavailable")
-        library = self.run_command([self.picker, "--show_xcom_lib_location_scala"]).strip().splitlines()[-1]
+        probe = subprocess.run([self.picker, "--show_xcom_lib_location_scala"], text=True, capture_output=True)
+        if probe.returncode and "xspcomm-scala.jar not found" in probe.stderr:
+            self.skipTest("Scala SDK not built")
+        self.assertEqual(probe.returncode, 0, probe.stdout + probe.stderr)
+        library = probe.stdout.strip().splitlines()[-1]
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "ScalaSdkCompatibility.scala"
             source.write_text("import com.xspcomm.BaseDUTTrait\nobject ScalaSdkCompatibility { val t = classOf[BaseDUTTrait] }\n")
@@ -680,6 +684,138 @@ class AggregateViewsTest(unittest.TestCase):
 
     def test_vpi_python(self):
         self.exercise_vpi_language("python", VPI_CHECK)
+
+    def test_vpi_plain_vectors_with_and_without_aggregate_ports(self):
+        # The same plain leaves must keep their XData API when an unrelated
+        # aggregate port switches Python from FromVPI to XVPI discovery.
+        rtl = """typedef struct packed { logic [4:2] tag; logic valid; } packet_t;
+module VpiVectors(
+    input logic scalar,
+    input logic [9:9] one,
+    input logic [63:0] plain,
+    input logic signed [79:16] descending,
+    output logic [63:0] observed,
+    output logic [63:0] ascending_out
+    __AGGREGATE_PORTS__
+);
+logic [-9:54] ascending /* verilator public_flat_rw */;
+assign observed = plain ^ descending ^ {63'b0, scalar ^ one[9]};
+assign ascending_out = ascending;
+__AGGREGATE_BODY__
+endmodule
+"""
+        aggregate_ports = """,
+    input packet_t packet, output packet_t packet_out,
+    input logic [1:0][-2:1] matrix, output logic [1:0][-2:1] matrix_out,
+    input logic [79:16] words [3:2], output logic [79:16] words_out [3:2]
+"""
+        aggregate_body = """logic [79:16] memory [-2:-1] /* verilator public_flat_rw */;
+logic [1:0][-2:1] internal_matrix /* verilator public_flat_rw */;
+assign packet_out = packet;
+assign matrix_out = matrix;
+assign words_out[3] = words[3] ^ memory[-2];
+assign words_out[2] = words[2] ^ memory[-1] ^ {56'b0, internal_matrix};
+"""
+        check = r'''
+import sys
+from VpiVectors import DUTVpiVectors, xsp
+
+dut = DUTVpiVectors()
+dut.Step(1)
+aggregate = sys.argv[1] == "aggregate"
+values = {"plain": 0xfedcba9876543210, "scalar": 1, "one": 0,
+          "descending": 0x8123456789abcdef, "VpiVectors.ascending": 0x923456789abcdef0}
+for name, value in values.items():
+    signal = dut.GetInternalSignal(name, use_vpi=True)
+    assert isinstance(signal, xsp.XData), (name, type(signal))
+    assert signal.W() == (0 if name in ("scalar", "one") else 64)
+    signal.value = value
+    assert signal.value == value, name
+    assert dut.GetInternalSignal(name, use_vpi=True).CSelf() == signal.CSelf()
+    if aggregate:
+        qualified = dut.dut.GetVPIScope() + "." + name
+        assert isinstance(dut.GetInternalSignal(qualified, use_vpi=True), xsp.XData)
+        assert dut.GetInternalSignal(qualified, use_vpi=True).value == value
+        view = dut.GetInternalSignalView(name, use_vpi=True)
+        assert view.Kind() == "bits", name
+        assert view.Data().CSelf() == signal.CSelf()
+        if dut.dut.GetXSignalCFGBasePtr() == 0:
+            assert dut.GetInternalSignal(name).CSelf() == signal.CSelf()
+
+if aggregate:
+    words = dut.GetInternalSignal("words", use_vpi=True)
+    memory = dut.GetInternalSignal("VpiVectors.memory", is_array=True, use_vpi=True)
+    for name, array, bounds, payloads in (
+        ("words", words, ((3, 2),), (0xf123456789abcdef, 0x876543210fedcba9)),
+        ("memory", memory, ((-2, -1),), (0x123456789abcdef0, 0x9876543210fedcba)),
+    ):
+        assert isinstance(array, xsp.XArray), (name, type(array))
+        assert not array.IsPacked()
+        assert array.shape == (2,)
+        assert array.bounds == bounds
+        for index, value in zip(array.indices, payloads):
+            element = array[index]
+            assert isinstance(element, xsp.XData), (name, index, type(element))
+            assert array.At(index).Kind() == "bits"
+            assert element.W() == 64
+            element.value = value
+            assert element.value == value
+        if name == "words":
+            indexed = dut.GetInternalSignal(name, index=3, use_vpi=True)
+            assert isinstance(indexed, xsp.XData)
+            assert indexed.CSelf() == array[3].CSelf()
+
+    # Explicit Picker layouts keep their recursive one-dimensional fields,
+    # while unregistered multidimensional packed values retain every dimension.
+    packet = dut.GetInternalSignal("packet", use_vpi=True)
+    assert isinstance(packet, xsp.XStruct)
+    assert packet.Array("tag").bounds == ((4, 2),)
+    assert isinstance(dut.GetInternalSignal("packet.tag", use_vpi=True), xsp.XArray)
+    packet.Data("tag").value = 5
+    packet.Data("valid").value = 1
+    for name in ("matrix", "VpiVectors.internal_matrix"):
+        matrix = dut.GetInternalSignal(name, use_vpi=True)
+        assert isinstance(matrix, xsp.XArray), (name, type(matrix))
+        assert matrix.IsPacked()
+        assert matrix.bounds == ((1, 0), (-2, 1))
+        assert isinstance(matrix.Array(1), xsp.XArray)
+        matrix.PackedData().value = 0
+        matrix.Array(1).Data(-2).value = 1
+        matrix.Array(0).Data(1).value = 1
+        assert matrix.PackedData().value == 0x81
+
+dut.Step(1)
+assert dut.observed.value == values["plain"] ^ values["descending"] ^ 1
+assert dut.ascending_out.value == values["VpiVectors.ascending"]
+if aggregate:
+    assert dut.packet_out.value == 11
+    assert dut.matrix_out.value == 0x81
+    assert dut.words_out[3].value == words[3].value ^ memory[-2].value
+    assert dut.words_out[2].value == words[2].value ^ memory[-1].value ^ 0x81
+held = dut.GetInternalSignal("plain", use_vpi=True)
+dut.Finish()
+if aggregate:
+    try:
+        held.value
+        raise AssertionError("VPI XData remained readable after Finish")
+    except RuntimeError:
+        pass
+'''
+        for access in os.environ.get("AGGREGATE_ACCESS", "dpi,mem_direct").split(","):
+            for aggregate in (False, True):
+                with self.subTest(access=access, aggregate=aggregate), tempfile.TemporaryDirectory(
+                        prefix="picker-vpi-vectors-") as directory:
+                    base = Path(directory)
+                    source = base / "vectors.sv"
+                    source.write_text(rtl.replace("__AGGREGATE_PORTS__", aggregate_ports if aggregate else "")
+                                      .replace("__AGGREGATE_BODY__", aggregate_body if aggregate else ""))
+                    output = base / "VpiVectors"
+                    self.run_command([self.picker, "export", str(source), "--sname", "VpiVectors",
+                        "--sdir", str(self.root / "template"), "--tdir", str(output), "--sim", "verilator",
+                        "--lang", "python", "--rw", access, "--vpi", "--autobuild", "false",
+                        "-V", "-Wno-fatal"])
+                    self.run_command(["make", "-C", str(output), "NPROC=4"])
+                    self.run_command([sys.executable, "-c", check, "aggregate" if aggregate else "plain"], cwd=base)
 
     def test_vpi_cpp(self):
         self.exercise_vpi_language("cpp", CPP_VPI_CHECK)

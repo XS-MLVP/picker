@@ -18,9 +18,11 @@
 #include "parser/parser_map.hpp"
 #include "parser/internalcfg.hpp"
 #include "parser/sv.hpp"
-#include "rtl_config.hpp"
 #include "parser/uvm.hpp"
 #include "parser/verilator_trace.hpp"
+#include "parser/native_layout.hpp"
+#include "config_database.hpp"
+#include "rtl_config.hpp"
 
 picker::main_opts main_opts;
 picker::export_opts export_opts;
@@ -159,11 +161,6 @@ int set_options_export_rtl(CLI::App &top_app)
     app->add_option("-C,--cflag", export_opts.cflag,
                     "User defined gcc/clang compile command, passthrough. Eg:'-O3 -std=c++17 -I./include'");
 
-    // app->add_option(
-    //     "-r,--rename", export_opts.rename,
-    //     "User defined gcc/clang compile command, passthrough. Eg:'-O3
-    //     -std=c++17 -I./include'");
-
     // Design parameters are an RTL elaboration input. Picker evaluates them
     // with the RTL frontend and pins the resulting constants in the generated
     // wrapper, so the simulator never needs its own -G.
@@ -181,6 +178,11 @@ int set_options_export_rtl(CLI::App &top_app)
                     "Applied to the RTL frontend and the simulator, and takes precedence over\n"
                     "the same macro in a filelist. Use this instead of -S '-D...' + -V.")
         ->type_name("NAME[=VALUE]");
+
+    // app->add_option(
+    //     "-r,--rename", export_opts.rename,
+    //     "User defined gcc/clang compile command, passthrough. Eg:'-O3
+    //     -std=c++17 -I./include'");
 
     app->add_flag("--verbose", export_opts.verbose, "Verbose mode");
     app->add_flag("-e,--example", export_opts.example, "Build example project, default is OFF");
@@ -472,10 +474,11 @@ int check_picker_support()
 int main(int argc, char **argv)
 {
     check_debug();
+    const bool inspecting_config = argc > 1 && std::string_view(argv[1]) == "config";
     if(picker::appimage::is_running_as_appimage()) {
-        PK_MESSAGE("Running as AppImage");
+        if (!inspecting_config) PK_MESSAGE("Running as AppImage");
         picker::appimage::initialize();
-    } else {
+    } else if (!inspecting_config) {
         PK_MESSAGE("Running as normal executable");
     }
     CLI::App app{"XDut Generate. \n"
@@ -483,12 +486,41 @@ int main(int argc, char **argv)
     set_options_main(app);
     set_options_export_rtl(app);
     set_options_pack_message(app);
+    std::string config_path, config_section, config_name;
+    auto config_app = app.add_subcommand("config", "Inspect a single-file XSCFG database (JSON to stdout)");
+    config_app->add_option("file", config_path)->required();
+    config_app->add_option("--section", config_section, "metadata, variables, signals, types or candidates");
+    config_app->add_option("--name", config_name, "Inspect one record without loading the whole database")->needs("--section");
 
     try {
         app.parse(argc, argv);
     } catch (const CLI::ParseError &e) {
         // PK_MESSAGE("%s", app.help().c_str());
         return app.exit(e);
+    }
+
+    if (config_app->parsed()) {
+        try {
+            picker::config::db::Database input(config_path);
+            nlohmann::json out;
+            if (config_section.empty()) out = {{"format_version", picker::config::db::format_version},
+                {"model_id", input.model()}, {"bytes", input.size()}, {"records", input.records()}};
+            else {
+                const std::map<std::string, char> sections{{"metadata", 'm'}, {"variables", 'v'},
+                    {"signals", 's'}, {"types", 't'}, {"candidates", 'c'}};
+                auto section = sections.find(config_section);
+                if (section == sections.end()) throw std::invalid_argument("Unknown configuration section");
+                if (!config_name.empty()) {
+                    auto value = input.get(section->second, config_name);
+                    if (!value) throw std::invalid_argument("Configuration record not found: " + config_name);
+                    out = picker::config::decode(*value);
+                } else {
+                    out = nlohmann::json::object();
+                    input.each(section->second, [&](const auto &name, const auto &v) { out[name] = picker::config::decode(v); });
+                }
+            }
+            std::cout << out.dump(2) << '\n'; return 0;
+        } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; }
     }
 
     // handle main options here
@@ -538,24 +570,47 @@ int main(int argc, char **argv)
             declarations = readVarDeclarations(source_file);
             vars = processDeclarations(declarations);
 
-            picker::codegen::render_md_addr_generator(vars, export_opts);
-            picker::parser::outputYAML(vars, export_opts.target_dir + "/vars.yaml"); 
-            auto trace_files = picker::parser::verilator::findTraceFiles(source_file);
+            const auto trace_files = picker::parser::verilator::findTraceFiles(source_file);
+            picker::parser::trace_parse_result trace_result;
             if (trace_files.empty()) {
                 PK_MESSAGE("Trace files not found near %s, skipping trace-derived signal map", source_file.c_str());
             } else {
                 PK_MESSAGE("Parsing %zu trace file(s)", trace_files.size());
-                auto trace_result = picker::parser::verilator::processTraceFiles(source_file, trace_files, vars);
+                trace_result = picker::parser::verilator::processTraceFiles(source_file, trace_files, vars);
                 if (trace_result.signals.empty()) {
                     PK_FATAL("Trace files were found, but no usable signal mappings could be built "
                              "(decl=%zu, value=%zu, matched_slots=%zu). "
                              "This likely means trace was generated in an unsupported Verilator format/version.",
                              trace_result.decl_count, trace_result.value_count, trace_result.matched_slot_count);
                 }
-                picker::parser::outputSignalYAML(
-                    trace_result.signals,
-                    export_opts.target_dir + "/" + export_opts.source_module_name_list[0] + "_signal_map.raw.yaml");
             }
+
+            // Semantic metadata belongs to this generated project, not to the
+            // host installation. Match only retained native variables: RTL
+            // declarations alone are not evidence of addressable storage.
+            const auto layout_file = std::filesystem::path(export_opts.target_dir).parent_path() /
+                                     (export_opts.source_module_name_list[0] + ".xscfg");
+            auto native_types = nlohmann::json::object();
+            if (std::filesystem::exists(layout_file)) {
+                picker::config::db::Database input(layout_file.string());
+                auto layouts = nlohmann::json{{"version", 1}, {"types", nlohmann::json::object()}, {"signals", nlohmann::json::object()}};
+                input.each('t', [&](const auto &id, const auto &v) { layouts["types"][id] = picker::config::decode(v); });
+                input.each('c', [&](const auto &name, const auto &v) { layouts["signals"][name] = picker::config::decode(v); });
+                if (export_opts.sim == "verilator")
+                    native_types = picker::parser::bind_native_layouts(source_file, layouts, vars, trace_result.signals);
+                picker::config::db::Writer updated(input.model());
+                updated.copy(input, "mct");
+                for (const auto &signal : trace_result.signals) {
+                    auto node = nlohmann::json{{"kind", signal.kind}, {"type", signal.type},
+                        {"rtl_width", signal.width}, {"source", signal.root_name},
+                        {"expr", signal.source_expr}, {"value", signal.source_expr}, {"deps", nlohmann::json::array()}};
+                    for (const auto &dep : signal.deps) node["deps"].push_back(dep.name);
+                    updated.add('q', signal.name, picker::config::encode(node));
+                }
+                updated.write(layout_file.string());
+            }
+
+            picker::codegen::render_md_addr_generator(vars, export_opts, native_types);
             exit(0);
         }
 
@@ -581,7 +636,6 @@ int main(int argc, char **argv)
             overridden_defines.insert(define.name);
         }
         filter_generated_filelist(export_opts.target_dir + "/filelist.f", overridden_defines);
-
 
         std::map<std::string, std::function<void(picker::export_opts &, std::vector<picker::sv_signal_define>,
                                                  std::vector<picker::sv_signal_define>, nlohmann::json &)>>

@@ -59,7 +59,7 @@ endmodule
         if result.returncode:
             print(result.stdout)
             result.check_returncode()
-        assert (output / "signals.json").is_file()
+        assert (output / "Adder.xscfg").is_file()
         ast.parse((output / "python/dut.py").read_text())
         print("Runtime import, SWIG, RTL packing and Python DUT export passed")
 

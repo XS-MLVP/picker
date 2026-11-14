@@ -51,6 +51,7 @@ typedef struct export_opts {
     SignalAccessType rw_type;
     std::vector<std::string> transaction;
     std::string rname;
+    std::string config_model_id; // Identity shared by the generated model and its one configuration database.
     // --rtl-param NAME=VALUE entries; evaluated by the RTL frontend and pinned
     // in the generated wrapper. Never forwarded to the simulator.
     std::vector<std::string> rtl_param;
@@ -108,6 +109,10 @@ typedef struct sv_module_define {
     // Overridable port-list parameters; body parameters and localparams are
     // not representable in a named parameter assignment.
     std::vector<sv_parameter_define> parameters;
+    // Compact semantic metadata. Layouts reference interned types rather than
+    // copying a type tree for every variable or array element.
+    std::vector<std::pair<std::string, std::string>> native_layouts;
+    std::vector<std::pair<std::string, std::string>> native_types;
 } sv_module_define;
 
 typedef struct uvm_parameter {
@@ -137,6 +142,14 @@ typedef struct uvm_transaction_define {
     std::vector<uvm_parameter> parameters;
 } uvm_transaction_define;
 
+struct cpp_native_group {
+    std::string path;
+    std::string member;
+    int width = 0;
+    std::vector<int> dimensions;
+    std::vector<std::string> strides;
+};
+
 typedef struct cpp_variableInfo {
     std::string name;
     std::string type;
@@ -144,6 +157,10 @@ typedef struct cpp_variableInfo {
     int array_size = 0;
     int64_t offset = 0;
     std::vector<int> array_dimensions;
+    std::string layout; // interned type id, not an expanded layout
+    std::vector<cpp_native_group> native_groups;
+    std::string view_error;
+    std::string public_name; // Trace-proven logical alias, if different from native storage name.
 } cpp_variableInfo;
 
 } // namespace picker

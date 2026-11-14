@@ -5,8 +5,11 @@
 #include "rtl_config.hpp"
 
 #include "slang/ast/Compilation.h"
+#include "slang/ast/ASTVisitor.h"
 #include "slang/ast/SemanticFacts.h"
 #include "slang/ast/symbols/CompilationUnitSymbols.h"
+#include "slang/ast/symbols/BlockSymbols.h"
+#include "slang/ast/symbols/SubroutineSymbols.h"
 #include "slang/ast/symbols/InstanceSymbols.h"
 #include "slang/ast/symbols/ParameterSymbols.h"
 #include "slang/ast/symbols/PortSymbols.h"
@@ -335,6 +338,99 @@ namespace picker { namespace parser {
             const auto &packed = canonical.as<PackedArrayType>();
             return {packed.range.left, packed.range.right};
         }
+
+        // No storage assumptions here: unpacked members are resolved against
+        // the generated C++ types later, with compiler-computed offsets.
+        bool supports_native_layout(const Type &source, unsigned depth = 0)
+        {
+            if (depth >= 120) return false;
+            const auto &type = source.getCanonicalType();
+            switch (type.kind) {
+            case SymbolKind::ScalarType:
+            case SymbolKind::PredefinedIntegerType:
+            case SymbolKind::EnumType:
+                return type.getBitWidth() > 0 && type.getBitWidth() <= uint64_t(INT32_MAX);
+            case SymbolKind::PackedArrayType:
+                return type.getBitWidth() <= uint64_t(INT32_MAX) &&
+                       supports_native_layout(type.as<PackedArrayType>().elementType, depth + 1);
+            case SymbolKind::FixedSizeUnpackedArrayType:
+                return supports_native_layout(type.as<FixedSizeUnpackedArrayType>().elementType, depth + 1);
+            case SymbolKind::PackedStructType:
+                if (type.getBitWidth() > uint64_t(INT32_MAX)) return false;
+                for (const auto &field : type.as<slang::ast::PackedStructType>().membersOfType<slang::ast::FieldSymbol>())
+                    if (!supports_native_layout(field.getType(), depth + 1)) return false;
+                return true;
+            case SymbolKind::UnpackedStructType:
+                for (const auto *field : type.as<slang::ast::UnpackedStructType>().fields)
+                    if (!supports_native_layout(field->getType(), depth + 1)) return false;
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        struct NativeLayoutCollector : slang::ast::ASTVisitor<NativeLayoutCollector> {
+            std::vector<std::pair<std::string, std::string>> &layouts;
+            std::vector<std::pair<std::string, std::string>> &types;
+            std::map<const Type *, std::string> cache;
+            std::map<std::string, std::string> interned;
+            explicit NativeLayoutCollector(picker::sv_module_define &module)
+                : layouts(module.native_layouts), types(module.native_types) {}
+            std::string describe(const Type &source) {
+                const auto &type = source.getCanonicalType();
+                if (auto found = cache.find(&type); found != cache.end()) return found->second;
+                using J = nlohmann::json;
+                J node{{"kind", "bits"}, {"packed", true},
+                       {"width", type.kind == SymbolKind::ScalarType ? 0 : type.getBitWidth()},
+                       {"signed", type.isSigned()}, {"four_state", type.isFourState()}};
+                if (type.kind == SymbolKind::FixedSizeUnpackedArrayType ||
+                    (type.kind == SymbolKind::PackedArrayType && !is_supported_flat_port_type(type))) {
+                    const bool packed = type.kind == SymbolKind::PackedArrayType;
+                    const auto range = packed ? type.as<PackedArrayType>().range : type.as<FixedSizeUnpackedArrayType>().range;
+                    const auto &element = packed ? type.as<PackedArrayType>().elementType : type.as<FixedSizeUnpackedArrayType>().elementType;
+                    node["kind"] = "array"; node["packed"] = packed;
+                    if (!packed) node["width"] = 0;
+                    node["left"] = range.left; node["right"] = range.right;
+                    node["element"] = describe(element);
+                } else if (type.kind == SymbolKind::PackedStructType || type.kind == SymbolKind::UnpackedStructType) {
+                    const bool packed = type.kind == SymbolKind::PackedStructType;
+                    node["kind"] = "struct"; node["packed"] = packed;
+                    if (!packed) node["width"] = 0;
+                    node["fields"] = J::array();
+                    auto append = [&](const slang::ast::FieldSymbol &field) {
+                        J member{{"name", std::string(field.name)}, {"type", describe(field.getType())}};
+                        if (packed) member["offset"] = field.bitOffset;
+                        node["fields"].push_back(std::move(member));
+                    };
+                    if (packed) for (const auto &field : type.as<slang::ast::PackedStructType>().membersOfType<slang::ast::FieldSymbol>()) append(field);
+                    else for (const auto *field : type.as<slang::ast::UnpackedStructType>().fields) append(*field);
+                } else if (type.kind == SymbolKind::PackedArrayType) {
+                    // A bit vector is one value, but retain its declared range
+                    // in the semantic type table rather than inventing [W-1:0].
+                    const auto range = type.as<PackedArrayType>().range;
+                    node["left"] = range.left; node["right"] = range.right;
+                }
+                const auto text = node.dump();
+                auto [found, inserted] = interned.emplace(text, "t" + std::to_string(types.size()));
+                if (inserted) types.emplace_back(found->second, text);
+                cache.emplace(&type, found->second);
+                return found->second;
+            }
+            void collect(const slang::ast::ValueSymbol &symbol) {
+                const auto &type = symbol.getType();
+                if (!supports_native_layout(type)) return;
+                auto path = symbol.getHierarchicalPath();
+                // Root scalar/vector metadata is useful too: signedness is not
+                // recoverable from Verilator's unsigned CData/IData aliases.
+                layouts.emplace_back(path, describe(type));
+            }
+            void handle(const slang::ast::VariableSymbol &symbol) { collect(symbol); }
+            void handle(const slang::ast::NetSymbol &symbol) { collect(symbol); }
+            void handle(const slang::ast::SubroutineSymbol &) {} // no automatic locals
+            void handle(const slang::ast::GenerateBlockSymbol &block) {
+                if (!block.isUninstantiated) visitDefault(block);
+            }
+        };
 
         void append_simple_port(std::vector<picker::sv_signal_define> &pins, const PortSymbol &port,
                                 const std::string &module_name)
@@ -682,6 +778,10 @@ namespace picker { namespace parser {
                 selected_instances.push_back(instance);
                 const int module_nums = has_explicit_requests ? requested_module_counts.at(module_name) : 1;
                 sv_module_result.push_back(convert_instance_to_module_define(*instance, module_nums));
+                if (opts.rw_type == picker::SignalAccessType::MEM_DIRECT && opts.sim == "verilator") {
+                    NativeLayoutCollector collector(sv_module_result.back());
+                    instance->visit(collector);
+                }
             }
 
             validate_requested_parameters(opts.rtl_param, selected_instances);

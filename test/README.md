@@ -9,6 +9,7 @@ These scripts check the CLI and export/pack flows. Verilator and Python are the 
 | Command / 命令 | Scope / 范围 |
 | --- | --- |
 | `python3 test/scripts/test_python_simulator_metadata.py` | VCS/Verilator metadata generation; override binary with `PICKER_BIN`; no simulator license required / 仿真器元数据生成 |
+| `python3 test/scripts/test_config_database.py -v` | One XSCFG artifact, read-only JSON inspection and invalid-format checks; no DUT build / 单配置库交付、只读查看与损坏格式检查 |
 | `python3 test/scripts/test_vcs_coverage_runtime.py` | Native VCS coverage, FSDB, relocation and post-Finish execution / VCS 原生覆盖率与结束行为 |
 | `make -C test all` | Integration suite / 集成测试 |
 | `make -C test smoke` | CLI smoke, without DUT builds / CLI 冒烟，不构建 DUT |
@@ -18,6 +19,7 @@ These scripts check the CLI and export/pack flows. Verilator and Python are the 
 | `make -C test export_complex_port` | Complex ports / 复杂端口 |
 | `make -C test export_rtl_params` | RTL parameter and macro overrides: wrapper pinning, macro forwarding, precedence and rejected inputs / RTL 参数与宏覆盖 |
 | `make -C test export_unpacked_array` | Port arrays and native internal storage: Python/C++ DPI/mem_direct, optional Java / 端口数组与内部原生存储 |
+| `python3 test/scripts/test_export_native_views.py -v` | Single-file XSCFG packaging and Slang/native alignment, shared slices, nested members and RTL/storage indices; with/without trace, no VPI / 单配置库及通用内部类型与原生存储对齐 |
 | `make -C test pack_transaction` | UVM transactions / UVM 事务 |
 | `make -C test pack_from_rtl` | Transactions from RTL / 从 RTL 生成事务 |
 | `make -C test pack_unsupported_type` | Unsupported types / 不支持的类型 |

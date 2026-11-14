@@ -55,10 +55,10 @@ function DUT{{__TOP_MODULE_NAME__}}:new(...)
     self.xclock = xsp.XClock(self.dut.pxcStep, self.dut.pSelf)
     self.xport = xsp.XPort()
     self.xclock:Add(self.xport)
-    self.xcfg = xsp.XSignalCFG(self.dut:GetXSignalCFGPath(), self.dut:GetXSignalCFGBasePtr())
+    self.xcfg = xsp.XSignalCFG(self.dut:GetXSignalCFGPath(), self.dut:GetXSignalCFGBasePtr(), "{{__CONFIG_MODEL_ID__}}")
     self.internal_signals = {}
     self._finished = false
-    {% if __HAS_AGGREGATE_VIEWS__ %}
+    {% if __HAS_VPI_VIEWS__ %}
     self.vpi_backend = nil
     {% endif %}
 
@@ -90,7 +90,7 @@ function DUT{{__TOP_MODULE_NAME__}}:Finish()
         return 0
     end
     self._finished = true
-    {% if __HAS_AGGREGATE_VIEWS__ %}
+    {% if __HAS_VPI_VIEWS__ %}
     if self.vpi_backend ~= nil then
         local backend = self.vpi_backend
         self.vpi_backend = nil
@@ -213,8 +213,11 @@ function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignal(name, index, is_array, use
     return self.internal_signals[name]
 end
 
-{% if __HAS_AGGREGATE_VIEWS__ %}
-function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignalView(name)
+function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignalView(name, use_vpi)
+    if not use_vpi and self.dut:GetXSignalCFGBasePtr() ~= 0 then
+        return self.xcfg:NewXView(name)
+    end
+    {% if __HAS_VPI_VIEWS__ %}
     if self.vpi_backend == nil then
         self.vpi_backend = xsp.XVPI()
         self.vpi_backend:Configure(
@@ -231,8 +234,10 @@ function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignalView(name)
             self.dut:GetVPIScope(), {{__AGGREGATE_LAYOUTS_JSON__}})
     end
     return self.vpi_backend:Get(name)
+    {% else %}
+    error("VPI is not enabled; rebuild with --vpi or use --rw mem_direct")
+    {% endif %}
 end
-{% endif %}
 
 function DUT{{__TOP_MODULE_NAME__}}:GetInternalSignalList(prefix, deep, use_vpi)
     -- prefix: str, deep=99, use_vpi=False

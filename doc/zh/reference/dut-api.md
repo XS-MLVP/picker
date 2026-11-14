@@ -76,11 +76,14 @@ Verilator 刷新路径继续使用 `eval_step()`，不增加 context 时间或 P
 
 | 方法 | 行为与返回值 |
 | --- | --- |
-| `GetInternalSignal(name, index=-1, is_array=False, use_vpi=False)` | 按名称返回信号对象；`is_array=True` 返回列表 |
+| `GetInternalSignal(name, index=-1, is_array=False, use_vpi=False)` | 按名称返回信号对象；`is_array=True` 返回使用零基存储坐标的递归 `XArray` |
+| `GetInternalSignalView(name, use_vpi=False)` | 返回使用 RTL 坐标的递归 `XView`；默认优先原生元数据，`use_vpi=True` 强制 VPI |
+| `dut.xcfg.Metadata("ports")` | 显式从唯一的 `.xscfg` 配置库读取端口元数据 JSON；不再附带 `signals.json` |
 | `GetInternalSignalList(prefix="", deep=99, use_vpi=False)` | 返回可访问名称；默认优先原生布局，随后 VPI |
 | `VPIInternalSignalList(prefix="", deep=99)` | 通过 VPI 枚举层次名称 |
 
-原生查询中的 `prefix` 按名称子串筛选。VPI 中的 `prefix` 和 `deep` 指定起始层次与搜索深度。通过 VPI 查询内部信号时返回单个信号；`index`、`is_array` 仅用于原生布局查询。
+原生查询中的 `prefix` 按名称子串筛选。VPI 中的 `prefix` 和 `deep` 指定起始层次与搜索深度。
+原生单元素 `index` 是扁平存储位置；VPI 数组选择使用该层的 RTL 下标。
 
 成功查询的结果按名称和查询选项缓存；参数相同的后续调用复用首次查询的对象。普通查询未找到时返回 `None`；显式 `use_vpi=True` 查询失败会触发断言。具体示例见[访问内部信号](../guides/internal-signals.md)。
 

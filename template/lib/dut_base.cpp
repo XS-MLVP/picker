@@ -1255,7 +1255,7 @@ std::string DutUnifiedBase::GetXSignalCFGPath()
     std::filesystem::path p(path);
     std::string parent = p.parent_path().string().empty() ? "." : p.parent_path().string();
     free(path);
-    return  parent + "/{{__TOP_MODULE_NAME__}}_offset.yaml";
+    return  parent + "/{{__TOP_MODULE_NAME__}}.xscfg";
 }
 
 uint64_t DutUnifiedBase::GetXSignalCFGBasePtr()

@@ -8,6 +8,9 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "xspcomm/detail/config_db.h"
+
+namespace cfgdb = xspcomm::detail::cfgdb;
 
 {% if __SIMULATOR__ == "verilator" %}
 #include "V{{__TOP_MODULE_NAME__}}.h"
@@ -20,6 +23,15 @@ typedef V{{__TOP_MODULE_NAME__}}___024root BaseType;
 typedef S{{__TOP_MODULE_NAME__}} BaseType;
 {% endif %}
 
+struct cpp_native_group {
+    std::string path;
+    int width;
+    uint64_t mem_bytes;
+    uint64_t offset;
+    std::vector<int> dimensions;
+    std::vector<uint64_t> strides;
+};
+
 struct cpp_variableInfo {
     std::string name;
     std::string type;
@@ -29,44 +41,41 @@ struct cpp_variableInfo {
     std::vector<int> array_dimensions;
     std::vector<uint64_t> array_strides;
     uint32_t mem_bytes = 0;
+    std::string layout;
+    std::string view_error;
+    std::vector<cpp_native_group> groups;
 
-    void write_yaml(std::ostream &out) const
-    {
-        out << "  - name: " << name << "\n";
-        out << "    type: " << type << "\n";
-        out << "    mem_bytes: " << mem_bytes << "\n";
-        out << "    rtl_width: " << width << "\n";
-        if (array_size > 0) { out << "    array_size: " << array_size << "\n"; }
-        write_array_layout(out, "    ");
-        out << "    offset: " << offset << "\n";
+    cfgdb::Value value() const {
+        using V = cfgdb::Value;
+        V out; out.kind = V::Object;
+        out.object = { {"type", V::str(type)}, {"mem_bytes", V::uint(mem_bytes)},
+            {"rtl_width", V::uint(width)}, {"offset", V::uint(offset)}};
+        auto array = [](const auto &values) {
+            V node; node.kind = V::Array;
+            for (auto value : values) node.array.push_back(V::uint(value));
+            return node;
+        };
+        if (array_size) out.object["array_size"] = V::uint(array_size);
+        if (!array_dimensions.empty()) {
+            out.object["array_dimensions"] = array(array_dimensions);
+            out.object["array_strides"] = array(array_strides);
+        }
+        if (!layout.empty()) out.object["layout_id"] = V::str(layout);
+        if (!view_error.empty()) out.object["view_error"] = V::str(view_error);
+        if (!groups.empty()) {
+            V bindings; bindings.kind = V::Array;
+            for (const auto &g : groups) {
+                V node; node.kind = V::Object;
+                node.object = { {"path", V::str(g.path)}, {"rtl_width", V::uint(g.width)},
+                    {"mem_bytes", V::uint(g.mem_bytes)}, {"offset", V::uint(g.offset)},
+                    {"array_dimensions", array(g.dimensions)}, {"array_strides", array(g.strides)}};
+                bindings.array.push_back(std::move(node));
+            }
+            out.object["bindings"] = std::move(bindings);
+        }
+        return out;
     }
 
-    void write_array_layout(std::ostream &out, const std::string &prefix) const
-    {
-        if (array_dimensions.empty()) { return; }
-        out << prefix << "array_dimensions: [";
-        for (size_t i = 0; i < array_dimensions.size(); ++i) {
-            if (i) { out << ", "; }
-            out << array_dimensions[i];
-        }
-        out << "]\n" << prefix << "array_strides: [";
-        for (size_t i = 0; i < array_strides.size(); ++i) {
-            if (i) { out << ", "; }
-            out << array_strides[i];
-        }
-        out << "]\n";
-    }
-};
-
-struct raw_signal_info {
-    std::string name;
-    std::string kind;
-    std::string type;
-    uint32_t rtl_width = 0;
-    std::string source;
-    std::string expr;
-    std::string value;
-    std::vector<std::string> deps;
 };
 
 extern std::vector<cpp_variableInfo> all_vars;

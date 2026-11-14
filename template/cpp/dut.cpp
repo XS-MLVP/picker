@@ -29,7 +29,7 @@ UT{{__TOP_MODULE_NAME__}}::UT{{__TOP_MODULE_NAME__}}(std::initializer_list<const
 
 UT{{__TOP_MODULE_NAME__}}::~UT{{__TOP_MODULE_NAME__}}()
 {
-    {% if __HAS_AGGREGATE_VIEWS__ %}
+    {% if __HAS_VPI_VIEWS__ %}
     if (this->vpi_backend) this->vpi_backend->Close();
     {% endif %}
     delete this->dut;
@@ -60,7 +60,7 @@ void UT{{__TOP_MODULE_NAME__}}::init()
 
     this->xclock.ReInit(this->dut->pxcStep, this->dut->pSelf, {}, {});
     this->xclock.Add(this->xport);
-    this->xcfg = new XSignalCFG(this->dut->GetXSignalCFGPath(), this->dut->GetXSignalCFGBasePtr());
+    this->xcfg = new XSignalCFG(this->dut->GetXSignalCFGPath(), this->dut->GetXSignalCFGBasePtr(), "{{__CONFIG_MODEL_ID__}}");
 
     // create subport
 {{__XPORT_CASCADED_SGN__}}

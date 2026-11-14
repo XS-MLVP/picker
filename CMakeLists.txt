@@ -41,6 +41,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 #dependencies
+include_directories(${PROJECT_SOURCE_DIR}/dependence/xcomm/include)
+find_library(PICKER_ZLIB_LIBRARY NAMES libz.a z)
+if(NOT PICKER_ZLIB_LIBRARY)
+    message(FATAL_ERROR "zlib development files are required for the configuration database")
+endif()
 if (NOT SKBUILD AND "$ENV{NO_BUILD_XSPCOMM}" STREQUAL "")
 add_subdirectory(dependence/xcomm)
 # Cover pinned xcomm revisions as well as their SWIG consumers. Standalone
