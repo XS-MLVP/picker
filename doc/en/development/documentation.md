@@ -43,14 +43,38 @@ Open `http://127.0.0.1:8000` to check language switching, navigation, full-text 
 
 Picker examples need the tutorial's Adder, an Adder with waveforms and coverage, and the internal-signal guide's vpi model. Put the recording-enabled Adder and vpi packages in one directory and pass that directory with `--cwd`.
 
-## Export a GitHub Wiki
+## Publish the GitHub Wiki
 
-The site and Wiki are generated from the same Markdown. Export into an empty directory:
+The site and Wiki are generated from the same Markdown. Preview the export in an empty directory:
 
 ```sh
-/tmp/docs-venv/bin/python scripts/docs.py wiki --output /tmp/picker-wiki
+/tmp/docs-venv/bin/python scripts/docs.py wiki --output /tmp/picker-wiki-export
 ```
 
-The output includes bilingual pages, a home page, sidebar, footer, and file manifest. Links are converted to Wiki page names. After review, maintainers can sync these files to `picker.wiki.git`. See [GitHub's Wiki documentation](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages) for editing the separate repository.
+The export includes bilingual pages, a home page, sidebar, footer, and a SHA-256 manifest.
+Page links become absolute GitHub Wiki URLs; source and image links point to the main repository.
 
-Documentation CI runs for PRs targeting master, documentation changes pushed to master or `docs/**` branches, and manual dispatches. It checks translated pages, links, and example syntax, then builds the site and exports the Wiki as review artifacts.
+The **Documentation** workflow validates links, tests the documentation tools, builds the site,
+and uploads the site and Wiki export as review artifacts. After a documentation change reaches
+`master`, its **Sync GitHub Wiki** job publishes the checked export to `picker.wiki.git`.
+PRs and `docs/**` branches only build previews. To retry synchronization, run **Documentation**
+manually with `master` selected. Exports superseded by newer documentation changes are skipped.
+
+The publishing job uses the built-in `GITHUB_TOKEN` with `contents: write`; no PAT or additional
+secret is needed. GitHub requires the Wiki to be enabled and its first page to be created once
+through the web UI before Actions can check out the Wiki repository. See
+[GitHub's Wiki documentation](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages).
+
+Edit generated pages in `doc/zh` and `doc/en`, since the next sync replaces them from source.
+The first sync replaces the initial Home/sidebar/footer. Other manually maintained pages are preserved;
+conflicting page names require manual resolution. Removed or renamed generated pages are deleted only
+if they still match the previous manifest. Manual edits to such obsolete pages stop the job for review.
+An unchanged export creates no commit, and pushes never force-update Wiki history.
+
+To review the same synchronization locally without publishing:
+
+```sh
+git clone https://github.com/XS-MLVP/picker.wiki.git /tmp/picker-wiki-checkout
+python scripts/sync_wiki.py --export /tmp/picker-wiki-export --checkout /tmp/picker-wiki-checkout
+git -C /tmp/picker-wiki-checkout diff
+```

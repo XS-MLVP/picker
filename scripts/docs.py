@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 import markdown
 import yaml
@@ -132,6 +132,10 @@ def wiki_slug(page):
     return language + '-' + ('Home' if relative == Path('index.md') else relative.with_suffix('').as_posix().replace('/', '-'))
 
 
+def wiki_url(slug):
+    return CONFIG['repo_url'].rstrip('/') + '/wiki/' + quote(slug)
+
+
 def export_wiki(args):
     checked = check()
     output = Path(args.output).resolve()
@@ -148,9 +152,10 @@ def export_wiki(args):
                 return match[0]
             target = (page.parent / unquote(url.path)).resolve()
             if target in slugs:
-                destination = slugs[target]
+                destination = wiki_url(slugs[target])
             else:
-                destination = CONFIG['repo_url'].rstrip('/') + '/blob/master/' + target.relative_to(ROOT).as_posix()
+                route = '/raw/refs/heads/master/' if match[1].startswith('!') else '/blob/master/'
+                destination = CONFIG['repo_url'].rstrip('/') + route + quote(target.relative_to(ROOT).as_posix())
             if url.fragment:
                 destination += '#' + url.fragment
             return match[1] + destination + match[3]
@@ -161,10 +166,10 @@ def export_wiki(args):
         counterpart = DOCS / ('en' if relative.parts[0] == 'zh' else 'zh') / Path(*relative.parts[1:])
         label = 'English' if relative.parts[0] == 'zh' else '中文'
         source = CONFIG['repo_url'].rstrip('/') + '/blob/master/' + page.relative_to(ROOT).as_posix()
-        content = f'[{label}]({slugs[counterpart.resolve()]}) · [源文档 / Source]({source})\n\n' + ''.join(chunks)
+        content = f'[{label}]({wiki_url(slugs[counterpart.resolve()])}) · [源文档 / Source]({source})\n\n' + ''.join(chunks)
         (output / (slugs[page.resolve()] + '.md')).write_text(content)
-    (output / 'Home.md').write_text('# ' + CONFIG['site_name'] + '\n\n[中文](zh-Home) | [English](en-Home)\n')
-    sidebar = ['[Home](Home)', '']
+    (output / 'Home.md').write_text('# ' + CONFIG['site_name'] + f'\n\n[中文]({wiki_url("zh-Home")}) | [English]({wiki_url("en-Home")})\n')
+    sidebar = [f'[Home]({wiki_url("Home")})', '']
     translations = CONFIG['plugins'][0]['i18n']['languages'][1].get('nav_translations', {})
     for language, name in [('zh', '中文'), ('en', 'English')]:
         sidebar += ['## ' + name, '']
@@ -176,7 +181,7 @@ def export_wiki(args):
                         sidebar.append(f'{indent}- **{label}**')
                         add_navigation(value, indent + '  ')
                     else:
-                        sidebar.append(f'{indent}- [{label}]({slugs[(DOCS / language / value).resolve()]})')
+                        sidebar.append(f'{indent}- [{label}]({wiki_url(slugs[(DOCS / language / value).resolve()])})')
         add_navigation(CONFIG['nav'])
         sidebar.append('')
     (output / '_Sidebar.md').write_text('\n'.join(sidebar))
@@ -185,7 +190,9 @@ def export_wiki(args):
     for page in output.glob('*.md'):
         for target in Links(page.read_text()).targets:
             url = urlsplit(target)
-            if not url.scheme and url.path and not (output / (url.path + '.md')).exists():
+            if not (url.scheme or url.netloc) and url.path:
+                raise SystemExit(f'Relative exported Wiki link: {page.name}: {target}')
+            if target.startswith(wiki_url('')) and not (output / (unquote(url.path.rsplit('/', 1)[-1]) + '.md')).exists():
                 raise SystemExit(f'Broken exported Wiki link: {page.name}: {target}')
     manifest = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(output.glob('*.md'))}
     (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
