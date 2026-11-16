@@ -215,8 +215,10 @@ Python 将前者暴露为 `pin_vpi_backend_2`，后者保持不变。开启 VPI 
 `getattr(dut, name)` 一定取得端口；仅按属性绑定的外部适配器需要处理改名。
 Verilator 的原生标识符转义与这些宿主语言成员名相互独立。
 
-C++ 对 packed 和向量 `inout` 端口生成 `IOType::InOut`，保留方向元数据；这不代表新增
-三态总线解析能力，也不阻止模拟器将无驱动的 `inout` 优化成常量。
+所有语言绑定都对 packed 和向量 `inout` 端口生成各自的 `InOut` 方向（C++ 为
+`IOType::InOut`，Go 为 `IOType_InOut`，其余为 `XData.InOut`），而不是把它们登记成输入。
+这保留了方向元数据，使信号在 DUT 驱动后可读；这不代表新增三态总线解析能力，也不阻止
+模拟器将无驱动的 `inout` 优化成常量。
 
 ## 添加调试功能
 

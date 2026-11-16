@@ -387,7 +387,7 @@ namespace picker { namespace codegen {
             nlohmann::json expin;
             expin["name"] = pin.logic_pin;
             expin["native_name"] = verilator_identifier(pin.logic_pin);
-            expin["type"] = (pin.logic_pin_type[0] == 'i') ? "In" : "Out";
+            expin["type"] = pin_direction(pin.logic_pin_type);
             expin["hb"]   = pin.logic_pin_hb;
             expin["lb"]   = pin.logic_pin_lb;
             expin["size"] = pin.logic_pin_hb - pin.logic_pin_lb + 1;

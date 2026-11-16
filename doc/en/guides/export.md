@@ -238,9 +238,11 @@ always refers to the port. External attribute-only metadata adapters must accoun
 for renamed members. Verilator's native identifier escaping is separate from
 these host-language names.
 
-C++ emits `IOType::InOut` for packed and vector `inout` ports. This preserves
-direction metadata; it does not add tri-state resolution or prevent a simulator
-from optimizing an undriven `inout` to a constant.
+Every binding emits its `InOut` direction for packed and vector `inout` ports
+(`IOType::InOut` in C++, `IOType_InOut` in Go, `XData.InOut` elsewhere) instead
+of registering them as inputs. This preserves direction metadata and makes the
+signal readable after the DUT drives it; it does not add tri-state resolution or
+prevent a simulator from optimizing an undriven `inout` to a constant.
 
 ## Add debugging features
 

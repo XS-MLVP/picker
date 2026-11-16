@@ -58,7 +58,7 @@ namespace codegen {
 
                 // Set 0 for 1bit singal or hb-lb+1 for vector signal for cpp
                 // render
-                data["logic_pin_type"] = pin[i].logic_pin_type == "inout" ? "InOut" : first_uppercase(pin[i].logic_pin_type);
+                data["logic_pin_type"] = pin_direction(pin[i].logic_pin_type, "cpp");
 
                 BIND_DPI_RW;
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? // means not vector

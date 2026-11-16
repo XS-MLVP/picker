@@ -3,6 +3,15 @@
 
 namespace picker::codegen {
 
+// Host-language XData IO type for a pin direction. Verilog has three
+// directions, so a two-way test on the first character is not enough: an
+// inout pin read back through an Input XData returns the value the testbench
+// last wrote instead of the value the DUT drives.
+//   languages "python", "java", "scala", "lua": In / Out / InOut
+//   language  "cpp":                           Input / Output / InOut (xcomm::IOType)
+//   language  "golang":                        IOType_Input / IOType_Output / IOType_InOut
+std::string pin_direction(const std::string &verilog_direction, const std::string &language = "python");
+
 // C++ spelling of ordinary Verilog identifiers in Verilator's generated root.
 // This is separate from wrapper attribute allocation and never changes RTL names.
 std::string verilator_identifier(const std::string &name);
