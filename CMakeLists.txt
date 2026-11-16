@@ -42,6 +42,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 #dependencies
 include_directories(${PROJECT_SOURCE_DIR}/dependence/xcomm/include)
+
+# The generated XSCFG metadata records the native ABI it was produced against.
+# Read the number from the pinned xcomm instead of duplicating it, so the two
+# cannot drift when the ABI changes. A wheel build may not carry the xcomm
+# source tree, so fall back to the value required by pyproject's lower bound.
+set(PICKER_NATIVE_ABI 5)
+if(EXISTS "${PROJECT_SOURCE_DIR}/dependence/xcomm/CMakeLists.txt")
+    file(STRINGS "${PROJECT_SOURCE_DIR}/dependence/xcomm/CMakeLists.txt" PICKER_XCOMM_ABI_LINE
+         REGEX "^set\\(XSPCOMM_ABI_VERSION[ \t]+[0-9]+\\)")
+    string(REGEX MATCH "[0-9]+" PICKER_NATIVE_ABI "${PICKER_XCOMM_ABI_LINE}")
+endif()
+if(NOT PICKER_NATIVE_ABI)
+    message(FATAL_ERROR "Cannot determine the xcomm native ABI version")
+endif()
+message(STATUS "Native ABI recorded in generated metadata: ${PICKER_NATIVE_ABI}")
+add_compile_definitions(PICKER_NATIVE_ABI=${PICKER_NATIVE_ABI})
+
 find_library(PICKER_ZLIB_LIBRARY NAMES libz.a z)
 if(NOT PICKER_ZLIB_LIBRARY)
     message(FATAL_ERROR "zlib development files are required for the configuration database")

@@ -520,7 +520,7 @@ namespace picker { namespace codegen {
         }
         database.add('m', "ports", config::encode(ports));
         database.add('m', "generator", config::encode({{"simulator", opts.sim},
-            {"rw_type", data["__RW_TYPE__"]}, {"native_abi", 4}}));
+            {"rw_type", data["__RW_TYPE__"]}, {"native_abi", PICKER_NATIVE_ABI}}));
         for (const auto &[id, type] : native_layouts["types"].items()) database.add('t', id, config::encode(type));
         for (const auto &[name, id] : native_layouts["signals"].items()) database.add('c', name, config::encode(id));
         database.write(dst_dir + "/" + dst_module_name + ".xscfg");

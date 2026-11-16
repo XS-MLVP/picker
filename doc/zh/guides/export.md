@@ -199,7 +199,7 @@ DPI 与 mem_direct 均直接访问选中的独立字段或数组元素，单元�
 unpacked 数组。
 
 运行 `make -C test export_aggregate_views` 执行基于 `test/data/aggregate_views.sv` 的
-Python/C++/Java RTL 回归。Picker 须与包含 `XStruct`、`XArray`、原生 ABI 4 的匹配
+Python/C++/Java RTL 回归。Picker 须与包含 `XStruct`、`XArray`、原生 ABI 5 的匹配
 xcomm SDK 配套使用，并用该 SDK 重新编译生成的 DUT。
 
 ## 生成成员名
