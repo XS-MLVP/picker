@@ -109,6 +109,68 @@ namespace picker { namespace codegen {
         return "\"" + entry + "\"";
     }
 
+    struct exported_source {
+        std::string source; // path as given on the command line
+        std::string name;   // unique name inside the export directory
+    };
+
+    // The simulator only reads the export directory, so every positional RTL
+    // source is copied there. Keep the original basename (the suffix selects
+    // the language) and add a numeric suffix only for a collision. Names that
+    // recursive_render writes must never be reused, or a user module could
+    // replace picker's generated wrapper.
+    static std::vector<exported_source> plan_exported_sources(const std::vector<std::string> &files,
+                                                              const std::string &target_module_name,
+                                                              const std::string &template_dir)
+    {
+        std::unordered_set<std::string> used;
+        auto reserve = [&](const std::string &name) { used.insert(name); };
+        reserve("top.v");
+        reserve("top.sv");
+        reserve(target_module_name + "_top.v");
+        reserve(target_module_name + "_top.sv");
+        reserve(target_module_name + ".xscfg");
+        std::error_code error;
+        std::filesystem::directory_iterator entries(template_dir, error);
+        if (error) {
+            PK_FATAL("Cannot read template directory '%s': %s", template_dir.c_str(), error.message().c_str());
+        }
+        for (const auto &entry : entries) {
+            if (entry.is_regular_file()) { reserve(entry.path().filename().string()); }
+        }
+
+        std::unordered_set<std::string> seen;
+        std::vector<exported_source> planned;
+        for (const auto &file : files) {
+            auto source = std::filesystem::path(file);
+            // Identity follows symlinks, so `a.v` and a link to it are one
+            // source; copying both would define every module twice.
+            auto canonical = std::filesystem::weakly_canonical(source, error);
+            const auto identity = (error ? std::filesystem::absolute(source, error) : canonical)
+                                      .lexically_normal()
+                                      .string();
+            error.clear();
+            if (!seen.insert(identity).second) { continue; } // the same file listed twice must not define a module twice
+            auto filename = source.filename();
+            if (filename.empty()) { PK_FATAL("RTL source '%s' does not name a file", file.c_str()); }
+            std::string stem = filename.stem().string();
+            std::string extension = filename.extension().string();
+            // A missing suffix gives the simulators no language hint; Verilog
+            // is the only sensible default for a picker source argument.
+            if (extension.empty() || extension == ".") {
+                if (stem.empty()) { stem = filename.string(); }
+                extension = ".v";
+            }
+            std::string candidate = stem + extension;
+            for (unsigned suffix = 1; used.count(candidate) != 0; ++suffix) {
+                candidate = stem + "_" + std::to_string(suffix) + extension;
+            }
+            used.insert(candidate);
+            planned.push_back({file, candidate});
+        }
+        return planned;
+    }
+
     void gen_filelist(const std::vector<std::string> &source_file, const std::vector<std::string> &ifilelists,
                       std::string &ofilelist, std::vector<std::string> &incdirs)
     {
@@ -428,6 +490,29 @@ namespace picker { namespace codegen {
         }
         std::vector<std::string> incdirs;
         gen_filelist(files, ifilelists, ofilelist, incdirs);
+        const bool firrtl_input = firrtl_simulators.count(opts.sim) != 0;
+        std::vector<exported_source> exported_sources;
+        if (!firrtl_input) {
+            exported_sources = plan_exported_sources(files, dst_module_name, src_dir);
+            // Positional sources used to be passed to the simulator as a
+            // single <top>.v and were therefore skipped by gen_filelist. They
+            // are now copied under unique names, so the simulator only sees
+            // them through the generated filelist.
+            const std::vector<std::string> header_types = {".svh", ".vh"};
+            for (const auto &entry : exported_sources) {
+                if (check_file_type(entry.name, header_types)) {
+                    const auto dir = std::filesystem::absolute(dst_dir).lexically_normal().string();
+                    if (std::find(incdirs.begin(), incdirs.end(), dir) == incdirs.end()) {
+                        incdirs.push_back(dir);
+                    }
+                    continue;
+                }
+                const auto path = std::filesystem::absolute(std::filesystem::path(dst_dir) / entry.name)
+                                      .lexically_normal()
+                                      .string();
+                ofilelist += quote_entry(path) + "\n";
+            }
+        }
         append_incdirs_to_vflag(simulator, incdirs, vflag);
 
         // Get coverage metrics before rendering Makefile/CMake, because VCS coverage may add -cm flags.
@@ -525,10 +610,12 @@ namespace picker { namespace codegen {
         for (const auto &[name, id] : native_layouts["signals"].items()) database.add('c', name, config::encode(id));
         database.write(dst_dir + "/" + dst_module_name + ".xscfg");
 
-        // Copy verilog files
+        // Copy verilog files. Each source keeps its own name so multiple
+        // modules cannot overwrite one another; gsim still needs the FIRRTL
+        // input named after the target module.
         for (const auto &entry : std::filesystem::directory_iterator(dst_dir)) {
             if (entry.is_regular_file()) {
-                std::string src_filename, dst_filename;
+                std::string src_filename;
                 src_filename = entry.path().filename().string();
                 if (src_filename.ends_with(".sv") || src_filename.ends_with(".v")) {
                     std::filesystem::rename(entry.path(),
@@ -537,15 +624,24 @@ namespace picker { namespace codegen {
                 }
             }
         }
-        for (auto &f : files) {
-            auto ext = f.substr(f.find_last_of('.'));
-            if (ext == ".sv") ext = ".v";
-            std::filesystem::copy_file(f, dst_dir + "/" + dst_module_name + ext, // reserve the original extension
-                                       std::filesystem::copy_options::overwrite_existing);
-        }
-        if (files.empty()) {
-            // create an empty verilog file to avoid simulator error
-            write_file(dst_dir + "/" + dst_module_name + ".v", "// empty file generated by picker\n");
+        if (firrtl_input) {
+            for (auto &f : files) {
+                auto ext = std::filesystem::path(f).extension().string();
+                if (ext.empty() || ext == ".") { ext = ".fir"; }
+                if (ext == ".sv") { ext = ".v"; }
+                std::filesystem::copy_file(f, dst_dir + "/" + dst_module_name + ext,
+                                           std::filesystem::copy_options::overwrite_existing);
+            }
+        } else {
+            for (const auto &entry : exported_sources) {
+                const auto destination = dst_dir + "/" + entry.name;
+                std::error_code error;
+                std::filesystem::copy_file(entry.source, destination, error);
+                if (error) {
+                    PK_FATAL("Failed to copy RTL source '%s' to '%s': %s", entry.source.c_str(),
+                             destination.c_str(), error.message().c_str());
+                }
+            }
         }
 
         PK_MESSAGE("Generate DPI files successfully!");
