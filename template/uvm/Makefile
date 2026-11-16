@@ -19,6 +19,19 @@ TOP_DIR := $(CURDIR)
 PKG_DIR := {{package_name}}
 BUILD_DIR := $(PKG_DIR)/build
 
+# PKG_DIR is the generated package name and is always a single identifier.
+# Refuse to run when it is empty or path-like: the rm -rf recipes below would
+# otherwise delete outside the generated package (e.g. PKG_DIR="/").
+ifeq ($(strip $(PKG_DIR)),)
+$(error PKG_DIR is empty; refusing to run)
+endif
+ifneq ($(filter-out . ..,$(PKG_DIR)),$(PKG_DIR))
+$(error PKG_DIR '$(PKG_DIR)' must name the generated package, not a directory)
+endif
+ifneq ($(findstring /,$(PKG_DIR)),)
+$(error PKG_DIR '$(PKG_DIR)' must not contain '/')
+endif
+
 # Validate required environment variables
 ifndef UVMC_HOME
 $(error UVMC_HOME is not set)
@@ -68,22 +81,24 @@ VCS    = vcs -q -sysc=deltasync -lca -full64 \
 all: clean comp copy_xspcomm run
 
 clean:
+	@test -n "$(PKG_DIR)" || { echo "Error: PKG_DIR is empty; refusing to clean" >&2; exit 1; }
+	@case "$(PKG_DIR)" in .|..|*/*) echo "Error: PKG_DIR '$(PKG_DIR)' must be a generated package name" >&2; exit 1;; esac
 	@echo "Cleaning build artifacts..."
-	rm -rf $(PKG_DIR)/build $(PKG_DIR)/work $(PKG_DIR)/.vlogan*
-	rm -rf $(PKG_DIR)/_tlm_pbsb.so* $(PKG_DIR)/simv* 
-	rm -rf $(PKG_DIR)/vcs.log $(PKG_DIR)/AN* $(PKG_DIR)/*.log 
-	rm -rf $(PKG_DIR)/*.log.cmp $(PKG_DIR)/*.vpd $(PKG_DIR)/DVE*
-	rm -rf __pycache__ $(PKG_DIR)/__pycache__
+	rm -rf "$(PKG_DIR)/build" "$(PKG_DIR)/work" "$(PKG_DIR)"/.vlogan*
+	rm -rf "$(PKG_DIR)"/_tlm_pbsb.so* "$(PKG_DIR)"/simv*
+	rm -rf "$(PKG_DIR)/vcs.log" "$(PKG_DIR)"/AN* "$(PKG_DIR)"/*.log
+	rm -rf "$(PKG_DIR)"/*.log.cmp "$(PKG_DIR)"/*.vpd "$(PKG_DIR)"/DVE*
+	rm -rf __pycache__ "$(PKG_DIR)/__pycache__"
 	@echo "Clean complete."
 
 # Compile target (unified for both regular and DUT mode)
 comp:
-	@mkdir -p $(BUILD_DIR)
+	@mkdir -p "$(BUILD_DIR)"
 	swig -D'MODULE_NAME="tlm_pbsb"' -python -c++ -DUSE_VCS -I${XSP_COMM_INCLUDE} \
-		-outdir $(PKG_DIR) -o $(BUILD_DIR)/tlmps.cpp \
+		-outdir "$(PKG_DIR)" -o "$(BUILD_DIR)/tlmps.cpp" \
 		${XSP_COMM_TLM}/python.i
-	$(SYSCAN) -Mdir=$(BUILD_DIR) \
-		${XSP_COMM_TLM}/pubsub.cpp $(BUILD_DIR)/tlmps.cpp
+	$(SYSCAN) -Mdir="$(BUILD_DIR)" \
+		${XSP_COMM_TLM}/pubsub.cpp "$(BUILD_DIR)/tlmps.cpp"
 	@if [ -f example-uvm.sv ]; then \
 		UVM_FILE=example-uvm.sv; \
 	elif [ -f example.sv ]; then \
@@ -93,24 +108,24 @@ comp:
 		exit 1; \
 	fi; \
 	{% if rtl_file_path -%}
-	$(VLOGAN) +incdir+$(PKG_DIR) {{rtl_file_path}} $$UVM_FILE -Mdir=$(BUILD_DIR)
+	$(VLOGAN) +incdir+"$(PKG_DIR)" {{rtl_file_path}} $$UVM_FILE -Mdir="$(BUILD_DIR)"
 	{% else -%}
-	$(VLOGAN) +incdir+$(PKG_DIR) $$UVM_FILE -Mdir=$(BUILD_DIR)
+	$(VLOGAN) +incdir+"$(PKG_DIR)" $$UVM_FILE -Mdir="$(BUILD_DIR)"
 	{% endif -%}
-	$(VCS_ELAB) -o $(PKG_DIR)/_tlm_pbsb.so -Mdir=$(BUILD_DIR)
+	$(VCS_ELAB) -o "$(PKG_DIR)/_tlm_pbsb.so" -Mdir="$(BUILD_DIR)"
 	@echo "Cleaning build artifacts..."
-	@rm -rf $(BUILD_DIR)
-	@rm -f $(PKG_DIR)/vc_hdrs.h $(PKG_DIR)/ucli.key
+	@rm -rf "$(BUILD_DIR)"
+	@rm -f "$(PKG_DIR)/vc_hdrs.h" "$(PKG_DIR)/ucli.key"
 	@echo "✓ Compilation complete"
 
 # Copy xspcomm library to package directory
 copy_xspcomm:
-	@cp -r ${XSP_PYTHON}/xspcomm $(PKG_DIR)/xspcomm
+	@cp -r "${XSP_PYTHON}/xspcomm" "$(PKG_DIR)/xspcomm"
 
 # Run example (auto-detect DUT mode or non-DUT mode)
 run:
 	@if [ -f example.py ]; then \
-		cd $(PKG_DIR) && LD_PRELOAD=./_tlm_pbsb.so python3 ../example.py; \
+		cd "$(PKG_DIR)" && LD_PRELOAD=./_tlm_pbsb.so python3 ../example.py; \
 	else \
 		echo "Error: No example file found (example.py)!"; \
 		exit 1; \
