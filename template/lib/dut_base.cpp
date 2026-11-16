@@ -560,7 +560,7 @@ void DutGSimBase::update_read()
 {
     // update read pins
     {% if __SIMULATOR__ == "gsim" %}
-    {% for pin in __MODULE_EXTERNAL_PINS__ %}{% if pin.type == "Out" %}
+    {% for pin in __MODULE_EXTERNAL_PINS__ %}{% if pin.type == "Out" or pin.type == "InOut" %}
     this->vpin_{{pin.name}} = this->top->get_{{pin.name}}();
     {% endif %}{% endfor %}
     {% endif %}
@@ -570,7 +570,7 @@ void DutGSimBase::update_write()
 {
     // update write pins
     {% if __SIMULATOR__ == "gsim" %}
-    {% for pin in __MODULE_EXTERNAL_PINS__ %}{% if pin.type == "In" %}
+    {% for pin in __MODULE_EXTERNAL_PINS__ %}{% if pin.type == "In" or pin.type == "InOut" %}
     this->top->set_{{pin.name}}(this->vpin_{{pin.name}});
     {% endif %}{% endfor %}
     {% endif %}

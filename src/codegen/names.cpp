@@ -3,6 +3,20 @@
 
 namespace picker::codegen {
 
+std::string pin_direction(const std::string &verilog_direction, const std::string &language)
+{
+    const bool inout = verilog_direction == "inout";
+    const bool input = verilog_direction == "input";
+    if (language == "golang") {
+        return inout ? "IOType_InOut" : input ? "IOType_Input" : "IOType_Output";
+    }
+    // xcomm spells the C++ enumerators Input/Output, unlike the SWIG names.
+    if (language == "cpp") {
+        return inout ? "InOut" : input ? "Input" : "Output";
+    }
+    return inout ? "InOut" : input ? "In" : "Out";
+}
+
 std::string verilator_identifier(const std::string &name)
 {
     // Verilator encodes the second underscore of each pair, and dollar signs.

@@ -31,7 +31,7 @@ namespace picker { namespace codegen {
             data["moudle_name"] = moudle_name;
             for (int i = 0; i < pin.size(); i++) {
                 data["logic_pin"]      = pin[i].logic_pin;
-                data["logic_pin_type"] = (pin[i].logic_pin_type[0] == 'i') ? "In" : "Out";
+                data["logic_pin_type"] = pin_direction(pin[i].logic_pin_type);
                 data["pin_func_name"]  = str_replace_all(pin[i].logic_pin, ".", "_");
                 data["signal_name"]    = signal_name(pin[i]);
                 data["pin_uniq_name"]  = names.Pin(pin[i].logic_pin);

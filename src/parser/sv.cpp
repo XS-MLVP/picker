@@ -466,9 +466,13 @@ namespace picker { namespace parser {
             }
 
             auto [high_bit, low_bit] = extract_port_range(*element_type);
+            // Every packed value is normalized to an ascending [width-1:0] view.
+            // RTL ranges may be ascending ([0:4]) or use a non-zero base, but
+            // host bindings derive the XData width from hb - lb + 1, so passing
+            // the declared left/right through would produce a negative width.
             // Packed element types are equivalent by width, signing and state kind.
-            // Normalize their range for XData (also avoids the scalar -1 sentinel).
-            if (!dimensions.empty() && element_type->kind == SymbolKind::PackedArrayType) {
+            // The scalar -1 sentinel is preserved.
+            if (element_type->kind == SymbolKind::PackedArrayType) {
                 high_bit = int(element_type->getBitWidth()) - 1;
                 low_bit = 0;
             }
