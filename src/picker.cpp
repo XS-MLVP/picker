@@ -1,10 +1,13 @@
 #include <iostream>
 #include <algorithm>
+#include <cctype>
 #include <cerrno>
+#include <charconv>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <sys/wait.h>
 #include <unordered_set>
 #include "picker.hpp"
@@ -363,6 +366,75 @@ namespace {
         opts.vflag += extra;
     }
 
+    // Module names become RTL identifiers, file names and Makefile variables.
+    // `$` is legal in a SystemVerilog identifier but starts a Makefile
+    // expansion, so `UT_foo$bar` would silently read a variable named `b` and
+    // produce `UT_fooar`. Accept only the subset that is an identifier in all
+    // three places.
+    bool is_sv_module_name(const std::string &name)
+    {
+        if (name.empty()) { return false; }
+        const char first = name.front();
+        if (!((first >= 'A' && first <= 'Z') || (first >= 'a' && first <= 'z') || first == '_')) {
+            return false;
+        }
+        for (char c : name) {
+            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+                c == '_') { continue; }
+            return false;
+        }
+        return true;
+    }
+
+    // --sname also accepts "<module>,<count>" entries. Counts are not module
+    // names, but every other entry must be a legal identifier; otherwise it
+    // could escape the target directory or inject Makefile syntax.
+    void validate_module_names()
+    {
+        // --sname is a flat list: ModuleA,2,ModuleB. A count only means
+        // something directly after a module name; accepting a leading or
+        // repeated count would silently fall back to "all modules".
+        bool expects_count = false;
+        for (const auto &raw : export_opts.source_module_name_list) {
+            const auto token = picker::trim(raw);
+            if (token.empty()) { continue; } // parse_mname_and_numbers reports empty entries itself
+            if (std::isdigit(static_cast<unsigned char>(token.front()))) {
+                const bool count = std::all_of(token.begin(), token.end(), [](char c) {
+                    return std::isdigit(static_cast<unsigned char>(c));
+                });
+                if (!count) {
+                    PK_FATAL("--sname '%s': entries that start with a digit must be instance counts",
+                             raw.c_str());
+                }
+                if (!expects_count) {
+                    PK_FATAL("--sname '%s': an instance count must directly follow a module name",
+                             raw.c_str());
+                }
+                int value = 0;
+                const char *begin = token.data();
+                const char *end = begin + token.size();
+                const auto parsed = std::from_chars(begin, end, value);
+                if (parsed.ec != std::errc() || parsed.ptr != end || value < 1) {
+                    PK_FATAL("--sname '%s': instance count must be an integer between 1 and %d",
+                             raw.c_str(), std::numeric_limits<int>::max());
+                }
+                expects_count = false;
+                continue;
+            }
+            if (!is_sv_module_name(token)) {
+                PK_FATAL("--sname '%s': '%s' is not a legal module name for a generated "
+                         "wrapper ([A-Za-z_][A-Za-z0-9_]*; `$` is rejected because it expands "
+                         "in the generated Makefile)", raw.c_str(), token.c_str());
+            }
+            expects_count = true;
+        }
+        if (!export_opts.target_module_name.empty() && !is_sv_module_name(export_opts.target_module_name)) {
+            PK_FATAL("--tname '%s' is not a legal module name for a generated wrapper "
+                     "([A-Za-z_][A-Za-z0-9_]*; `$` is rejected because it expands in the "
+                     "generated Makefile)", export_opts.target_module_name.c_str());
+        }
+    }
+
     // Verilator treats a differing macro redefinition as a fatal REDEFMACRO
     // warning, so a filelist macro overridden by --rtl-define must be removed
     // from the generated filelist rather than repeated after it.
@@ -445,6 +517,7 @@ int check_picker_support()
     // typo fails immediately instead of after elaboration.
     picker::rtl::parse_params(export_opts.rtl_param, "--rtl-param");
     picker::rtl::parse_defines(export_opts.rtl_define, "--rtl-define");
+    validate_module_names();
     if (export_opts.sim == "gsim" && (!export_opts.rtl_param.empty() || !export_opts.rtl_define.empty())) {
         PK_FATAL("--rtl-param and --rtl-define require a SystemVerilog frontend (verilator, vcs, uvs); "
                  "--sim gsim consumes FIRRTL input.");
