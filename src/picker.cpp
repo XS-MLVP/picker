@@ -360,7 +360,11 @@ namespace {
         std::string extra;
         for (const auto &define : defines) {
             if (!extra.empty()) { extra += " "; }
-            extra += picker::rtl::simulator_define_argument(define);
+            // The flag string is written into the generated Makefile and later
+            // split by CMake's separate_arguments(NATIVE_COMMAND). Escape the
+            // apostrophes of SV literals (1'b0) so that splitter does not
+            // consume them as quoting.
+            extra += picker::rtl::escape_vflag_apostrophes(picker::rtl::simulator_define_argument(define));
         }
         if (!opts.vflag.empty()) { opts.vflag += " "; }
         opts.vflag += extra;
