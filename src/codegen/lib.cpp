@@ -277,12 +277,15 @@ namespace picker { namespace codegen {
         std::string extra;
         for (const auto &dir : incdirs) {
             if (!extra.empty()) { extra += " "; }
+            // vflag reaches CMake through the environment and is split with
+            // separate_arguments(NATIVE_COMMAND), so a directory containing a
+            // space must remain a single quoted argument.
             if (simulator == "verilator") {
-                extra += "-I" + dir;
+                extra += quote_entry("-I" + dir);
             } else if (simulator == "vcs") {
-                extra += "+incdir+" + dir;
+                extra += quote_entry("+incdir+" + dir);
             } else if (simulator == "uvs") {
-                extra += "-include " + dir;
+                extra += quote_entry("-include " + dir);
             }
         }
         if (extra.empty()) { return; }
