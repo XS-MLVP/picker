@@ -79,6 +79,62 @@ static void test_identifier_rules()
     assert(!picker::rtl::is_identifier("A.B"));
 }
 
+static bool contains(const std::string &text, const std::string &needle)
+{
+    return text.find(needle) != std::string::npos;
+}
+
+static void test_define_value_rules()
+{
+    // SystemVerilog literals must survive the Makefile -> CMake handoff.
+    for (const auto &value : {"1'b0", "32'hdeadbeef", "4'sb1010", "'0", "'1", "'x", "'z",
+                              "{1,2}", "'{1,2}", "int'(3)", "8'(x)", "-8", "1+2"}) {
+        const auto error = picker::rtl::macro_value_error("W", value);
+        assert(error.empty());
+    }
+
+    auto defines = picker::rtl::parse_defines({"A=1'b0", "B=32'hdeadbeef", "C={1,2}", "D=-8", "E='{1,2}"},
+                                              "--rtl-define");
+    assert(defines.size() == 5);
+    assert(defines[0].value == "1'b0");
+    assert(defines[1].value == "32'hdeadbeef");
+    assert(defines[2].value == "{1,2}");
+    assert(defines[3].value == "-8");
+    assert(defines[4].value == "'{1,2}");
+
+    auto spaced = picker::rtl::macro_value_error("W", "2 + 3");
+    assert(contains(spaced, "macro 'W'"));
+    assert(contains(spaced, "a space"));
+    assert(contains(spaced, "--fs"));
+
+    auto shell = picker::rtl::macro_value_error("W", "$(shell touch /tmp/pwn)");
+    assert(contains(shell, "macro 'W'"));
+    assert(contains(shell, "'$'"));
+    assert(contains(shell, "shell"));
+
+    auto list = picker::rtl::macro_value_error("W", "1;2");
+    assert(contains(list, "';'"));
+    assert(contains(list, "argument-list"));
+
+    auto quote = picker::rtl::macro_value_error("W", "'foo'");
+    assert(contains(quote, "single quote"));
+
+    auto backslash = picker::rtl::macro_value_error("W", "a\\b");
+    assert(contains(backslash, "backslash"));
+
+    auto comment = picker::rtl::macro_value_error("W", "1#comment");
+    assert(contains(comment, "'#'"));
+    assert(contains(comment, "comment"));
+
+    auto newline = picker::rtl::macro_value_error("W", "1\n2");
+    assert(contains(newline, "a newline"));
+
+    // The apostrophes of accepted literals are escaped for the generated
+    // Makefile; CMake drops an unescaped one while splitting.
+    assert(picker::rtl::escape_vflag_apostrophes("+define+W=1'b0") == "+define+W=1\\'b0");
+    assert(picker::rtl::escape_vflag_apostrophes("+define+W=8") == "+define+W=8");
+}
+
 int main()
 {
     test_parse_defines();
@@ -86,5 +142,6 @@ int main()
     test_argument_rendering();
     test_filter_filelist_defines();
     test_identifier_rules();
+    test_define_value_rules();
     return 0;
 }
