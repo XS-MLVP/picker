@@ -290,9 +290,9 @@ class CoverageCollector {
     bool is_picker_generated_top(const Item &item) const
     {
         const std::filesystem::path path(item.file);
-        // Exclude only Picker's generated testbench wrapper.  The generated
-        // {{__TOP_MODULE_NAME__}}.v is the DUT RTL and must remain in the
-        // coverage denominator even when its compile-time path contains build/.
+        // Exclude only Picker's generated testbench wrapper. The DUT RTL files
+        // listed in filelist.f must remain in the coverage denominator even
+        // when their compile-time paths contain build/.
         return item.module == "{{__TOP_MODULE_NAME__}}_top" &&
                path.filename() == "{{__TOP_MODULE_NAME__}}_top.sv";
     }

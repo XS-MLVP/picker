@@ -68,7 +68,6 @@ if(SIMULATOR STREQUAL "verilator")
 		DPI${ModuleName}
 		SOURCES
 		${ModuleName}_top.sv
-		${ModuleName}.v
 		TOP_MODULE
 		${ModuleName}_top
 		PREFIX

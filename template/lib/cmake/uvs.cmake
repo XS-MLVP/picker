@@ -55,7 +55,7 @@ if(SIMULATOR STREQUAL "uvs")
 			COMMAND
                 uvs -ddb -debug r -sv -Xair opt.jemalloc=0 -Xair slave_mode -Xair sim_entry=UvsMain -l uvs_compile.log
                 -top ${ModuleName}_top -timescale=1ns/1ps    
-                ${ModuleName}_top.sv ${ModuleName}.v -f filelist.f    
+                ${ModuleName}_top.sv -f filelist.f
                 -o libDPI${ModuleName}.so                              
                 ${SIMULATOR_FLAGS}                                                                 
                 -cflags ${SIMULATOR_CFLAGS})
