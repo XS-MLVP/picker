@@ -1,7 +1,11 @@
 #include <iostream>
 #include <algorithm>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <sys/wait.h>
 #include <unordered_set>
 #include "picker.hpp"
 #include "codegen/lib.hpp"
@@ -402,6 +406,35 @@ namespace {
         for (const auto &kept : lines) { output << kept << "\n"; }
     }
 
+    // Run make in the export directory without a shell: target_dir is user
+    // input, so shell interpolation would both break on spaces and execute
+    // metacharacters. fork/execvp keeps the argument a plain path.
+    int run_make(const std::string &directory)
+    {
+        std::fflush(nullptr);
+        const pid_t pid = fork();
+        if (pid < 0) { PK_FATAL("Failed to fork make: %s", std::strerror(errno)); }
+        if (pid == 0) {
+            if (chdir(directory.c_str()) != 0) {
+                PK_OUTPUT(stderr, "Failed to enter target directory '%s': %s\n", directory.c_str(),
+                          std::strerror(errno));
+                _exit(127);
+            }
+            // execvp searches PATH, matching the previous shell lookup.
+            char *const argv[] = {const_cast<char *>("make"), nullptr};
+            execvp(argv[0], argv);
+            PK_OUTPUT(stderr, "Failed to execute make: %s\n", std::strerror(errno));
+            _exit(127);
+        }
+        int status = 0;
+        while (waitpid(pid, &status, 0) < 0) {
+            if (errno != EINTR) { PK_FATAL("Failed to wait for make: %s", std::strerror(errno)); }
+        }
+        if (WIFEXITED(status)) { return WEXITSTATUS(status); }
+        if (WIFSIGNALED(status)) { PK_MESSAGE("Build terminated by signal %d", WTERMSIG(status)); }
+        return 1;
+    }
+
 } // namespace
 
 int check_picker_support()
@@ -647,8 +680,7 @@ int main(int argc, char **argv)
 
         // build the result with make
         if (export_opts.autobuild) {
-            const std::string cmd = "cd " + export_opts.target_dir + " && make";
-            if (system(cmd.c_str()) != 0) {
+            if (run_make(export_opts.target_dir) != 0) {
                 PK_MESSAGE("Build failed");
                 exit(1);
             }
