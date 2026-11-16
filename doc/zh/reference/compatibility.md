@@ -80,7 +80,7 @@ Picker 当前只为端口生成 packed 类型布局，不为内部 packed struct
 拒绝对内部 packed struct 的请求，而不会猜测字段偏移。这些结果不代表 VCS、UVS、GSIM
 上的聚合 RTL 支持。
 
-使用原生 ABI 4 的匹配 xcomm SDK，并重新编译生成的 DUT。DPI setter 与 mem_direct
+使用原生 ABI 5 的匹配 xcomm SDK，并重新编译生成的 DUT。DPI setter 与 mem_direct
 写入均直接访问所选独立字段或数组元素，不复制整个 unpacked 数组。
 
 ## 语言

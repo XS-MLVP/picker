@@ -93,7 +93,7 @@ packed type layouts for ports, not internal packed structs; an internal packed
 struct request therefore fails instead of guessing offsets. These results do
 not establish aggregate RTL support on VCS, UVS or GSIM.
 
-Use the matching xcomm SDK with native ABI 4 and rebuild generated DUTs.
+Use the matching xcomm SDK with native ABI 5 and rebuild generated DUTs.
 DPI setters and mem_direct writes access the selected independent field or
 array element directly, without a whole unpacked-array copy.
 

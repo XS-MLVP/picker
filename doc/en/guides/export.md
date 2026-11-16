@@ -219,7 +219,7 @@ directly, without copying an entire unpacked array for a single-element write.
 
 Run `make -C test export_aggregate_views` for the Python/C++/Java RTL regression
 using `test/data/aggregate_views.sv`. Use the matching xcomm SDK containing
-`XStruct`, `XArray` and native ABI 4, and rebuild generated DUTs with that SDK.
+`XStruct`, `XArray` and native ABI 5, and rebuild generated DUTs with that SDK.
 
 ## Generated member names
 
