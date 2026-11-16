@@ -161,6 +161,10 @@ jobs:
           cmake --build build --target test_picker_utils -j"$(nproc)"
           ./build/bin/test_picker_utils
 
+      - name: Check render tags
+        if: matrix.full_test
+        run: python scripts/check_render_tags.py
+
       - name: Full tests (make -C test all)
         if: matrix.full_test
         run: |
