@@ -1,5 +1,11 @@
 #include "codegen/uvm.hpp"
+#include "codegen/pack_path_guard.hpp"
 #include "parser/sv.hpp"
+
+#include <filesystem>
+#include <fstream>
+#include <string>
+#include <system_error>
 
 namespace picker { namespace codegen {
 
@@ -40,29 +46,68 @@ namespace picker { namespace codegen {
 
         OutputDirs dirs;
 
+        // Defense 1: the name is used as a directory path and as a class/module
+        // identifier. Callers must already validate it, but never let a
+        // path-like value ("..", "/tmp", "a/b") reach the filesystem from here.
+        if (!is_valid_package_name(package_name)) {
+            PK_FATAL("Invalid pack name '%s': expected a single identifier matching [A-Za-z_][A-Za-z0-9_]*",
+                     package_name.c_str());
+        }
+
+        // Root the deletion is confined to. Everything below this is picker's
+        // own output and disposable; anything else is user data.
+        fs::path allowed_root;
         if (opts.example) {
             // Example mode: create uvmpy/package_name/build structure
             dirs.top = "uvmpy";
             dirs.package = dirs.top / package_name;
-            dirs.build = dirs.package / "build";
+            allowed_root = dirs.top;
         } else {
             // Normal mode: create package_name/build structure
             dirs.top = package_name;
             dirs.package = package_name;
-            dirs.build = dirs.package / "build";
+            allowed_root = ".";
         }
+        dirs.build = dirs.package / "build";
+
+        std::error_code ec;
+        const bool package_exists = fs::exists(dirs.package, ec);
+        ec.clear();
+        const bool package_is_link = fs::is_symlink(dirs.package, ec);
 
         // Check if folder exists
-        if (fs::exists(dirs.package) && !opts.force) {
+        if (package_exists && !opts.force) {
             PK_MESSAGE("folder already exists, use -c/--force to overwrite");
             exit(0);
         }
 
-        // Remove and recreate
-        if (fs::exists(dirs.package)) {
-            fs::remove_all(dirs.package);
+        // Remove and recreate: defenses 2 and 3 live in remove_pack_output().
+        // A dangling symlink counts as "exists" here so it is refused with a
+        // diagnostic instead of failing later in create_directories().
+        if (package_exists || package_is_link) {
+            const std::string refusal = remove_pack_output(dirs.package, allowed_root);
+            if (!refusal.empty()) {
+                PK_FATAL("Refusing to delete %s. Remove it manually if that is intended.", refusal.c_str());
+            }
         }
-        fs::create_directories(dirs.build);
+
+        ec.clear();
+        fs::create_directories(dirs.build, ec);
+        if (ec) { PK_FATAL("Cannot create '%s': %s", dirs.build.string().c_str(), ec.message().c_str()); }
+
+        // Mark the tree as a picker product so a later --force run is allowed to
+        // delete it (see is_picker_pack_output). Written before the templates are
+        // rendered so an interrupted generation can still be cleaned up.
+        std::ofstream marker(dirs.package / pack_marker_name, std::ios::trunc);
+        if (!marker) {
+            PK_FATAL("Cannot write pack marker '%s'", (dirs.package / pack_marker_name).string().c_str());
+        }
+        marker << "picker pack output\n";
+        marker << "package: " << package_name << "\n";
+        marker << "version: " << picker::version() << "\n";
+        if (!marker) {
+            PK_FATAL("Cannot write pack marker '%s'", (dirs.package / pack_marker_name).string().c_str());
+        }
 
         return dirs;
     }

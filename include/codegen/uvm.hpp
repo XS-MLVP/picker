@@ -1,6 +1,7 @@
 #pragma once
 
 #include "picker.hpp"
+#include "pack_path_guard.hpp"
 #include "parser/sv.hpp"
 
 namespace picker { namespace codegen {

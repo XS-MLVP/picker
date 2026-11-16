@@ -221,11 +221,24 @@ int set_options_pack_message(CLI::App &top_app)
 
     app->add_option("file", pack_opts.files, "Sv source file, contain the transaction define");
 
-    app->add_option("-r,--rename", pack_opts.rename, "Rename transaction name in picker generate code");
-    
+    app->add_option("-r,--rename", pack_opts.rename, "Rename transaction name in picker generate code")
+        ->check([](const std::string &value) {
+            // Rejected during parsing, before any file is read or written.
+            return picker::codegen::is_valid_package_name(value)
+                       ? std::string{}
+                       : "'" + value + "' is not a valid name: expected a single identifier matching "
+                           "[A-Za-z_][A-Za-z0-9_]*";
+        });
+
     app->add_option("-f,--filelist", pack_opts.filelist, "File list containing transaction files");
-    
-    app->add_option("-n,--name", pack_opts.name, "Name for the generated package (default: auto-generated from files)");
+
+    app->add_option("-n,--name", pack_opts.name, "Name for the generated package (default: auto-generated from files)")
+        ->check([](const std::string &value) {
+            return picker::codegen::is_valid_package_name(value)
+                       ? std::string{}
+                       : "'" + value + "' is not a valid name: expected a single identifier matching "
+                           "[A-Za-z_][A-Za-z0-9_]*";
+        });
 
     return 0;
 }
@@ -513,6 +526,23 @@ namespace {
 
 } // namespace
 
+namespace {
+
+    /// Pack names become the output directory and generated identifiers, so a
+    /// single [A-Za-z_][A-Za-z0-9_]* token is the only accepted form. Validated
+    /// at argument parsing and again before any filesystem change; the last gate
+    /// is remove_pack_output() in src/codegen/uvm.cpp.
+    void require_pack_name(const std::string &name, const char *option)
+    {
+        if (!picker::codegen::is_valid_package_name(name)) {
+            PK_FATAL("%s '%s' is not a valid name: expected a single identifier matching "
+                     "[A-Za-z_][A-Za-z0-9_]*",
+                     option, name.c_str());
+        }
+    }
+
+} // namespace
+
 int check_picker_support()
 {
     std::string err_message;
@@ -764,7 +794,13 @@ int main(int argc, char **argv)
         }
         // subcommand pack
     } else if (app.get_subcommand_ptr("pack")->parsed()) {
-        
+
+        // Validate every user-supplied name before any filesystem change. The
+        // CLI checks already reject bad -n/-r values while parsing; repeating
+        // the check here also covers empty vector elements, which CLI11 skips.
+        if (!pack_opts.name.empty()) { require_pack_name(pack_opts.name, "--name"); }
+        for (const auto &rename : pack_opts.rename) { require_pack_name(rename, "--rename"); }
+
         std::vector<picker::uvm_transaction_define> transactions;
         std::vector<std::string> filenames;
 
@@ -801,6 +837,11 @@ int main(int argc, char **argv)
         if (package_name.empty()) {
             PK_FATAL("Cannot determine package name");
         }
+
+        // Without -n the name is derived from the first input file stem, which
+        // may itself be path-like (e.g. the file was given as "../.."). Check it
+        // before it becomes the directory that --force can delete.
+        require_pack_name(package_name, "package name");
 
         PK_MESSAGE("Package name: %s", package_name.c_str());
 
