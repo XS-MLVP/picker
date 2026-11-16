@@ -76,7 +76,7 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
 {{__XPORT_ADD__}}
 
         # Cascaded ports
-{{__XPORT_CASCADED__}}
+{{__XPORT_CASCADED_SGN__}}
 
     def __del__(self):
         try:

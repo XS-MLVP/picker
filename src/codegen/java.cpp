@@ -1,3 +1,5 @@
+#include "codegen/names.hpp"
+#include "codegen/render_tags.hpp"
 #include "codegen/java.hpp"
 #include "codegen/lib.hpp"
 
@@ -26,8 +28,7 @@ namespace picker { namespace codegen {
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &moudle_name,
                                   std::string &xdata_decl, std::string &xdata_init, std::string &xdata_bindrw,
-                                  std::string &xport_add, std::string &swig_constant, SignalAccessType rw_type,
-                                  const MemberNames &names)
+                                  std::string &xport_add, SignalAccessType rw_type, const MemberNames &names)
         {
             inja::Environment env;
             nlohmann::json data;
@@ -61,7 +62,7 @@ namespace picker { namespace codegen {
         /// @param comments
         void render_internal_signal(std::vector<picker::sv_signal_define> pin, std::string &moudle_name,
                                     std::string &xdata_decl, std::string &xdata_init, std::string &xdata_bindrw,
-                                    std::string &xport_add, std::string &swig_constant, const MemberNames &names)
+                                    std::string &xport_add, const MemberNames &names)
         {
             inja::Environment env;
             nlohmann::json data;
@@ -116,20 +117,20 @@ namespace picker { namespace codegen {
         std::string simulator       = opts.sim;
 
         // Codegen Buffers
-        std::string xdata_decl, xdata_init, xdata_bindrw, xport_add, swig_constant, cascaded_signals_dec,
+        std::string xdata_decl, xdata_init, xdata_bindrw, xport_add, cascaded_signals_dec,
             cascaded_signals_sgn;
 
         // Generate External Pin
         const MemberNames names(external_pin, internal_signal, signal_tree_json, "java", dst_module_name);
         java_ns::render_external_pin(external_pin, dst_module_name, xdata_decl, xdata_init, xdata_bindrw, xport_add,
-                                      swig_constant, opts.rw_type, names);
+                                      opts.rw_type, names);
         // Generate Internal Signal
         java_ns::render_internal_signal(internal_signal, dst_module_name, xdata_decl, xdata_init, xdata_bindrw,
-                                        xport_add, swig_constant, names);
+                                        xport_add, names);
 
         // Generate Cascaded Ports
         java_ns::render_cascaded_signals("", signal_tree_json, cascaded_signals_dec, cascaded_signals_sgn, names);
-        const bool has_arrays = render_array_ports(external_pin, "java", cascaded_signals_dec, cascaded_signals_sgn, &names);
+        render_array_ports(external_pin, "java", cascaded_signals_dec, cascaded_signals_sgn, &names);
 
         // Simulator
         std::transform(simulator.begin(), simulator.end(), simulator.begin(),
@@ -143,27 +144,24 @@ namespace picker { namespace codegen {
         auto cpplib_location = picker::get_xcomm_lib("lib", erro_message);
         if (cpplib_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
 
-        data["__XSPCOMM_LIB__"]     = cpplib_location;
-        data["__XSPCOMM_JAR__"]     = java_location;
-        data["__TOP_MODULE_NAME__"] = dst_module_name;
+        data[tags::xspcomm_lib]     = cpplib_location;
+        data[tags::xspcomm_jar]     = java_location;
+        data[tags::top_module_name] = dst_module_name;
         std::string native_lib_suffix = get_shared_lib_suffix();
         // The suffix of Java native library in macOS is `jnilib`
         if (native_lib_suffix == "dylib") { native_lib_suffix = "jnilib"; }
-        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
-        data["__JNI_LIB_SUFFIX__"] = native_lib_suffix;
+        data[tags::shared_lib_suffix] = get_shared_lib_suffix();
+        data[tags::jni_lib_suffix]    = native_lib_suffix;
 
-        data["__XDATA_DECL__"]         = xdata_decl;
-        data["__HAS_UNPACKED_ARRAYS__"] = has_arrays;
-        data["__XDATA_INIT__"]         = xdata_init;
-        data["__XDATA_BIND__"]         = xdata_bindrw;
-        data["__XPORT_ADD__"]          = xport_add;
-        data["__XPORT_CASCADED_DEC__"] = cascaded_signals_dec;
-        data["__XPORT_CASCADED_SGN__"] = cascaded_signals_sgn;
+        data[tags::xdata_declaration]  = xdata_decl;
+        data[tags::xdata_init]         = xdata_init;
+        data[tags::xdata_bind]         = xdata_bindrw;
+        data[tags::xport_add]          = xport_add;
+        data[tags::xport_cascaded_dec] = cascaded_signals_dec;
+        data[tags::xport_cascaded_sgn] = cascaded_signals_sgn;
 
-        data["__SWIG_CONSTANT__"]    = swig_constant;
-        data["__USE_SIMULATOR__"]    = "USE_" + simulator;
-        data["__COPY_XSPCOMM_LIB__"] = opts.cp_lib;
-        data["__SIMULATOR__"]        = opts.sim;
+        data[tags::copy_xspcomm_lib] = opts.cp_lib;
+        data[tags::simulator]        = opts.sim;
 
         // Render
         configure_array_bindings(external_pin, opts, data);

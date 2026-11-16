@@ -8,7 +8,7 @@
 %feature("director") DutUnifiedBase;
 %ignore DutUnifiedBase::DutUnifiedBase(std::initializer_list<const char *> args);
 
-%define {{__USE_SIMULATOR__}}
+%define USE_{{ upper(__SIMULATOR__) }}
 %enddef
 
 

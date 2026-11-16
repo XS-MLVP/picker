@@ -1,4 +1,5 @@
 #include "codegen/sv/waveform.hpp"
+#include "codegen/render_tags.hpp"
 #include "picker.hpp"
 
 namespace picker::codegen::sv {
@@ -83,9 +84,9 @@ void render_sv_waveform(const std::string &simulator, const std::string &wave_fi
         PK_DEBUG("Find DUMPVARS_OPTION=%s", dump_var_options.c_str());
         dump_var_options = ", \"" + dump_var_options + "\"";
     }
-    data["__WAVE_FILE_NAME__"] = wave_file_name;
-    data["__DUMP_VAR_OPTIONS__"] = dump_var_options;
-    data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
+    data[tags::wave_file_name]         = wave_file_name;
+    data[tags::dump_var_options]       = dump_var_options;
+    data[tags::lib_dpi_func_name_hash] = std::string(lib_random_hash);
     if (simulator == "verilator") {
         if (!wave_file_name.empty()) {
             if (wave_file_name.ends_with(".vcd") || wave_file_name.ends_with(".fst")) {
@@ -127,13 +128,13 @@ void render_sv_waveform(const std::string &simulator, const std::string &wave_fi
         PK_FATAL("Unsupported simulator: %s\n", simulator.c_str());
     }
 
-    data["__TRACE__"] = !sv_dump_wave.empty() ? wave_file_name.substr(wave_file_name.find_last_of(".") + 1,
+    data[tags::trace] = !sv_dump_wave.empty() ? wave_file_name.substr(wave_file_name.find_last_of(".") + 1,
                                                                   wave_file_name.length()) : "OFF";
     // Declare the runtime guard before its initial-block use without changing
     // the waveform/control order or trace enablement above.
     if (simulator == "vcs") sv_dump_wave = "  bit picker_fsdb_configured = 0;\n" + sv_dump_wave;
     if (simulator == "uvs") sv_dump_wave = "  bit picker_usdb_configured = 0;\n" + sv_dump_wave;
-    data["__SV_DUMP_WAVE__"] = sv_dump_wave + sv_waveform_control;
+    data[tags::sv_dump_wave] = sv_dump_wave + sv_waveform_control;
 }
 
 } // namespace picker::codegen::sv

@@ -1,11 +1,12 @@
 #include "codegen/mem_direct.hpp"
+#include "codegen/render_tags.hpp"
 #include "codegen/lib.hpp"
 
 #define MAX_VAR_PERFILE 5000
 
 namespace picker { namespace codegen {
 
-    static const std::string yaml_varible_info =
+    static const std::string variable_info_template =
         "    cpp_variableInfo {{var_hash}} = {\"{{var_name}}\", \"{{var_type}}\", {{var_width}}, {{var_array_size}}, (uint64_t)&(base.{{var_raw_name}}) - (uint64_t)&base, {{var_dimensions}}, {{var_strides}}, {{var_mem_bytes}}, {{var_layout}}, {{var_error}}, {{var_groups}} };\n"
         "    all_vars.push_back({{var_hash}});\n";
 
@@ -26,7 +27,7 @@ namespace picker { namespace codegen {
         return out;
     }
 
-    void generate_offset(const std::vector<cpp_variableInfo> &varibles, std::vector<std::string> &offset_array,
+    void generate_offset(const std::vector<cpp_variableInfo> &variables, std::vector<std::string> &offset_array,
                          std::string &offset_funcs, std::string &offset_funcs_define)
     {
         inja::Environment env;
@@ -34,7 +35,7 @@ namespace picker { namespace codegen {
         int var_count = 0, file_count = 0;
         offset_array.push_back("");
 
-        for (auto &var : varibles) {
+        for (auto &var : variables) {
             // calc hash from name
             data["var_hash"]       = "hash_" + std::to_string(std::hash<std::string>{}(var.public_name.empty() ? var.name : var.public_name));
             data["var_raw_name"]   = var.name;
@@ -78,7 +79,7 @@ namespace picker { namespace codegen {
             data["var_dimensions"] = dimensions + "}";
             data["var_strides"] = strides + "}";
             data["var_mem_bytes"] = "sizeof(" + member + ")";
-            offset_array[file_count] += env.render(yaml_varible_info, data);
+            offset_array[file_count] += env.render(variable_info_template, data);
             if (++var_count >= MAX_VAR_PERFILE) {
                 var_count = 0;
                 file_count++;
@@ -86,40 +87,35 @@ namespace picker { namespace codegen {
             }
         }
         for (int i = 0; i < offset_array.size(); i++) {
-            offset_funcs += "\t\trender_varible_info_" + std::to_string(i) + "(base);\n";
-            offset_funcs_define += "void render_varible_info_" + std::to_string(i) + "(BaseType &base);\n";
+            offset_funcs += "    render_variable_info_" + std::to_string(i) + "(base);\n";
+            offset_funcs_define += "void render_variable_info_" + std::to_string(i) + "(BaseType &base);\n";
         }
     }
     
 
-    void split_offset(const std::vector<std::string> &offset_array, std::string &src_dir, std::string &dst_dir)
+    void write_offset_files(const std::vector<std::string> &offset_array, const std::string &dst_dir)
     {
-        nlohmann::json data;
-        
-        for (size_t i = 0; i < offset_array.size(); i++) {
-            // copy gen_addr_sub_.cpp to gen_addr_sub_i.cpp
-            std::string src_file = src_dir + "/gen_addr_sub_.cpp";
-            std::string dst_file = dst_dir + "/gen_addr_sub_" + std::to_string(i) + ".cpp";
-            std::ifstream src(src_file);
-            std::ofstream dst(dst_file);
-            // sed -i "s/{{__sub_i__}}/i/g" gen_addr_sub_i.cpp
-            std::string line;
-            while (std::getline(src, line))
-                dst << std::regex_replace(line, std::regex("\\{\\{__sub_i__\\}\\}"), std::to_string(i)) << std::endl;
-            src.close();
-            dst.close();
+        // Each file is emitted directly: a two-pass regex/inja expansion made
+        // the generated function name impossible to follow from the template.
+        // Write into the destination, after recursive_render: the emitted C++
+        // contains nested braces such as {{".field", 1, ...}} for struct
+        // layouts, which inja would otherwise parse as a template expression.
+        for (size_t i = 0; i < offset_array.size(); ++i) {
+            const auto path = dst_dir + "/gen_addr_sub_" + std::to_string(i) + ".cpp";
+            write_file(path, "#include \"gen_addr.hpp\"\n\nvoid render_variable_info_" + std::to_string(i) +
+                                 "(BaseType &base)\n{\n" + offset_array[i] + "\n    return;\n}\n");
         }
     }
 
-    void render_md_addr_generator(const std::vector<cpp_variableInfo> &varibles, picker::export_opts &opts,
+    void render_md_addr_generator(const std::vector<cpp_variableInfo> &variables, picker::export_opts &opts,
                                   const nlohmann::json &types)
     {
-        if (varibles.size() == 0) { return; }
+        if (variables.size() == 0) { return; }
         inja::Environment env;
         nlohmann::json data;
         std::string erro_message;
         std::vector<std::string> offset_array;
-        std::string offset_funcs, offset_funcs_define;              // begin with "render_varible_info_0(base);\n"
+        std::string offset_funcs, offset_funcs_define; // Calls and declarations for the generated offset functions.
         std::string src_dir = opts.source_dir; // "mem_direct" folder has been added in the upper level
         std::string dst_dir = opts.target_dir;
         std::string dst_dir_tmp = std::filesystem::path(dst_dir).parent_path().string() + "/mem_direct_tmp";
@@ -128,22 +124,20 @@ namespace picker { namespace codegen {
         std::filesystem::copy(src_dir + "/gen_addr.hpp", dst_dir_tmp + "/gen_addr.hpp", std::filesystem::copy_options::overwrite_existing);
         std::filesystem::copy(src_dir + "/gen_addr.cpp", dst_dir_tmp + "/gen_addr.cpp", std::filesystem::copy_options::overwrite_existing);
         std::filesystem::copy(src_dir + "/Makefile", dst_dir_tmp + "/Makefile", std::filesystem::copy_options::overwrite_existing);
-        generate_offset(varibles, offset_array, offset_funcs, offset_funcs_define);
-        split_offset(offset_array, src_dir, dst_dir_tmp);
-        data["__TOP_MODULE_NAME__"] = opts.source_module_name_list[0];
-        data["__NATIVE_TYPE_IDS__"] = nlohmann::json::array();
-        for (const auto &[id, type] : types.items()) data["__NATIVE_TYPE_IDS__"].push_back(nlohmann::json(id).dump());
-        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
-        for (int i = 0; i < offset_array.size(); i++)
-            data["__yaml_varible_info_" + std::to_string(i) + "__"] = offset_array[i];
-        data["__render_varible_info_sub__"] = "  generated by codegen\n" + offset_funcs;
-        data["__render_varible_info_sub_define__"] = offset_funcs_define;
+        generate_offset(variables, offset_array, offset_funcs, offset_funcs_define);
+        data[tags::top_module_name] = opts.source_module_name_list[0];
+        data[tags::native_type_ids] = nlohmann::json::array();
+        for (const auto &[id, type] : types.items()) data[tags::native_type_ids].push_back(nlohmann::json(id).dump());
+        data[tags::render_variable_info_sub]        = "    // generated by codegen\n" + offset_funcs;
+        data[tags::render_variable_info_sub_define] = offset_funcs_define;
         auto cpplib_location = picker::get_xcomm_lib("lib", erro_message);
         if (cpplib_location.empty()) { PK_FATAL("%s", erro_message.c_str()); }
-        data["__XSPCOMM_LIB__"] = cpplib_location;
-        data["__XSPCOMM_INCLUDE__"] = picker::get_xcomm_lib("include", erro_message);
-        data["__SIMULATOR__"] = opts.sim;
+        data[tags::xspcomm_lib]     = cpplib_location;
+        data[tags::xspcomm_include] = picker::get_xcomm_lib("include", erro_message);
+        data[tags::simulator]       = opts.sim;
         recursive_render(dst_dir_tmp, dst_dir, data, env);
+        // After rendering: these files are final C++, not templates.
+        write_offset_files(offset_array, dst_dir);
     }
 
 }}; // namespace picker::codegen

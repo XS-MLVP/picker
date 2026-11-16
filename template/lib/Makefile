@@ -11,7 +11,7 @@ export SIMULATOR_FLAGS := {{__VFLAG__}}
 export CFLAGS := {{__CFLAG__}}
 export COVERAGE := {{__COVERAGE__}}
 export CHECKPOINTS := {{__CHECKPOINTS__}}
-export VPI := {{__VPI__}}
+export VPI := {% if __HAS_VPI_VIEWS__ %}ON{% else %}OFF{% endif %}
 export RW_TYPE := {{__RW_TYPE__}}
 export NPROC := {{__BUILD_THREADS__}}
 

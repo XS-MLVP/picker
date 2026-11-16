@@ -75,7 +75,7 @@ public class UT_{{__TOP_MODULE_NAME__}} {
     {% endif %}
 
     // all pins declare
-{{__XDATA_DECL__}}
+{{__XDATA_DECLARATION__}}
     // Subports
 {{ __XPORT_CASCADED_DEC__}}
     private void initDut(){

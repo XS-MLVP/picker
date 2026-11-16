@@ -1,4 +1,5 @@
 #include "codegen/sv.hpp"
+#include "codegen/render_tags.hpp"
 #include "codegen/sv/aggregate.hpp"
 #include "codegen/sv/templates.hpp"
 #include "codegen/sv/waveform.hpp"
@@ -109,7 +110,7 @@ namespace picker { namespace codegen {
                         data["logic_pin"]                  = temp_pin.logic_pin;
                         data["logic_pin_type"]             = pin[i].logic_pin_type;
                         data["pin_func_name"]              = str_replace_all(temp_pin.logic_pin, ".", "_");
-                        data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
+                        data[tags::lib_dpi_func_name_hash] = std::string(lib_random_hash);
                         // Set empty or [hb:lb] for verilog render
                         data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ?
                                                        "" :
@@ -219,7 +220,7 @@ namespace picker { namespace codegen {
                 data["logic_pin"]                  = pin[i].logic_pin;
                 data["logic_pin_type"]             = pin[i].logic_pin_type;
                 data["pin_func_name"]              = str_replace_all(pin[i].logic_pin, ".", "_");
-                data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
+                data[tags::lib_dpi_func_name_hash] = std::string(lib_random_hash);
 
                 // Set empty or [hb:lb] for verilog render
                 data["logic_pin_length"] = pin[i].logic_pin_hb == -1 ? "" :
@@ -397,14 +398,13 @@ namespace picker { namespace codegen {
         {
             inja::Environment env;
             nlohmann::json data;
-            data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
+            data[tags::lib_dpi_func_name_hash] = std::string(lib_random_hash);
             extend_sv                          = env.render(templates::dpi_finish, data);
         }
 
     } // namespace sv
-    /// @brief generate system verilog wrapper file contains
-    /// __PIN_CONNECT__ , __LOGIC_PIN_DECLARATION__ , __WIRE_PIN_DECLARATION__
-    /// __DPI_FUNCTION_EXPORT__ and __DPI_FUNCTION_IMPLEMENT__
+    /// @brief render the fragments that top.sv and top.v inject
+    /// (pin connections, declarations, DPI export/implementation, waveform code)
     /// @param global_render_data
     /// @param external_pin
     /// @param internal_signal
@@ -425,20 +425,20 @@ namespace picker { namespace codegen {
         switch (rw_type)
         {
             case SignalAccessType::DPI:
-                global_render_data["__LOGIC_PIN_DECLARATION__"]  = logic;
+                global_render_data[tags::logic_pin_declaration]  = logic;
                 break;
             case SignalAccessType::MEM_DIRECT:
-                global_render_data["__LOGIC_PIN_DECLARATION__"]  = "/*verilator public_flat_rw_on*/\n" + logic + "/*verilator public_off*/\n";
+                global_render_data[tags::logic_pin_declaration]  = "/*verilator public_flat_rw_on*/\n" + logic + "/*verilator public_off*/\n";
                 break;
         }
         
-        global_render_data["__WIRE_PIN_DECLARATION__"]   = wire;
-        global_render_data["__INNER_MODULES__"]          = inner_modules;
-        global_render_data["__DPI_FUNCTION_EXPORT__"]    = dpi_export;
-        global_render_data["__DPI_FUNCTION_IMPLEMENT__"] = dpi_impl;
-        global_render_data["__EXTEND_SV__"]              = extend_sv;
-        global_render_data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
-        global_render_data["__SIGNAL_TREE__"]            = signal_tree;
+        global_render_data[tags::wire_pin_declaration]   = wire;
+        global_render_data[tags::inner_modules]          = inner_modules;
+        global_render_data[tags::dpi_function_export]    = dpi_export;
+        global_render_data[tags::dpi_function_implement] = dpi_impl;
+        global_render_data[tags::extend_sv]              = extend_sv;
+        global_render_data[tags::lib_dpi_func_name_hash] = std::string(lib_random_hash);
+        global_render_data[tags::signal_tree]                 = signal_tree;
         return external_pin;
     }
 

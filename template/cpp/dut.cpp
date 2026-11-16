@@ -50,7 +50,7 @@ void UT{{__TOP_MODULE_NAME__}}::init()
     */
 
     // initialize {{__TOP_MODULE_NAME__}}
-{{__XDATA_REINIT__}}
+{{__XDATA_INIT__}}
 
     // bind {{__TOP_MODULE_NAME__}} pins
 {{__XDATA_BIND__}}

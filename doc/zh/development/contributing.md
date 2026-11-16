@@ -9,6 +9,7 @@
 | `src/picker.cpp` | 命令行参数和 export/pack 流程 |
 | `src/parser/` | RTL、事务、文件列表和信号布局解析 |
 | `src/codegen/` | 整理解析结果，生成模板数据 |
+| `include/codegen/render_tags.hpp` | 模板渲染变量的唯一声明处 |
 | `template/lib/` | 模拟器包装和构建配置 |
 | `template/python/` 等语言目录 | 生成的语言接口及构建模板 |
 | `test/` | 单元测试、导出集成测试和发布脚本测试 |
@@ -16,6 +17,23 @@
 | `doc/zh/`、`doc/en/` | 中英文文档 |
 
 修复生成代码时，在对应模板中修改，然后重新导出示例验证。`dependence/` 下的库各自维护，修改依赖时在其仓库单独提交。
+
+## 模板变量
+
+模板变量在 `include/codegen/render_tags.hpp` 的 `PICKER_RENDER_TAGS` 列表中声明一次：一行同时给出 `tags::<id>` 常量、模板中的 `__UPPER_SNAKE__` 名称、类型、作用域和双语文档。C++ 侧一律通过常量写 key：
+
+```cpp
+data[tags::top_module_name] = dst_module_name;
+```
+
+这样变量名拼错会在编译期报错，而不是在渲染时留下空值。新增、重命名或删除变量时：
+
+1. 修改 `PICKER_RENDER_TAGS` 中的对应行。
+2. 修改 `src/codegen/` 中的赋值和 `template/` 中的引用。
+3. 运行 `python scripts/check_render_tags.py --docs` 重新生成 `doc/zh/reference/render-tags.md` 和 `doc/en/reference/render-tags.md`。
+4. 运行 `python scripts/check_render_tags.py` 校验声明、生产者、模板和文档是否一致，CI 会执行同样的检查。
+
+内部流程键（如 `signal_tree`）用普通 `snake_case` 声明为 `internal` 作用域，不要写成标签形式。
 
 ## 运行测试
 
