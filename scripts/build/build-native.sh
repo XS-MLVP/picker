@@ -12,20 +12,9 @@ elif [[ $# -ne 0 ]]; then
   exit 2
 fi
 
-if [[ -n "${XCOMM_RELEASE_VERSION:-}" ]]; then
-  [[ "${XCOMM_RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-  xcomm_ref="refs/tags/v${XCOMM_RELEASE_VERSION}"
-else
-  xcomm_ref=${XCOMM_SOURCE_REF:-$(sed -n 's/^  xcomm:[[:space:]]*//p' .build-config.yml)}
-  [[ "$xcomm_ref" =~ ^[0-9a-f]{40}$ ]]
-fi
+# init.sh checks out the pinned xcomm revision (or XCOMM_RELEASE_VERSION);
+# XCOMM_SKIP_ALIGN only disables aligning to a same-named branch.
 XCOMM_SKIP_ALIGN=1 make init
-if [[ -n "$(git -C dependence/xcomm status --porcelain)" ]]; then
-  echo 'Refusing to switch an xcomm checkout with local changes' >&2
-  exit 1
-fi
-git -C dependence/xcomm fetch origin "$xcomm_ref"
-git -C dependence/xcomm checkout --detach FETCH_HEAD
 
 cmake_args=(-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr)
 if [[ -n "${PICKER_RELEASE_VERSION:-}" ]]; then

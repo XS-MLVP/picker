@@ -89,42 +89,73 @@ if [[ ! -d "${XCOMM_DIR}/.git" ]]; then
   fi
 fi
 
+# The revision this tree is meant to build against. Picker compiles against
+# xcomm's public headers and reads the native ABI number from its CMakeLists,
+# so every build path has to agree on one revision. branch alignment below is
+# for the case where picker and xcomm are developed on matching branches; the
+# pin is the answer whenever that branch does not exist.
+if [[ -n "${XCOMM_RELEASE_VERSION:-}" ]]; then
+  if [[ ! "${XCOMM_RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "[xcomm] XCOMM_RELEASE_VERSION must be MAJOR.MINOR.PATCH, got '${XCOMM_RELEASE_VERSION}'" >&2
+    exit 2
+  fi
+  XCOMM_REF="refs/tags/v${XCOMM_RELEASE_VERSION}"
+else
+  XCOMM_REF=${XCOMM_SOURCE_REF:-$(sed -n 's/^  xcomm:[[:space:]]*//p' "${ROOT_DIR}/.build-config.yml")}
+  if [[ ! "${XCOMM_REF}" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "[xcomm] '${XCOMM_REF}' is not a 40-character commit id" >&2
+    echo "[xcomm] set dependencies.xcomm in .build-config.yml, or pass XCOMM_SOURCE_REF / XCOMM_RELEASE_VERSION" >&2
+    exit 2
+  fi
+fi
+
+checkout_pinned_xcomm() {
+  if ! git -C "${XCOMM_DIR}" fetch origin "${XCOMM_REF}"; then
+    echo "[xcomm] cannot fetch '${XCOMM_REF}'" >&2
+    exit 1
+  fi
+  git -C "${XCOMM_DIR}" checkout --detach FETCH_HEAD
+  local abi
+  abi=$(sed -n 's/^set(XSPCOMM_ABI_VERSION[[:space:]]*\([0-9]*\)).*/\1/p' "${XCOMM_DIR}/CMakeLists.txt" | head -n 1)
+  echo "[xcomm] ${XCOMM_REF} checked out; native ABI ${abi:-unknown}"
+}
+
+if [[ -n "$(git -C "${XCOMM_DIR}" status --porcelain)" ]] || [[ -n "$(git -C "${XCOMM_DIR}" rev-list @{u}..HEAD 2>/dev/null || true)" ]]; then
+  echo "[xcomm] Local changes or unpushed commits detected in dependence/xcomm, leaving the checkout alone."
+  exit 0
+fi
+
 if [[ -n "${XCOMM_SKIP_ALIGN:-}" ]]; then
-  echo "[xcomm] XCOMM_SKIP_ALIGN is set, skipping automatic branch alignment."
+  checkout_pinned_xcomm
+  exit 0
 elif ! git -C "${XCOMM_DIR}" remote get-url origin >/dev/null 2>&1; then
-  echo "[xcomm] No 'origin' remote found, skipping automatic branch alignment."
+  echo "[xcomm] No 'origin' remote found, leaving the checkout alone."
 elif ! git -C "${XCOMM_DIR}" rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
-  echo "[xcomm] No upstream configured for current branch, skipping automatic branch alignment."
-elif [[ -n "$(git -C "${XCOMM_DIR}" status --porcelain)" ]] || [[ -n "$(git -C "${XCOMM_DIR}" rev-list @{u}..HEAD 2>/dev/null || true)" ]]; then
-  echo "[xcomm] Local changes or unpushed commits detected in dependence/xcomm, skipping automatic branch alignment."
+  checkout_pinned_xcomm
 else
   if ! git -C "${XCOMM_DIR}" fetch --all --tags --prune; then
-    echo "[xcomm] Fetch failed, skipping automatic branch alignment."
+    echo "[xcomm] Fetch failed, leaving the checkout alone."
     exit 0
   fi
   PARENT_BRANCH=$(git -C "${ROOT_DIR}" branch --show-current)
-  if [[ -z "${PARENT_BRANCH}" ]]; then
-    echo "[xcomm] In detached HEAD, falling back to master branch for xcomm"
-    PARENT_BRANCH="master"
-  fi
-  echo "[xcomm] Trying to align with parent branch '${PARENT_BRANCH}'"
-  BRANCH="${PARENT_BRANCH}"
-  if git -C "${XCOMM_DIR}" ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1; then
-    echo "[xcomm] Branch '${BRANCH}' found in xcomm. Checking it out."
+  if [[ -n "${PARENT_BRANCH}" ]] && \
+     git -C "${XCOMM_DIR}" ls-remote --exit-code --heads origin "${PARENT_BRANCH}" >/dev/null 2>&1; then
+    echo "[xcomm] Trying to align with parent branch '${PARENT_BRANCH}'"
+    BRANCH="${PARENT_BRANCH}"
+    CURRENT_BRANCH=$(git -C "${XCOMM_DIR}" branch --show-current)
+    if [[ "${CURRENT_BRANCH}" == "${BRANCH}" ]] && \
+       [[ "$(git -C "${XCOMM_DIR}" rev-parse HEAD)" == "$(git -C "${XCOMM_DIR}" rev-parse "origin/${BRANCH}")" ]]; then
+      echo "[xcomm] Already up to date on '${BRANCH}', skipping alignment."
+      exit 0
+    fi
+    BRANCH_REFSPEC="+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}"
+    if ! git -C "${XCOMM_DIR}" config --get-all remote.origin.fetch | grep -Fqx "${BRANCH_REFSPEC}"; then
+      git -C "${XCOMM_DIR}" config --add remote.origin.fetch "${BRANCH_REFSPEC}"
+    fi
+    git -C "${XCOMM_DIR}" fetch origin "${BRANCH}:refs/remotes/origin/${BRANCH}"
+    git -C "${XCOMM_DIR}" checkout -B "${BRANCH}" --track "origin/${BRANCH}"
   else
-    echo "[xcomm] Branch '${BRANCH}' not found in xcomm. Falling back to master."
-    BRANCH="master"
+    echo "[xcomm] No matching branch in xcomm; using the pinned revision."
+    checkout_pinned_xcomm
   fi
-  CURRENT_BRANCH=$(git -C "${XCOMM_DIR}" branch --show-current)
-  if [[ "${CURRENT_BRANCH}" == "${BRANCH}" ]] && \
-     [[ "$(git -C "${XCOMM_DIR}" rev-parse HEAD)" == "$(git -C "${XCOMM_DIR}" rev-parse "origin/${BRANCH}")" ]]; then
-    echo "[xcomm] Already up to date on '${BRANCH}', skipping alignment."
-    exit 0
-  fi
-  BRANCH_REFSPEC="+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}"
-  if ! git -C "${XCOMM_DIR}" config --get-all remote.origin.fetch | grep -Fqx "${BRANCH_REFSPEC}"; then
-    git -C "${XCOMM_DIR}" config --add remote.origin.fetch "${BRANCH_REFSPEC}"
-  fi
-  git -C "${XCOMM_DIR}" fetch origin "${BRANCH}:refs/remotes/origin/${BRANCH}"
-  git -C "${XCOMM_DIR}" checkout -B "${BRANCH}" --track "origin/${BRANCH}"
 fi
