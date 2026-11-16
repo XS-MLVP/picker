@@ -80,7 +80,7 @@ function DUT{{__TOP_MODULE_NAME__}}:new(...)
 {{__XPORT_ADD__}}
 
     -- Cascaded ports
-{{__XPORT_CASCADED__}}
+{{__XPORT_CASCADED_SGN__}}
 
     return self
 end

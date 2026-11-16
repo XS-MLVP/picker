@@ -1,4 +1,5 @@
 #include "codegen/cpp.hpp"
+#include "codegen/render_tags.hpp"
 #include "codegen/lib.hpp"
 
 namespace picker {
@@ -7,7 +8,7 @@ namespace codegen {
 
     namespace cxx {
         static const std::string xdata_declaration_template = "    XData {{pin_uniq_name}};\n";
-        static const std::string xdata_reinit_template =
+        static const std::string xdata_init_template =
             "    this->{{pin_uniq_name}}.ReInit({{logic_pin_length}}, IOType::{{logic_pin_type}}, \"{{signal_name}}\");\n";
         static const std::string comment_template = "    {{logic_pin_type}} {{logic_pin_length}} {{logic_pin}}\n";
 
@@ -39,12 +40,12 @@ namespace codegen {
         /// @brief Export external pin for cpp render
         /// @param pin
         /// @param xdata_declaration
-        /// @param xdata_reinit
+        /// @param xdata_init
         /// @param xdata_bindrw
         /// @param xport_add
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &xdata_declaration,
-                                 std::string &xdata_reinit, std::string &xdata_bindrw, std::string &xport_add,
+                                 std::string &xdata_init, std::string &xdata_bindrw, std::string &xport_add,
                                  std::string &comments, SignalAccessType rw_type, const MemberNames &names)
         {
             inja::Environment env;
@@ -66,7 +67,7 @@ namespace codegen {
                                                pin[i].logic_pin_hb - pin[i].logic_pin_lb + 1;
 
                 xdata_declaration = xdata_declaration + env.render(xdata_declaration_template, data);
-                xdata_reinit      = xdata_reinit + env.render(xdata_reinit_template, data);
+                xdata_init        = xdata_init + env.render(xdata_init_template, data);
                 if (!pin[i].array_name.empty()) {
                     xdata_bindrw += render_array_binding(pin[i], "cpp", data["pin_uniq_name"]);
                 } else switch (rw_type) {
@@ -84,12 +85,12 @@ namespace codegen {
         /// @brief Export internal signal for cpp render
         /// @param pin
         /// @param xdata_declaration
-        /// @param xdata_reinit
+        /// @param xdata_init
         /// @param xdata_bindrw
         /// @param xport_add
         /// @param comments
         void render_internal_signal(std::vector<picker::sv_signal_define> pin, std::string &xdata_declaration,
-                                    std::string &xdata_reinit, std::string &xdata_bindrw, std::string &xport_add,
+                                    std::string &xdata_init, std::string &xdata_bindrw, std::string &xport_add,
                                     std::string &comments, const MemberNames &names)
         {
             inja::Environment env;
@@ -113,7 +114,7 @@ namespace codegen {
                 data["logic_pin_type"] = "Output";
 
                 xdata_declaration = xdata_declaration + env.render(xdata_declaration_template, data);
-                xdata_reinit      = xdata_reinit + env.render(xdata_reinit_template, data);
+                xdata_init        = xdata_init + env.render(xdata_init_template, data);
                 xdata_bindrw      = xdata_bindrw + env.render(xdata_bind_onlyr_template, data);
                 xport_add         = xport_add + env.render(xport_add_template, data);
             }
@@ -150,20 +151,20 @@ namespace codegen {
         std::string dst_module_name = opts.target_module_name;
 
         // Codegen Buffers
-        std::string pin_connect, logic, wire, comments, dpi_export, dpi_impl, xdata_declaration, xdata_reinit,
+        std::string pin_connect, logic, wire, comments, dpi_export, dpi_impl, xdata_declaration, xdata_init,
             xdata_bindrw, xport_add, cascaded_signals_dec, cascaded_signals_sgn;
 
         // Generate External Pin
         const MemberNames names(external_pin, internal_signal, signal_tree_json, "cpp", dst_module_name);
-        cxx::render_external_pin(external_pin, xdata_declaration, xdata_reinit, xdata_bindrw, xport_add, comments,
+        cxx::render_external_pin(external_pin, xdata_declaration, xdata_init, xdata_bindrw, xport_add, comments,
                                  opts.rw_type, names);
 
         // Generate Internal Signal
-        cxx::render_internal_signal(internal_signal, xdata_declaration, xdata_reinit, xdata_bindrw, xport_add,
+        cxx::render_internal_signal(internal_signal, xdata_declaration, xdata_init, xdata_bindrw, xport_add,
                                     comments, names);
         // Generate Cascaded Ports
         cxx::render_cascaded_signals("", signal_tree_json, cascaded_signals_dec, cascaded_signals_sgn, names);
-        const bool has_arrays = render_array_ports(external_pin, "cpp", cascaded_signals_dec, cascaded_signals_sgn, &names);
+        render_array_ports(external_pin, "cpp", cascaded_signals_dec, cascaded_signals_sgn, &names);
 
         std::string erro_message;
         auto cpplib_location = picker::get_xcomm_lib("lib", erro_message);
@@ -174,22 +175,20 @@ namespace codegen {
 
         // Set global render data
         nlohmann::json data;
-        data["__XSPCOMM_LIB__"]     = cpplib_location;
-        data["__XSPCOMM_INCLUDE__"] = include_location;
-        data["__TOP_MODULE_NAME__"] = dst_module_name;
-        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
+        data[tags::xspcomm_lib]       = cpplib_location;
+        data[tags::xspcomm_include]   = include_location;
+        data[tags::top_module_name]   = dst_module_name;
+        data[tags::shared_lib_suffix] = get_shared_lib_suffix();
 
-        data["__XDATA_DECLARATION__"]  = xdata_declaration;
-        data["__HAS_UNPACKED_ARRAYS__"] = has_arrays;
-        data["__XDATA_REINIT__"]       = xdata_reinit;
-        data["__XDATA_BIND__"]         = xdata_bindrw;
-        data["__XPORT_ADD__"]          = xport_add;
-        data["__XPORT_CASCADED_DEC__"] = cascaded_signals_dec;
-        data["__XPORT_CASCADED_SGN__"] = cascaded_signals_sgn;
+        data[tags::xdata_declaration]  = xdata_declaration;
+        data[tags::xdata_init]         = xdata_init;
+        data[tags::xdata_bind]         = xdata_bindrw;
+        data[tags::xport_add]          = xport_add;
+        data[tags::xport_cascaded_dec] = cascaded_signals_dec;
+        data[tags::xport_cascaded_sgn] = cascaded_signals_sgn;
 
-        data["__COMMENTS__"]         = comments;
-        data["__COPY_XSPCOMM_LIB__"] = opts.cp_lib;
-        data["__SIMULATOR__"]        = opts.sim;
+        data[tags::comments]         = comments;
+        data[tags::copy_xspcomm_lib] = opts.cp_lib;
 
         // Render
         configure_array_bindings(external_pin, opts, data);

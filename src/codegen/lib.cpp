@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <random>
 #include "codegen/lib.hpp"
+#include "codegen/render_tags.hpp"
 #include "config_database.hpp"
 #include "filelist.hpp"
 #include "picker.hpp"
@@ -47,23 +48,23 @@ namespace picker { namespace codegen {
         const bool enabled = !arrays.empty();
         const bool aggregates = std::any_of(pins.begin(), pins.end(),
             [](const auto &pin) { return bool(pin.type_layout); });
-        data["__HAS_ARRAY_BINDINGS__"] = enabled;
-        data["__HAS_AGGREGATE_VIEWS__"] = aggregates;
-        data["__HAS_VPI_VIEWS__"] = opts.vpi;
-        data["__CONFIG_MODEL_ID__"] = opts.config_model_id;
-        data["__ARRAY_PORTS__"] = arrays;
+        data[tags::has_array_bindings]  = enabled;
+        data[tags::has_aggregate_views] = aggregates;
+        data[tags::has_vpi_views]       = opts.vpi;
+        data[tags::config_model_id]     = opts.config_model_id;
+        data[tags::array_ports]         = arrays;
         nlohmann::json layouts = nlohmann::json::object();
         for (const auto &pin : pins) {
             if (!pin.aggregate_name.empty() && pin.type_layout)
                 layouts[pin.aggregate_name] = nlohmann::json::parse(*pin.type_layout);
         }
-        data["__AGGREGATE_LAYOUTS_JSON__"] = nlohmann::json(layouts.dump()).dump();
-        data["__RW_TYPE__"] = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
-        if ((enabled || aggregates) && !data.contains("__XSPCOMM_INCLUDE__")) {
+        data[tags::aggregate_layouts_json] = nlohmann::json(layouts.dump()).dump();
+        data[tags::rw_type]                = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
+        if ((enabled || aggregates) && !data.contains(tags::xspcomm_include)) {
             std::string error;
             auto include = picker::get_xcomm_lib("include", error);
             if (include.empty()) { PK_FATAL("%s\n", error.c_str()); }
-            data["__XSPCOMM_INCLUDE__"] = include;
+            data[tags::xspcomm_include] = include;
         }
     }
 
@@ -88,7 +89,7 @@ namespace picker { namespace codegen {
                 // In-place installs can leave templates removed by the new
                 // package. Do not render obsolete sidecars or delete files
                 // from the user's template installation.
-                if (data.is_object() && data.value("__SINGLE_CONFIG_DATABASE__", false) &&
+                if (data.is_object() && data.value(tags::single_config_database, false) &&
                     (src_filename == "signals.json" || src_filename == "native_layouts.json")) continue;
                 dst_filename = dst_dir + "/" + src_filename;
                 PK_MESSAGE("Render file: %s to %s", src_filename.c_str(), dst_filename.c_str());
@@ -317,14 +318,12 @@ namespace picker { namespace codegen {
         vcs_clock_period_l = std::to_string(period >> 1);
     }
 
-    void gen_cmake(std::string &src_dir, std::string &dst_dir, std::string &wave_file_name, std::string &simulator,
-                   std::string &vflag, std::string &cflag, inja::Environment &env, nlohmann::json &data)
+    static void apply_build_render_data(std::string &simulator, std::string &vflag, std::string &cflag,
+                                        nlohmann::json &data)
     {
-        data["__SIMULATOR__"] = simulator;
-        data["__VFLAG__"]     = vflag;
-        data["__CFLAG__"]     = cflag;
-
-        std::string verilaotr_coverage, vcs_coverage;
+        data[tags::simulator] = simulator;
+        data[tags::vflag]     = vflag;
+        data[tags::cflag]     = cflag;
     }
 
     int vcs_coverage_metric_bit(const std::string &metric)
@@ -439,8 +438,8 @@ namespace picker { namespace codegen {
             }
         }
 
-        data["__COVERAGE__"]         = coverage ? "ON" : "OFF";
-        data["__COVERAGE_METRICS__"] = metrics;
+        data[tags::coverage]         = coverage ? "ON" : "OFF";
+        data[tags::coverage_metrics] = metrics;
     }
 
     void gen_expins(nlohmann::json &expins, picker::export_opts &opts,
@@ -478,8 +477,8 @@ namespace picker { namespace codegen {
         inja::Environment env;
         nlohmann::json data;
 
-        data["__TOP_MODULE_NAME__"] = dst_module_name;
-        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
+        data[tags::top_module_name]   = dst_module_name;
+        data[tags::shared_lib_suffix] = get_shared_lib_suffix();
 
         // firrtl base simulators
         std::unordered_set<std::string> firrtl_simulators = {"gsim"};
@@ -520,7 +519,7 @@ namespace picker { namespace codegen {
 
         // Get coverage metrics before rendering Makefile/CMake, because VCS coverage may add -cm flags.
         gen_coverage_metrics(simulator, opts, vflag, data);
-        gen_cmake(src_dir, dst_dir, wave_file_name, simulator, vflag, cflag, env, data);
+        apply_build_render_data(simulator, vflag, cflag, data);
 
         // Set clock period
         printf("Frequency: %s\n", opts.frequency.c_str());
@@ -530,26 +529,25 @@ namespace picker { namespace codegen {
         auto expins = nlohmann::json::array();
         gen_expins(expins, opts, ret);
 
-        data["__MODULE_EXTERNAL_PINS__"]  = expins;
-        data["__VCS_CLOCK_PERIOD_HIGH__"] = vcs_clock_period_h;
-        data["__VCS_CLOCK_PERIOD_LOW__"]  = vcs_clock_period_l;
-        data["__VERBOSE__"]               = opts.verbose ? "ON" : "OFF";
-        data["__EXAMPLE__"]               = opts.example ? "ON" : "OFF";
-        data["__CHECKPOINTS__"]           = opts.checkpoints ? "ON" : "OFF";
-        data["__VPI__"]                   = opts.vpi ? "ON" : "OFF";
-        data["__VERDI_MODE__"]            = opts.verdi_mode;
-        data["__RW_TYPE__"]               = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
-        data["__TARGET_LANGUAGE__"]       = opts.language;
-        data["__BUILD_THREADS__"] =
+        data[tags::module_external_pins]  = expins;
+        data[tags::vcs_clock_period_high] = vcs_clock_period_h;
+        data[tags::vcs_clock_period_low]  = vcs_clock_period_l;
+        data[tags::verbose]               = opts.verbose ? "ON" : "OFF";
+        data[tags::example]               = opts.example ? "ON" : "OFF";
+        data[tags::checkpoints]           = opts.checkpoints ? "ON" : "OFF";
+        data[tags::verdi_mode]            = opts.verdi_mode;
+        data[tags::rw_type]               = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
+        data[tags::target_language]       = opts.language;
+        data[tags::build_threads] =
             opts.build_threads > 0 ? std::to_string(opts.build_threads) :
                                      "$(shell (nproc 2>/dev/null || sysctl -n hw.ncpu) 2>/dev/null)";
-        data["__FILELIST__"]              = ofilelist;
-        data["__LIB_DPI_FUNC_NAME_HASH__"] = std::string(lib_random_hash);
-        data["__GENERATOR_PICKER_PATH__"] =
+        data[tags::filelist]               = ofilelist;
+        data[tags::lib_dpi_func_name_hash] = std::string(lib_random_hash);
+        data[tags::generator_picker_path] =
             appimage::is_running_as_appimage() ?
                 (getenv("APPIMAGE") != nullptr ? std::string(getenv("APPIMAGE")) : std::string()) :
                 get_executable_path();
-        data["__GENERATOR_TEMPLATE_PATH__"] = std::filesystem::absolute(opts.source_dir);
+        data[tags::generator_template_path] = std::filesystem::absolute(opts.source_dir);
 
         // Render lib files
         configure_array_bindings(ret, opts, data);
@@ -588,7 +586,7 @@ namespace picker { namespace codegen {
                 }
             }
         }
-        data["__SINGLE_CONFIG_DATABASE__"] = true;
+        data[tags::single_config_database] = true;
         // The historical DPI hash is seeded by seconds. It is not sufficient
         // to distinguish two configuration exports made within the same tick.
         std::random_device entropy;
@@ -598,17 +596,17 @@ namespace picker { namespace codegen {
         for (int i = 0; i < 4; ++i) identity << std::setw(8) << uint32_t(entropy());
         const auto model_id = identity.str();
         opts.config_model_id = model_id;
-        data["__CONFIG_MODEL_ID__"] = model_id;
+        data[tags::config_model_id] = model_id;
         recursive_render(src_dir, dst_dir, data, env);
         config::db::Writer database{model_id};
-        auto ports = data["__SIGNAL_TREE__"];
+        auto ports = data[tags::signal_tree];
         if (ports.is_string()) {
             const auto parsed = nlohmann::json::parse(ports.get<std::string>(), nullptr, false);
             if (!parsed.is_discarded()) ports = parsed;
         }
         database.add('m', "ports", config::encode(ports));
         database.add('m', "generator", config::encode({{"simulator", opts.sim},
-            {"rw_type", data["__RW_TYPE__"]}, {"native_abi", PICKER_NATIVE_ABI}}));
+            {"rw_type", data[tags::rw_type]}, {"native_abi", PICKER_NATIVE_ABI}}));
         for (const auto &[id, type] : native_layouts["types"].items()) database.add('t', id, config::encode(type));
         for (const auto &[name, id] : native_layouts["signals"].items()) database.add('c', name, config::encode(id));
         database.write(dst_dir + "/" + dst_module_name + ".xscfg");
@@ -646,7 +644,6 @@ namespace picker { namespace codegen {
                 }
             }
         }
-
         PK_MESSAGE("Generate DPI files successfully!");
         return ret;
     }

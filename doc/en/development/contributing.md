@@ -9,6 +9,7 @@ After following [installation](../guides/installation.md) in a source checkout, 
 | `src/picker.cpp` | CLI arguments and export/pack flows |
 | `src/parser/` | RTL, transactions, file lists, and signal layout parsing |
 | `src/codegen/` | Convert parsed data into template inputs |
+| `include/codegen/render_tags.hpp` | The only place template variables are declared |
 | `template/lib/` | Simulator wrappers and build configuration |
 | `template/python/` and other language directories | Generated language interfaces and build templates |
 | `test/` | Unit, export integration, and release script tests |
@@ -16,6 +17,23 @@ After following [installation](../guides/installation.md) in a source checkout, 
 | `doc/zh/`, `doc/en/` | Chinese and English documentation |
 
 To fix generated code, edit its template and export an example again to verify it. Libraries under `dependence/` are maintained separately; commit dependency changes in their own repositories.
+
+## Template variables
+
+Template variables are declared once, as rows of `PICKER_RENDER_TAGS` in `include/codegen/render_tags.hpp`. Each row carries the `tags::<id>` constant, the `__UPPER_SNAKE__` wire name used by `template/`, the value type, the scope and both summaries. Producers always write through the constant:
+
+```cpp
+data[tags::top_module_name] = dst_module_name;
+```
+
+A misspelled variable is therefore a compile error instead of an empty value at render time. To add, rename or remove one:
+
+1. Edit its row in `PICKER_RENDER_TAGS`.
+2. Update the assignment under `src/codegen/` and the use under `template/`.
+3. Run `python scripts/check_render_tags.py --docs` to regenerate `doc/en/reference/render-tags.md` and `doc/zh/reference/render-tags.md`.
+4. Run `python scripts/check_render_tags.py` to verify declaration, producers, templates and docs agree; CI runs the same check.
+
+Internal flow keys such as `signal_tree` are declared with `internal` scope and keep their plain `snake_case` name.
 
 ## Run tests
 

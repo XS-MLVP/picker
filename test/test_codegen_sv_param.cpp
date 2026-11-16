@@ -108,7 +108,7 @@ static void test_unpacked_array_ports()
                 assert(tree["data"]["Unpacked"] == nlohmann::json({{4, 2}}));
                 assert(tree["matrix"]["Pin"] == "output");
                 assert(tree["matrix"]["Unpacked"] == nlohmann::json({{-1, 0}, {3, 2}}));
-                assert(!contains_line(data["__SIGNAL_TREE__"].get<std::string>(), "_picker_array_"));
+                assert(!contains_line(data["signal_tree"].get<std::string>(), "_picker_array_"));
                 for (const auto &language : {"python", "cpp", "java", "scala", "golang", "lua"}) {
                     std::string declarations, initialization;
                     assert(picker::codegen::render_array_ports(external, language, declarations, initialization));
@@ -449,7 +449,7 @@ int main()
     const auto sv_wave = data["__SV_DUMP_WAVE__"].get<std::string>();
     assert(contains_line(sv_wave, "wave.vcd"));
 
-    const auto tree = data["__SIGNAL_TREE__"].get<std::string>();
+    const auto tree = data["signal_tree"].get<std::string>();
     assert(contains_line(tree, "a"));
     assert(contains_line(tree, "b"));
 

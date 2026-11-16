@@ -3,7 +3,7 @@
 
 std::vector<cpp_variableInfo> all_vars;
 
-{{__render_varible_info_sub_define__}}
+{{__RENDER_VARIABLE_INFO_SUB_DEFINE__}}
 
 namespace {
 std::unordered_map<std::string, cpp_variableInfo> build_var_lookup()
@@ -49,7 +49,7 @@ cpp_variableInfo resolve_source(const std::unordered_map<std::string, cpp_variab
 }
 }
 
-void render_varible_info()
+void render_variable_info()
 {
 {% if __SIMULATOR__ == "verilator" %}
     auto model = std::make_unique<V{{__TOP_MODULE_NAME__}}>();
@@ -59,13 +59,13 @@ void render_varible_info()
     auto model = std::make_unique<S{{__TOP_MODULE_NAME__}}>();
     BaseType &base = *model;
 {% endif %}
-    // {{__render_varible_info_sub__}}
+{{__RENDER_VARIABLE_INFO_SUB__}}
 }
 
 int main(int argc, char **argv)
 {
     try {
-        render_varible_info();
+        render_variable_info();
         const auto path = argc > 1 ? std::filesystem::path(argv[1]) :
             std::filesystem::absolute(argv[0]).parent_path().parent_path() / "{{__TOP_MODULE_NAME__}}.xscfg";
         std::unique_ptr<cfgdb::Database> input;

@@ -1,3 +1,5 @@
+#include "codegen/names.hpp"
+#include "codegen/render_tags.hpp"
 #include "codegen/golang.hpp"
 #include "codegen/lib.hpp"
 
@@ -26,7 +28,7 @@ namespace picker { namespace codegen {
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &xdata_decl,
                                   std::string &xdata_init, std::string &xdata_bindrw, std::string &xport_add,
-                                  std::string &swig_constant, SignalAccessType rw_type, const MemberNames &names)
+                                  SignalAccessType rw_type, const MemberNames &names)
         {
             inja::Environment env;
             nlohmann::json data;
@@ -60,7 +62,7 @@ namespace picker { namespace codegen {
         /// @param comments
         void render_internal_signal(std::vector<picker::sv_signal_define> pin, std::string &xdata_decl,
                                     std::string &xdata_init, std::string &xdata_bindrw, std::string &xport_add,
-                                    std::string &swig_constant, const MemberNames &names)
+                                    const MemberNames &names)
         {
             inja::Environment env;
             nlohmann::json data;
@@ -116,14 +118,14 @@ namespace picker { namespace codegen {
         std::string simulator       = opts.sim;
 
         // Codegen Buffers
-        std::string xdata_decl, xdata_init, xdata_bindrw, xport_add, swig_constant, cascaded_signals_dec,
+        std::string xdata_decl, xdata_init, xdata_bindrw, xport_add, cascaded_signals_dec,
             cascaded_signals_sgn;
 
         // Generate External Pin
         const MemberNames names(external_pin, internal_signal, signal_tree_json, "golang", dst_module_name);
-        go::render_external_pin(external_pin, xdata_decl, xdata_init, xdata_bindrw, xport_add, swig_constant, opts.rw_type, names);
+        go::render_external_pin(external_pin, xdata_decl, xdata_init, xdata_bindrw, xport_add, opts.rw_type, names);
         // Generate Internal Signal
-        go::render_internal_signal(internal_signal, xdata_decl, xdata_init, xdata_bindrw, xport_add, swig_constant, names);
+        go::render_internal_signal(internal_signal, xdata_decl, xdata_init, xdata_bindrw, xport_add, names);
 
         // Generate Cascaded Ports
         go::render_cascaded_signals("", signal_tree_json, cascaded_signals_dec, cascaded_signals_sgn, names);
@@ -141,22 +143,20 @@ namespace picker { namespace codegen {
         auto cpplib_location = picker::get_xcomm_lib("lib", erro_message);
         if (cpplib_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
 
-        data["__XSPCOMM_LIB__"]     = cpplib_location;
-        data["__XSPCOMM_GOLANG__"]  = golang_location;
-        data["__XDATA_DECL__"]      = xdata_decl;
-        data["__TOP_MODULE_NAME__"] = dst_module_name;
-        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
+        data[tags::xspcomm_lib]       = cpplib_location;
+        data[tags::xspcomm_golang]    = golang_location;
+        data[tags::xdata_declaration] = xdata_decl;
+        data[tags::top_module_name]   = dst_module_name;
+        data[tags::shared_lib_suffix] = get_shared_lib_suffix();
 
-        data["__XDATA_INIT__"]         = xdata_init;
-        data["__XDATA_BIND__"]         = xdata_bindrw;
-        data["__XPORT_ADD__"]          = xport_add;
-        data["__XPORT_CASCADED_DEC__"] = cascaded_signals_dec;
-        data["__XPORT_CASCADED_SGN__"] = cascaded_signals_sgn;
+        data[tags::xdata_init]         = xdata_init;
+        data[tags::xdata_bind]         = xdata_bindrw;
+        data[tags::xport_add]          = xport_add;
+        data[tags::xport_cascaded_dec] = cascaded_signals_dec;
+        data[tags::xport_cascaded_sgn] = cascaded_signals_sgn;
 
-        data["__SWIG_CONSTANT__"]    = swig_constant;
-        data["__USE_SIMULATOR__"]    = "USE_" + simulator;
-        data["__COPY_XSPCOMM_LIB__"] = opts.cp_lib;
-        data["__SIMULATOR__"]        = opts.sim;
+        data[tags::copy_xspcomm_lib] = opts.cp_lib;
+        data[tags::simulator]        = opts.sim;
 
         // Render
         configure_array_bindings(external_pin, opts, data);

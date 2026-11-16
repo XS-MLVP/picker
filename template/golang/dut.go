@@ -17,7 +17,7 @@ type UT_{{__TOP_MODULE_NAME__}} struct {
     vpiBackend xspcomm.XVPI
     {% endif %}
     // Pins
-{{__XDATA_DECL__}}
+{{__XDATA_DECLARATION__}}
     // SubPorts
 {{__XPORT_CASCADED_DEC__}}
 }

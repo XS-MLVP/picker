@@ -12,7 +12,7 @@
 #include "UT_{{__TOP_MODULE_NAME__}}_dpi.hpp"
 %}
 
-%define {{__USE_SIMULATOR__}}
+%define USE_{{ upper(__SIMULATOR__) }}
 %enddef
 
 
@@ -50,5 +50,3 @@ extern void NULL_DPI_LR(void *v);
 extern void NULL_DPI_LW(unsigned char v);
 extern void NULL_DPI_VR(void *v);
 extern void NULL_DPI_VW(void *v);
-
-{{__SWIG_CONSTANT__}}

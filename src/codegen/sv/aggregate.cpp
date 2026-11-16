@@ -1,4 +1,5 @@
 #include "codegen/sv/aggregate.hpp"
+#include "codegen/render_tags.hpp"
 #include "codegen/sv/templates.hpp"
 #include "picker.hpp"
 
@@ -32,7 +33,7 @@ AggregatePortRender render_aggregate_port(
                    uint64_t size) {
         if (access != SignalAccessType::DPI) return;
         J data{{"pin_func_name", leaf.array_name.empty() ? leaf.logic_pin : leaf.array_name},
-               {"__LIB_DPI_FUNC_NAME_HASH__", std::string(lib_random_hash)},
+               {tags::lib_dpi_func_name_hash, std::string(lib_random_hash)},
                {"logic_pin", expression}, {"array_size", size},
                {"logic_pin_length", leaf.logic_pin_hb == -1 ? "" :
                    "[" + std::to_string(leaf.logic_pin_hb) + ":0]"}};

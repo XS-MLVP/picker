@@ -1,3 +1,5 @@
+#include "codegen/names.hpp"
+#include "codegen/render_tags.hpp"
 #include "codegen/lua.hpp"
 #include "codegen/lib.hpp"
 
@@ -23,7 +25,7 @@ namespace picker { namespace codegen {
         /// @param xport_add
         /// @param comments
         void render_external_pin(std::vector<picker::sv_signal_define> pin, std::string &xdata_init,
-                                  std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant,
+                                  std::string &xdata_bindrw, std::string &xport_add,
                                   SignalAccessType rw_type, const MemberNames &names)
         {
             inja::Environment env;
@@ -55,7 +57,7 @@ namespace picker { namespace codegen {
         /// @param xport_add
         /// @param comments
         void render_internal_signal(std::vector<picker::sv_signal_define> pin, std::string &xdata_init,
-                                    std::string &xdata_bindrw, std::string &xport_add, std::string &swig_constant,
+                                    std::string &xdata_bindrw, std::string &xport_add,
                                     const MemberNames &names)
         {
             inja::Environment env;
@@ -108,13 +110,13 @@ namespace picker { namespace codegen {
         std::string simulator       = opts.sim;
 
         // Codegen Buffers
-        std::string xdata_init, xdata_bindrw, xport_add, swig_constant, cascaded_signals;
+        std::string xdata_init, xdata_bindrw, xport_add, cascaded_signals;
 
         // Generate External Pin
         const MemberNames names(external_pin, internal_signal, signal_tree_json, "lua", dst_module_name);
-        lua_scope::render_external_pin(external_pin, xdata_init, xdata_bindrw, xport_add, swig_constant, opts.rw_type, names);
+        lua_scope::render_external_pin(external_pin, xdata_init, xdata_bindrw, xport_add, opts.rw_type, names);
         // Generate Internal Signal
-        lua_scope::render_internal_signal(internal_signal, xdata_init, xdata_bindrw, xport_add, swig_constant, names);
+        lua_scope::render_internal_signal(internal_signal, xdata_init, xdata_bindrw, xport_add, names);
         // Generate Cascaded Porst
         lua_scope::render_cascaded_signals("", signal_tree_json, cascaded_signals, names);
         std::string array_declarations;
@@ -132,20 +134,17 @@ namespace picker { namespace codegen {
         auto cpplib_location = picker::get_xcomm_lib("lib", erro_message);
         if (cpplib_location.empty()) { PK_FATAL("%s\n", erro_message.c_str()); }
 
-        data["__XSPCOMM_LIB__"]     = cpplib_location;
-        data["__XSPCOMM_LUA__"]     = lua_location;
-        data["__TOP_MODULE_NAME__"] = dst_module_name;
-        data["__SHARED_LIB_SUFFIX__"] = get_shared_lib_suffix();
+        data[tags::xspcomm_lib]     = cpplib_location;
+        data[tags::xspcomm_lua]     = lua_location;
+        data[tags::top_module_name] = dst_module_name;
 
-        data["__XDATA_INIT__"]     = xdata_init;
-        data["__XDATA_BIND__"]     = xdata_bindrw;
-        data["__XPORT_ADD__"]      = xport_add;
-        data["__XPORT_CASCADED__"] = cascaded_signals;
+        data[tags::xdata_init]         = xdata_init;
+        data[tags::xdata_bind]         = xdata_bindrw;
+        data[tags::xport_add]          = xport_add;
+        data[tags::xport_cascaded_sgn] = cascaded_signals;
 
-        data["__SWIG_CONSTANT__"]    = swig_constant;
-        data["__USE_SIMULATOR__"]    = "USE_" + simulator;
-        data["__COPY_XSPCOMM_LIB__"] = opts.cp_lib;
-        data["__SIMULATOR__"]        = opts.sim;
+        data[tags::copy_xspcomm_lib] = opts.cp_lib;
+        data[tags::simulator]        = opts.sim;
 
         // Render
         configure_array_bindings(external_pin, opts, data);
