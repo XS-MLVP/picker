@@ -34,8 +34,8 @@ class DUT{{__TOP_MODULE_NAME__}}(object):
     {% if __HAS_VPI_VIEWS__ %}
     @staticmethod
     def _picker_view_value(view):
-        if view.Kind() == "bits":
-            return view.Data()
+        if view.IsPacked():
+            return view.PackedData()
         if view.Kind() == "struct":
             return view.Struct()
         return view.Array()

@@ -16,23 +16,26 @@ from AggregatePorts import DUTAggregatePorts, xsp
 
 dut = DUTAggregatePorts()
 assert isinstance(dut.packed_in, xsp.XData)
-assert isinstance(dut.packed_in_view, xsp.XStruct)
-assert dut.packed_in_view.fields == ("tag", "valid")
-assert dut.packed_in_view.Array("tag").bounds == ((0, 4),)
+assert not hasattr(dut, "packed_in_view")
+assert not hasattr(dut, "matrix_view")
+assert dut.packed_in.HasLayout()
+assert isinstance(dut.packed_in.StructView(), xsp.XStruct)
+assert dut.packed_in.StructView().fields == ("tag", "valid")
+assert dut.packed_in.StructView().Data("tag").ArrayView().bounds == ((0, 4),)
 dut.packed_in.value = 0
-dut.packed_in_view.Data("tag").value = 29
-dut.packed_in_view.Data("valid").value = 1
+dut.packed_in.StructView().Data("tag").value = 29
+dut.packed_in.StructView().Data("valid").value = 1
 assert dut.packed_in.value == 59
-assert dut.packed_in_view.Data("tag").S() == -3
+assert dut.packed_in.StructView().Data("tag").S() == -3
 assert dut["packed_in"].CSelf() == dut.packed_in.CSelf()
 
-assert dut.matrix_view.shape == (2, 4)
-assert dut.matrix_view[1].bounds == ((-2, 1),)
+assert dut.matrix.ArrayView().shape == (2, 4)
+assert dut.matrix.ArrayView()[1].bounds == ((-2, 1),)
 dut.matrix.value = 0
-dut.matrix_view[1][-2].value = 1
-dut.matrix_view[0][1].value = 1
+dut.matrix.ArrayView()[1][-2].value = 1
+dut.matrix.ArrayView()[0][1].value = 1
 assert dut.matrix.value == 0x81
-assert dut.matrix_view[1][-2].W() == 0
+assert dut.matrix.ArrayView()[1][-2].W() == 0
 
 assert isinstance(dut.record_in, xsp.XStruct)
 assert not dut.record_in.IsPacked()
@@ -40,33 +43,34 @@ assert tuple(dut.record_in.entries.indices) == (-1, 0)
 dut.record_in.enabled.value = 1
 first = dut.record_in.entries[-1]
 second = dut.record_in.entries[0]
-first.header.Data("tag").value = 17
-first.header.Data("valid").value = 1
+assert isinstance(first.header, xsp.XData)
+first.header.StructView().Data("tag").value = 17
+first.header.StructView().Data("valid").value = 1
 first.flag.value = 1
 first.payload[3].value = (1 << 64) + 0x1234
 first.payload[2].value = (1 << 63) + 0x5678
-second.header.Data("tag").value = 3
+second.header.StructView().Data("tag").value = 3
 second.flag.value = 0
 second.payload[3].value = 0x42
 assert first.payload[3].CSelf() == dut["record_in.entries[-1].payload[3]"].CSelf()
 assert dut["record_in"] is dut.record_in
 
-assert isinstance(dut.packed_records[2], xsp.XStruct)
-dut.packed_records[2].Data("tag").value = 5
-dut.packed_records[2].Data("valid").value = 1
-dut.packed_records[1].PackedData().value = 0x23
+assert isinstance(dut.packed_records[2], xsp.XData)
+dut.packed_records[2].StructView().Data("tag").value = 5
+dut.packed_records[2].StructView().Data("valid").value = 1
+dut.packed_records[1].value = 0x23
 count = dut.xport.PortCount()
 dut.Step(1)
 assert dut.packed_out.value == 59
 assert dut.matrix_out.value == 0x81
 assert dut.record_out.enabled.value == 1
-assert dut.record_out.entries[-1].header.Data("tag").value == 17
+assert dut.record_out.entries[-1].header.StructView().Data("tag").value == 17
 assert dut.record_out.entries[-1].payload[3].value == (1 << 64) + 0x1234
 assert dut.record_out.entries[-1].payload[2].value == (1 << 63) + 0x5678
-assert dut.record_out.entries[0].header.Data("tag").value == 3
+assert dut.record_out.entries[0].header.StructView().Data("tag").value == 3
 assert dut.record_out.entries[0].payload[3].value == 0x42
-assert dut.packed_records_out[2].PackedData().value == 11
-assert dut.packed_records_out[1].PackedData().value == 0x23
+assert dut.packed_records_out[2].value == 11
+assert dut.packed_records_out[1].value == 0x23
 assert count == dut.xport.PortCount() == 26
 try:
     dut.record_in.entries[-2]
@@ -82,12 +86,12 @@ CPP_CHECK = r'''
 int main() {
     UTAggregatePorts dut;
     dut.packed_in.Set(0);
-    dut.packed_in_view->Data("tag")->Set(29);
-    dut.packed_in_view->Data("valid")->Set(1);
+    dut.packed_in.StructView()->Data("tag")->Set(29);
+    dut.packed_in.StructView()->Data("valid")->Set(1);
     assert(dut.packed_in.U() == 59);
     dut.matrix.Set(0);
-    dut.matrix_view->Array(1)->Data(-2)->Set(1);
-    dut.matrix_view->Array(0)->Data(1)->Set(1);
+    dut.matrix.ArrayView()->Array(1)->Data(-2)->Set(1);
+    dut.matrix.ArrayView()->Array(0)->Data(1)->Set(1);
     auto first = dut.record_in->Array("entries")->Struct(-1);
     first->Struct("header")->Data("tag")->Set(17);
     first->Array("payload")->Data(3)->Set("0x10000000000001234");
@@ -116,10 +120,10 @@ public class example {
     public static void main(String[] args) {
         UT_AggregatePorts dut = new UT_AggregatePorts();
         dut.packed_in.Set(0);
-        dut.packed_in_view.Data("tag").Set(29);
-        dut.packed_in_view.Data("valid").Set(1);
+        dut.packed_in.StructView().Data("tag").Set(29);
+        dut.packed_in.StructView().Data("valid").Set(1);
         dut.matrix.Set(0);
-        dut.matrix_view.Array(1).Data(-2).Set(1);
+        dut.matrix.ArrayView().Array(1).Data(-2).Set(1);
         XStruct first = dut.record_in.Array("entries").Struct(-1);
         first.Struct("header").Data("tag").Set(17);
         first.Array("payload").Data(3).Set("0x10000000000001234");
@@ -143,10 +147,10 @@ import ut "UT_AggregatePorts"
 func main() {
     dut := ut.NewUT_AggregatePorts()
     dut.Packed_in.Set(0)
-    dut.Packed_in_view.Data("tag").SetGo(29)
-    dut.Packed_in_view.Data("valid").SetGo(1)
+    dut.Packed_in.StructView().Data("tag").SetGo(29)
+    dut.Packed_in.StructView().Data("valid").SetGo(1)
     dut.Matrix.Set(0)
-    dut.Matrix_view.Array(1).Data(-2).SetGo(1)
+    dut.Matrix.ArrayView().Array(1).Data(-2).SetGo(1)
     first := dut.Record_in.Array("entries").Struct(-1)
     first.Struct("header").Data("tag").SetGo(17)
     first.Array("payload").Data(3).SetGo("0x10000000000001234")
@@ -166,10 +170,10 @@ package.path = "UT_AggregatePorts/?.lua;" .. package.path
 local DUT = require("UT_AggregatePorts")
 local dut = DUT:new()
 dut.packed_in:Set(0)
-dut.packed_in_view:Data("tag"):Set(29)
-dut.packed_in_view:Data("valid"):Set(1)
+dut.packed_in:StructView():Data("tag"):Set(29)
+dut.packed_in:StructView():Data("valid"):Set(1)
 dut.matrix:Set(0)
-dut.matrix_view:Array(1):Data(-2):Set(1)
+dut.matrix:ArrayView():Array(1):Data(-2):Set(1)
 local first = dut.record_in:Array("entries"):Struct(-1)
 first:Struct("header"):Data("tag"):Set(17)
 first:Array("payload"):Data(3):Set("0x10000000000001234")
@@ -190,10 +194,10 @@ object example {
     def main(args: Array[String]): Unit = {
         val dut = new UT_AggregatePorts()
         dut.packed_in.Set(0)
-        dut.packed_in_view.Data("tag").Set(29)
-        dut.packed_in_view.Data("valid").Set(1)
+        dut.packed_in.StructView().Data("tag").Set(29)
+        dut.packed_in.StructView().Data("valid").Set(1)
         dut.matrix.Set(0)
-        dut.matrix_view.Array(1).Data(-2).Set(1)
+        dut.matrix.ArrayView().Array(1).Data(-2).Set(1)
         val first = dut.record_in.Array("entries").Struct(-1)
         first.Struct("header").Data("tag").Set(17)
         first.Array("payload").Data(3).Set("0x10000000000001234")
@@ -217,7 +221,7 @@ dut = DUTAggregatePorts()
 dut.packed_in.Set(59)
 dut.matrix.Set(0x81)
 dut.record_in.enabled.Set(1)
-dut.packed_records[2].PackedData().Set(0x2f)
+dut.packed_records[2].Set(0x2f)
 dut.Step(1)
 
 if sys.argv[1] == "unpacked-struct":
@@ -227,10 +231,10 @@ if sys.argv[1] == "unpacked-struct":
         assert isinstance(record, xsp.XStruct)
         assert record.Data("enabled").U() == 1
         assert tuple(record.entries.indices) == (-1, 0)
-        record.entries[-1].header.Data("tag").Set(17)
-        assert dut.GetInternalSignal("record_in.entries[-1].header", use_vpi=True).Data("tag").U() == 17
+        record.entries[-1].header.StructView().Data("tag").Set(17)
+        assert dut.GetInternalSignal("record_in.entries[-1].header", use_vpi=True).StructView().Data("tag").U() == 17
         dut.Step(1)
-        assert dut.record_out.entries[-1].header.Data("tag").U() == 17
+        assert dut.record_out.entries[-1].header.StructView().Data("tag").U() == 17
     else:
         try:
             dut.GetInternalSignal("record_in", use_vpi=True)
@@ -239,18 +243,18 @@ if sys.argv[1] == "unpacked-struct":
         else:
             raise AssertionError("unpacked-struct VPI access unexpectedly succeeded")
     # A rejected lookup must not invalidate previously cached, supported views.
-    assert dut.GetInternalSignal("packed_in", use_vpi=True).Data("valid").CSelf() == cached.Data("valid").CSelf()
-    assert cached.Data("valid").U() == 1
+    assert dut.GetInternalSignal("packed_in", use_vpi=True).StructView().Data("valid").CSelf() == cached.StructView().Data("valid").CSelf()
+    assert cached.StructView().Data("valid").U() == 1
     dut.Finish()
     sys.exit(0)
 
 packed = dut.GetInternalSignal("packed_in", use_vpi=True)
-assert isinstance(packed, xsp.XStruct)
-assert packed.Data("tag").S() == -3
-assert packed.Data("valid").U() == 1
-assert isinstance(dut.GetInternalSignal("packed_in.tag", use_vpi=True), xsp.XArray)
+assert isinstance(packed, xsp.XData)
+assert packed.StructView().Data("tag").S() == -3
+assert packed.StructView().Data("valid").U() == 1
+assert isinstance(dut.GetInternalSignal("packed_in.tag", use_vpi=True), xsp.XData)
 qualified = dut.dut.GetVPIScope() + ".packed_in.tag"
-assert dut.GetInternalSignal(qualified, use_vpi=True).bounds == ((0, 4),)
+assert dut.GetInternalSignal(qualified, use_vpi=True).ArrayView().bounds == ((0, 4),)
 held_view = dut.GetInternalSignalView("packed_in")
 try:
     held_view.Array()
@@ -258,12 +262,14 @@ try:
 except ValueError as error:
     assert "actual=struct, requested=array" in str(error)
 
-matrix = dut.GetInternalSignal("matrix", use_vpi=True)
+matrix_data = dut.GetInternalSignal("matrix", use_vpi=True)
+assert isinstance(matrix_data, xsp.XData)
+matrix = matrix_data.ArrayView()
 assert isinstance(matrix, xsp.XArray)
 assert matrix.bounds == ((1, 0), (-2, 1))
 listed_matrix_name = next(name for name in dut.GetInternalSignalList(use_vpi=True)
                           if name.endswith(".matrix") or name == "matrix")
-assert dut.GetInternalSignal(listed_matrix_name, use_vpi=True).bounds == matrix.bounds
+assert dut.GetInternalSignal(listed_matrix_name, use_vpi=True).ArrayView().bounds == matrix.bounds
 assert matrix[1][-2].U() == 1
 assert matrix[0][1].U() == 1
 matrix[1][-1].Set(1)
@@ -271,13 +277,13 @@ matrix[1][-1].Set(1)
 records = dut.GetInternalSignal("packed_records", use_vpi=True)
 assert isinstance(records, xsp.XArray)
 assert records.bounds == ((2, 1),)
-records[1].Data("valid").Set(1)
+records[1].StructView().Data("valid").Set(1)
 
 dut.Step(1)
 assert dut.packed_out.U() == 59
 assert dut.matrix_out.U() == 0xC1
-assert dut.packed_records_out[1].PackedData().U() & 1 == 1
-held = packed.Data("valid")
+assert dut.packed_records_out[1].U() & 1 == 1
+held = packed.StructView().Data("valid")
 dut.Finish()
 try:
     held_view.Struct()
@@ -728,7 +734,11 @@ values = {"plain": 0xfedcba9876543210, "scalar": 1, "one": 0,
 for name, value in values.items():
     signal = dut.GetInternalSignal(name, use_vpi=True)
     assert isinstance(signal, xsp.XData), (name, type(signal))
-    assert signal.W() == (0 if name in ("scalar", "one") else 64)
+    assert signal.W() == (0 if name in ("scalar", "one") else 64), (name, signal.W())
+    assert signal.HasLayout(), name
+    declared = {"plain": ((63, 0),), "descending": ((79, 16),), "VpiVectors.ascending": ((-9, 54),)}
+    if name in declared:
+        assert signal.ArrayView().bounds == declared[name], (name, signal.ArrayView().bounds)
     signal.value = value
     assert signal.value == value, name
     assert dut.GetInternalSignal(name, use_vpi=True).CSelf() == signal.CSelf()
@@ -756,8 +766,9 @@ if aggregate:
         for index, value in zip(array.indices, payloads):
             element = array[index]
             assert isinstance(element, xsp.XData), (name, index, type(element))
-            assert array.At(index).Kind() == "bits"
+            assert array.At(index).IsPacked()
             assert element.W() == 64
+            assert element.ArrayView().bounds == ((79, 16),)
             element.value = value
             assert element.value == value
         if name == "words":
@@ -768,13 +779,15 @@ if aggregate:
     # Explicit Picker layouts keep their recursive one-dimensional fields,
     # while unregistered multidimensional packed values retain every dimension.
     packet = dut.GetInternalSignal("packet", use_vpi=True)
-    assert isinstance(packet, xsp.XStruct)
-    assert packet.Array("tag").bounds == ((4, 2),)
-    assert isinstance(dut.GetInternalSignal("packet.tag", use_vpi=True), xsp.XArray)
-    packet.Data("tag").value = 5
-    packet.Data("valid").value = 1
+    assert isinstance(packet, xsp.XData)
+    assert packet.StructView().Data("tag").ArrayView().bounds == ((4, 2),)
+    assert isinstance(dut.GetInternalSignal("packet.tag", use_vpi=True), xsp.XData)
+    packet.StructView().Data("tag").value = 5
+    packet.StructView().Data("valid").value = 1
     for name in ("matrix", "VpiVectors.internal_matrix"):
-        matrix = dut.GetInternalSignal(name, use_vpi=True)
+        packed_matrix = dut.GetInternalSignal(name, use_vpi=True)
+        assert isinstance(packed_matrix, xsp.XData), (name, type(packed_matrix))
+        matrix = packed_matrix.ArrayView()
         assert isinstance(matrix, xsp.XArray), (name, type(matrix))
         assert matrix.IsPacked()
         assert matrix.bounds == ((1, 0), (-2, 1))
@@ -970,45 +983,59 @@ endmodule
 dut = DUTComposed()
 for n in (0, 1):
     prefix = f'Composed_{n}_'
-    body = getattr(dut, prefix + 'body_view')
-    body.header.Data('tag').value = 5 + n
-    body.Array('slots')[1].Data('tag').value = 3 + n
-    body.Array('slots')[0].Data('valid').value = 1
+    body = getattr(dut, prefix + 'body').StructView()
+    body.header.StructView().Data('tag').value = 5 + n
+    body.Array('slots')[1].StructView().Data('tag').value = 3 + n
+    body.Array('slots')[0].StructView().Data('valid').value = 1
     body.Array('matrix')[0][4].value = 1
-    table = getattr(dut, prefix + 'table_in_view')
+    table = getattr(dut, prefix + 'table_in').ArrayView()
     assert table.bounds == ((2, 1), (0, 1))
-    table[2][0].Data('tag').value = 6 - n
-    table[1][1].Data('valid').value = 1
+    table[2][0].StructView().Data('tag').value = 6 - n
+    table[1][1].StructView().Data('valid').value = 1
     lanes = getattr(dut, prefix + 'lanes')
     assert lanes.shape == (2,)
     lanes[-1].value = 0x21 + n
     lanes.Array(0)[1][4].value = 1
     frame = getattr(dut, prefix + 'frame')
     frame.narrow.value = n + 7
-    frame.items[2].Data('tag').value = n + 2
-    frame.items[1].Data('valid').value = 1
+    frame.items[2].StructView().Data('tag').value = n + 2
+    frame.items[1].StructView().Data('valid').value = 1
     frame.child['value'].value = n + 0x123
 count = dut.xport.PortCount()
 dut.Step(1)
 for n in (0, 1):
     prefix = f'Composed_{n}_'
-    body = getattr(dut, prefix + 'body_out_view')
-    assert body.header.Data('tag').value == 5 + n
-    assert body.Array('slots')[1].Data('tag').value == 3 + n
-    assert body.Array('slots')[0].Data('valid').value == 1
+    body = getattr(dut, prefix + 'body_out').StructView()
+    assert body.header.StructView().Data('tag').value == 5 + n
+    assert body.Array('slots')[1].StructView().Data('tag').value == 3 + n
+    assert body.Array('slots')[0].StructView().Data('valid').value == 1
     assert body.Array('matrix')[0][4].value == 1
-    table = getattr(dut, prefix + 'table_out_view')
-    assert table[2][0].Data('tag').value == 6 - n
-    assert table[1][1].Data('valid').value == 1
+    table = getattr(dut, prefix + 'table_out').ArrayView()
+    assert table[2][0].StructView().Data('tag').value == 6 - n
+    assert table[1][1].StructView().Data('valid').value == 1
     lanes = getattr(dut, prefix + 'lanes_out')
     assert lanes[-1].value == 0x21 + n
     assert lanes.Array(0)[1][4].value == 1
     frame = getattr(dut, prefix + 'frame_out')
     assert frame.narrow.value == n + 7
-    assert frame.items[2].Data('tag').value == n + 2
-    assert frame.items[1].Data('valid').value == 1
+    assert frame.items[2].StructView().Data('tag').value == n + 2
+    assert frame.items[1].StructView().Data('valid').value == 1
     assert frame.child['value'].value == n + 0x123
 assert dut.xport.PortCount() == count == 32
+if dut.dut.GetXSignalCFGBasePtr():
+    for n in (0, 1):
+        prefix = f'Composed_{n}_'
+        root = 'Composed_top.' + prefix
+        body = dut.GetInternalSignal(root + 'body')
+        assert body.HasLayout()
+        assert body.StructView().fields == getattr(dut, prefix + 'body').StructView().fields
+        assert body.StructView().Array('matrix').bounds == ((0, 1), (4, 2))
+        table = dut.GetInternalSignal(root + 'table_in')
+        assert table.ArrayView().bounds == getattr(dut, prefix + 'table_in').ArrayView().bounds
+        storage = dut.GetInternalSignal(root + 'lanes', is_array=True)
+        assert storage.bounds == ((0, 1),)
+        assert storage[0].HasLayout()
+        assert storage[0].ArrayView().bounds == getattr(dut, prefix + 'lanes')[-1].ArrayView().bounds
 dut.Finish()
 """
         for access in os.environ.get("AGGREGATE_ACCESS", "dpi,mem_direct").split(","):
@@ -1021,6 +1048,56 @@ dut.Finish()
                     "--tname", "Composed", "--sdir", str(self.root / "template"), "--tdir", str(output),
                     "--sim", "verilator", "--lang", "python", "--rw", access, "--autobuild", "false",
                     "-V", "-Wno-fatal"])
+                self.run_command(["make", "-C", str(output), "NPROC=4"])
+                self.run_command([sys.executable, "-c", check], cwd=base)
+
+    def test_plain_vectors_retain_ranges_for_explicit_views(self):
+        rtl = """module VectorViews(input logic [7:4] descending, input logic [0:3] ascending,
+                                    output logic [7:0] observed);
+assign observed = {descending, ascending};
+endmodule
+"""
+        check = r'''from VectorViews import DUTVectorViews, xsp
+dut = DUTVectorViews()
+try:
+    for name, bounds in (("descending", ((7, 4),)), ("ascending", ((0, 3),))):
+        data = getattr(dut, name)
+        assert isinstance(data, xsp.XData)
+        assert data.W() == 4 and data.HasLayout(), (name, data.W(), data.HasLayout())
+        view = data.ArrayView()
+        assert view.bounds == bounds
+        view[view.Left()].value = 1
+        assert data.value == 8
+        data[0] = 1
+        assert data.value == 9
+        leaf = view[view.Left()]
+        try:
+            data.StructView()
+            raise AssertionError("bits accepted as struct")
+        except ValueError:
+            pass
+        assert leaf.CSelf() == data.ArrayView()[view.Left()].CSelf()
+        assert not hasattr(dut, name + "_view")
+    dut.Step(1)
+    assert dut.observed.value == 0x99
+    if dut.dut.GetXSignalCFGBasePtr():
+        for name in ("descending", "ascending"):
+            native = dut.GetInternalSignal("VectorViews_top." + name)
+            assert native.HasLayout()
+            assert native.ArrayView().bounds == getattr(dut, name).ArrayView().bounds
+            assert native.value == 9
+finally:
+    dut.Finish()
+'''
+        for access in os.environ.get("AGGREGATE_ACCESS", "dpi,mem_direct").split(","):
+            with self.subTest(access=access), tempfile.TemporaryDirectory(prefix="picker-vector-view-") as directory:
+                base = Path(directory)
+                source = base / "vectors.sv"
+                source.write_text(rtl)
+                output = base / "VectorViews"
+                self.run_command([self.picker, "export", str(source), "--sname", "VectorViews",
+                    "--sdir", str(self.root / "template"), "--tdir", str(output), "--sim", "verilator",
+                    "--lang", "python", "--rw", access, "--autobuild", "false", "-V", "-Wno-fatal"])
                 self.run_command(["make", "-C", str(output), "NPROC=4"])
                 self.run_command([sys.executable, "-c", check], cwd=base)
 
@@ -1039,7 +1116,11 @@ endmodule
                 "--sdir", str(self.root / "template"), "--tdir", str(output), "--sim", "verilator",
                 "--lang", "python", "--autobuild", "false"])
             wrapper = (output / "python/dut.py").read_text()
-            self.assertIn("self.packet_view__ = xsp.XView.FromPort", wrapper)
+            self.assertIn("self.packet = xsp.XData", wrapper)
+            self.assertIn("self.packet_view = xsp.XData", wrapper)
+            self.assertIn("self.packet_view_ = xsp.XData", wrapper)
+            self.assertNotIn("self.packet_view__ =", wrapper)
+            self.assertIn("self.xcfg.BindPortLayouts(self.xport)", wrapper)
             self.assertIn("self.pin__picker_views = xsp.XData", wrapper)
             self.assertNotIn("self._picker_views = xsp.XData", wrapper)
 

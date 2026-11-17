@@ -112,8 +112,8 @@ static void test_unpacked_array_ports()
                 for (const auto &language : {"python", "cpp", "java", "scala", "golang", "lua"}) {
                     std::string declarations, initialization;
                     assert(picker::codegen::render_array_ports(external, language, declarations, initialization));
-                    assert(contains_line(initialization, "XView"));
-                    assert(contains_line(initialization, "FromPort"));
+                    assert(contains_line(initialization, "BindPortLayouts"));
+                    assert(contains_line(initialization, "NewPortView"));
                     assert(!contains_line(initialization, "_SignalArray"));
                     assert(!contains_line(declarations, "PickerSignalArray"));
                     assert(contains_line(initialization, "matrix") || contains_line(initialization, "Matrix"));
@@ -188,7 +188,8 @@ static void test_recursive_struct_bindings()
         for (const auto &language : {"python", "cpp", "java", "scala", "golang", "lua"}) {
             std::string declarations, initialization;
             picker::codegen::render_array_ports(leaves, language, declarations, initialization);
-            assert(contains_line(initialization, "FromPort"));
+            assert(contains_line(initialization, "NewPortView"));
+            assert(contains_line(initialization, "BindPortLayouts"));
             assert(!contains_line(initialization, "_SignalArray"));
             if (std::string(language) == "golang")
                 assert(contains_line(initialization, "DeleteXView(view)"));
@@ -394,8 +395,11 @@ static void test_wrapper_member_name_allocation()
         const MemberNames first(aggregates, {}, {}, language);
         std::reverse(aggregates.begin(), aggregates.end());
         const MemberNames second(aggregates, {}, {}, language);
-        for (const auto &pin : aggregates) assert(first.View(pin.logic_pin) == second.View(pin.logic_pin));
-        assert(first.View("cost$") != first.View("cost_"));
+        for (const auto &pin : aggregates) assert(first.Pin(pin.logic_pin) == second.Pin(pin.logic_pin));
+        assert(first.Pin("cost$") != first.Pin("cost_"));
+        bool packed_view_absent = false;
+        try { (void)first.View("cost$"); } catch (const std::out_of_range &) { packed_view_absent = true; }
+        assert(packed_view_absent);
     }
 }
 

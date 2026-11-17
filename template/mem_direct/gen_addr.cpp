@@ -1,5 +1,7 @@
 #include "gen_addr.hpp"
 #include <iostream>
+#include <functional>
+#include <set>
 
 std::vector<cpp_variableInfo> all_vars;
 
@@ -74,8 +76,21 @@ int main(int argc, char **argv)
         if (input) writer.copy(*input, "mvs");
         for (const auto &var : all_vars) writer.add('v', var.name, var.value());
         if (input) {
+            std::set<std::string> copied_types;
+            std::function<void(const std::string &)> copy_type = [&](const std::string &id) {
+                if (!copied_types.insert(id).second) return;
+                auto node = input->get('t', id);
+                if (!node) throw std::runtime_error("Missing retained type: " + id);
+                const auto &type = node->object;
+                if (type.count("element")) copy_type(type.at("element").text);
+                if (type.count("fields")) for (const auto &field : type.at("fields").array)
+                    copy_type(field.object.at("type").text);
+                writer.add('t', id, *node);
+            };
+            if (auto ports = input->get('m', "port_types"))
+                for (const auto &[name, id] : ports->object) copy_type(id.text);
             {% for id in __NATIVE_TYPE_IDS__ %}
-            if (auto node = input->get('t', {{id}})) writer.add('t', {{id}}, *node);
+            copy_type({{id}});
             {% endfor %}
             const auto lookup = build_var_lookup();
             input->each('q', [&](const std::string &name, const cfgdb::Value &raw) {

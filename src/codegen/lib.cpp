@@ -58,6 +58,33 @@ namespace picker { namespace codegen {
             if (!pin.aggregate_name.empty() && pin.type_layout)
                 layouts[pin.aggregate_name] = nlohmann::json::parse(*pin.type_layout);
         }
+        if (opts.vpi && !opts.config_model_id.empty()) {
+            // The language wrapper is rendered after the single config file.
+            // Reuse its exact port references, including plain vector ranges,
+            // rather than letting VPI infer normalized wrapper coordinates.
+            config::db::Database input(opts.target_dir + "/" + opts.target_module_name + ".xscfg", opts.config_model_id);
+            std::map<std::string, nlohmann::json> expanded;
+            std::function<nlohmann::json(const std::string &)> expand = [&](const std::string &id) {
+                if (const auto cached = expanded.find(id); cached != expanded.end()) return cached->second;
+                const auto type = input.get('t', id);
+                if (!type) throw std::invalid_argument("Missing configured port type: " + id);
+                auto node = config::decode(*type);
+                if (node.contains("element")) node["element"] = expand(node["element"].get<std::string>());
+                if (node.contains("fields")) for (auto &field : node["fields"])
+                    field["type"] = expand(field["type"].get<std::string>());
+                expanded.emplace(id, node);
+                return node;
+            };
+            if (auto ports = input.get('m', "port_types"))
+                for (const auto &[name, id] : ports->object) {
+                    auto type = expand(id.text);
+                    // Ordinary VPI leaves have always normalized one bit to
+                    // scalar XData. Keep that representation, not the wrapper's
+                    // normalized declaration range, while associating its type.
+                    if (type["kind"] == "bits" && type["width"] == 1) type["width"] = 0;
+                    layouts[name] = std::move(type);
+                }
+        }
         data[tags::aggregate_layouts_json] = nlohmann::json(layouts.dump()).dump();
         data[tags::rw_type]                = opts.rw_type == picker::SignalAccessType::MEM_DIRECT ? "MEM_DIRECT" : "DPI";
         if ((enabled || aggregates) && !data.contains(tags::xspcomm_include)) {
@@ -586,13 +613,49 @@ namespace picker { namespace codegen {
                 }
             }
         }
+        // Port names are exact logical XPort keys, not host attributes or paths
+        // reconstructed from the presentation-oriented metadata tree. Reuse the
+        // same interned type section as native signals, including DPI projects.
+        nlohmann::json port_types = nlohmann::json::object();
+        std::function<std::string(nlohmann::json)> intern_port_type = [&](nlohmann::json node) {
+            if (node.contains("element")) node["element"] = intern_port_type(node["element"]);
+            if (node.contains("fields")) for (auto &field : node["fields"])
+                field["type"] = intern_port_type(field["type"]);
+            const auto [found, inserted] = native_interned.emplace(node.dump(), "t" + std::to_string(native_interned.size()));
+            if (inserted) native_layouts["types"][found->second] = std::move(node);
+            return found->second;
+        };
+        for (const auto &pin : ret) {
+            if (!pin.aggregate_name.empty() && pin.type_layout) {
+                if (!port_types.contains(pin.aggregate_name))
+                    port_types[pin.aggregate_name] = intern_port_type(nlohmann::json::parse(*pin.type_layout));
+            } else if (!pin.array_name.empty() && !port_types.contains(pin.array_name)) {
+                const auto alias = dst_module_name + "_top." + pin.array_name;
+                if (native_layouts["signals"].contains(alias)) {
+                    port_types[pin.array_name] = native_layouts["signals"][alias];
+                    continue;
+                }
+                nlohmann::json layout{{"kind", "bits"}, {"packed", true},
+                    {"width", pin.logic_pin_hb == -1 ? 0 : pin.logic_pin_hb - pin.logic_pin_lb + 1},
+                    {"signed", pin.unpacked_element_type.find("signed") != std::string::npos},
+                    {"four_state", !pin.unpacked_element_type.starts_with("bit")}};
+                for (auto it = pin.unpacked_dimensions.rbegin(); it != pin.unpacked_dimensions.rend(); ++it)
+                    layout = {{"kind", "array"}, {"packed", false}, {"width", 0},
+                        {"left", it->first}, {"right", it->second}, {"element", std::move(layout)}};
+                port_types[pin.array_name] = intern_port_type(std::move(layout));
+            } else if (pin.aggregate_name.empty() && pin.array_name.empty()) {
+                const auto alias = dst_module_name + "_top." + pin.logic_pin;
+                if (native_layouts["signals"].contains(alias))
+                    port_types[signal_name(pin)] = native_layouts["signals"][alias];
+            }
+        }
         data[tags::single_config_database] = true;
         // The historical DPI hash is seeded by seconds. It is not sufficient
         // to distinguish two configuration exports made within the same tick.
         std::random_device entropy;
         std::ostringstream identity;
         identity << std::hex << std::setfill('0') << std::setw(16)
-                 << config::db::hash(data.dump() + native_layouts.dump()) << '-';
+                  << config::db::hash(data.dump() + native_layouts.dump() + port_types.dump()) << '-';
         for (int i = 0; i < 4; ++i) identity << std::setw(8) << uint32_t(entropy());
         const auto model_id = identity.str();
         opts.config_model_id = model_id;
@@ -605,6 +668,7 @@ namespace picker { namespace codegen {
             if (!parsed.is_discarded()) ports = parsed;
         }
         database.add('m', "ports", config::encode(ports));
+        database.add('m', "port_types", config::encode(port_types));
         database.add('m', "generator", config::encode({{"simulator", opts.sim},
             {"rw_type", data[tags::rw_type]}, {"native_abi", PICKER_NATIVE_ABI}}));
         for (const auto &[id, type] : native_layouts["types"].items()) database.add('t', id, config::encode(type));

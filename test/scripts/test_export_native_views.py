@@ -58,10 +58,13 @@ try:
     dut.Step(2)
     root="NativeViews_top.NativeViews.a_child."
     packet=dut.GetInternalSignalView(root+"packet").Struct()
+    packet_data=dut.GetInternalSignal(root+"packet")
+    assert packet_data.HasLayout()
+    assert packet_data.StructView().fields == ("tag", "data")
     assert packet.Data("tag").value == 0x9a
     packet.Data("tag").value = 0x55
     assert dut.GetInternalSignal(root+"packet").value == 0x55bcdef0
-    assert dut.GetInternalSignalView(root+"packet.tag").Data().CSelf() == packet.Data("tag").CSelf()
+    assert dut.GetInternalSignalView(root+"packet.tag").PackedData().CSelf() == packet.Data("tag").CSelf()
     packets=dut.GetInternalSignalView(root+"packets").Array()
     assert packets.bounds == ((-1,0),)
     packets.Struct(-1).Data("tag").value=0x66
@@ -69,14 +72,15 @@ try:
     selected_packet=dut.GetInternalSignalView(root+"packets[-1]").Struct()
     assert selected_packet.Data("tag").CSelf()==packets.Struct(-1).Data("tag").CSelf()
     lanes=dut.GetInternalSignalView(root+"lanes").Array()
-    assert lanes.bounds == ((1,0),)
+    assert lanes.bounds == ((1,0),(31,0))
+    assert dut.GetInternalSignal(root+"lanes").ArrayView().bounds == lanes.bounds
     lanes.Data(0).value=0x11223344
     assert dut.GetInternalSignal(root+"lanes").value == 0x1234567811223344
     memory=dut.GetInternalSignalView(root+"memory").Array()
     assert memory.bounds == ((3,2),(-1,1))
     memory.Array(3).Data(1).value=(1<<64)|0x55
     assert dut.GetInternalSignal(root+"memory",is_array=True)[1][2].value == (1<<64)|0x55
-    assert dut.GetInternalSignalView(root+"memory[3][1]").Data().CSelf()==memory.Array(3).Data(1).CSelf()
+    assert dut.GetInternalSignalView(root+"memory[3][1]").PackedData().CSelf()==memory.Array(3).Data(1).CSelf()
     records=dut.GetInternalSignalView(root+"records").Array()
     assert records.bounds == ((4,3),)
     first=records.Struct(4).Array("children").Struct(3)
@@ -87,13 +91,13 @@ try:
     assert second.Data("wide").value == old
     first.Struct("packet").Data("data").value=0x765432
     assert first.Struct("packet").Data("tag").value == 0x9a
-    selected=dut.GetInternalSignalView(root+"records[4].children[3].wide").Data()
+    selected=dut.GetInternalSignalView(root+"records[4].children[3].wide").PackedData()
     assert selected.CSelf() == first.Data("wide").CSelf()
     assert selected.value == (1<<64)|0x1234
     small=dut.GetInternalSignalView(root+"records[4].signed_value")
     assert small.IsSigned()
-    small.Data().value=31
-    assert small.Data().S() == -1
+    small.PackedData().value=31
+    assert small.PackedData().S() == -1
     assert dut.GetInternalSignalView(root+"parameterized").Data().W() == 13
     assert dut.GetInternalSignalView(root.replace("a_child","b_child")+"parameterized").Data().W() == 19
     assert not dut.GetInternalSignalView(root+"missing").HasValue()
@@ -126,7 +130,7 @@ int main() {
     auto record=records->Struct(4)->Array("children")->Struct(3);
     record->Data("wide")->Set("0x10000000012345678");
     assert(record->Data("wide")->String()=="010000000012345678");
-    assert(dut.GetInternalSignalView(root+"records[4].children[3].wide").Data()==record->Data("wide"));
+    assert(dut.GetInternalSignalView(root+"records[4].children[3].wide").PackedData()==record->Data("wide"));
     auto memory=dut.GetInternalSignalView(root+"memory").Array();
     assert(memory->Left()==3 && memory->Right()==2);
     memory->Array(3)->Data(-1)->Set(42);

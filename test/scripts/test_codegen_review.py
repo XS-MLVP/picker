@@ -174,18 +174,18 @@ endmodule\n'''
 int main() {
     UTReviewInout dut;
     assert(dut.bus.IsBiIO() && dut.plain.IsBiIO());
-    assert(dut.bus_view->PackedData().get() == &dut.bus);
+    assert(dut.bus.StructView()->PackedData().get() == &dut.bus);
     // A real DUT-driven inout is observable. An undriven inout can be folded
     // to zero by Verilator; that is not a test of external tri-state drive.
     dut.drive.Set(19);
     dut.Step(1);
     assert(dut.bus.U() == 19 && dut.plain.U() == 19);
-    assert(dut.bus_view->Data("tag")->U() == 9);
-    assert(dut.bus_view->Data("valid")->U() == 1);
+    assert(dut.bus.StructView()->Data("tag")->U() == 9);
+    assert(dut.bus.StructView()->Data("valid")->U() == 1);
     dut.drive.Set(6);
     dut.Step(1);
     assert(dut.bus.U() == 6 && dut.plain.U() == 6);
-    assert(dut.bus_view->Data("tag")->U() == 3);
+    assert(dut.bus.StructView()->Data("tag")->U() == 3);
     dut.Finish();
 }
 '''
