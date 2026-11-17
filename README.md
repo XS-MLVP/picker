@@ -30,18 +30,17 @@ Create a test in the generated package's parent directory to assign inputs by po
 ## VCS integration
 
 Generated Python DUT classes expose `SIMULATOR` (for example, `DUTAdder.SIMULATOR == "vcs"`)
-and `GetSimulator()`. This identifies the export backend, not a runtime backend switch.
+and `GetSimulator()` to identify the export backend.
 
 VCS waveform paths must use `.fsdb`; use `--verdi-mode modern` with current Verdi releases. VCS source builds enable `-kdb` by default so the generated `.daidir` database can be opened in Verdi. Imported precompiled libraries must supply their own matching debug database.
 `Finish()` finalizes simulation and coverage in a forked child and waits for it, allowing
 Python to continue pytest teardown and report generation.
 
 Coverage-enabled VCS exports include `coverage/coverage`, a standalone UCAPI query
-executable using schema version 1, without xcomm coverage-client bindings.
+executable using schema version 1.
 `GetCoveragePath()` returns the actual VDB; `SetCoverage()` selects a testdata name.
 Finalization uses a database lock before the snapshot can be queried. Regenerate and
-rebuild existing DUT packages after upgrading; installing Picker or updating only the
-Python reporter does not update their compiled libraries.
+rebuild existing DUT packages after upgrading.
 
 ## Documentation
 

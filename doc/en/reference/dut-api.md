@@ -19,10 +19,9 @@ dut.Finish()
 `dut.pin` and `dut["pin"]` return the same port object. Write through `.value` or `Set(value)`. Reading `.value` returns an unsigned Python integer of the full signal width. The port attribute itself is read-only.
 
 Packed structs and multidimensional packed arrays retain the whole `XData`
-under the port name and add an indexed/field container named `port_view` (with
-extra underscores if needed to avoid a port-name collision). Unpacked structs
-use `XStruct` directly; their array and struct fields compose recursively without
-a fabricated whole-object vector. For example, `dut.record.entries[-1].flag`
+under the port name. Use `StructView()` / `ArrayView()` for explicit structural
+access. Unpacked structs use `XStruct` directly; their array and struct fields
+compose recursively. For example, `dut.record.entries[-1].flag`
 is an ordinary `XData`. `Data(name)`, `Struct(name)` and `Array(name)` select
 the desired field interface. See [aggregate export](../guides/export.md#structs-and-multidimensional-packed-arrays)
 for the four storage models, original RTL indexing and examples.
@@ -42,27 +41,24 @@ for the four storage models, original RTL indexing and examples.
 Callbacks run after evaluation and signal refresh at the corresponding edge. Drive the RTL reset port to apply reset; see [clock and reset setup](../guides/simulation.md).
 
 New Python, C++, Java, Scala, Go, and Lua wrappers route `RefreshComb()` through
-`XClock.RefreshComb()`. With the matching xcomm version, manual refresh is rejected just like
-manual Step while a framework owns the clock, including pauses; releasing control restores it.
-Request combinational evaluation through the framework instead of directly accessing the
-underlying simulator. Regenerate and rebuild older packages.
-The Verilator refresh path still uses `eval_step()` without advancing context time or Picker's
-internal cycle count. It does not commit edge-deferred writes; use `AsImmWrite()` for combinational inputs.
+`XClock.RefreshComb()`. Request combinational evaluation through the framework
+while it owns the clock. Regenerate and rebuild older packages. The Verilator
+refresh path uses `eval_step()`; submit combinational inputs with `AsImmWrite()`.
 
-While a test framework holds clock control, `Step()` reports an error. Use the framework's execution method during that period. Newly generated VCS packages finalize in a child process so the host can continue reporting after `Finish()`; rebuild existing packages to obtain this behavior. UVS shutdown may still terminate the process, so arrange its test reporting before `Finish()`.
+Newly generated VCS packages finalize in a child process so the host can continue reporting after `Finish()`.
 
 ## Waveforms
 
 | Method | Behavior and return value |
 | --- | --- |
 | `SetWaveform(filename)` | Set the output path, using the format configured at export time |
-| `GetWaveFormat()` | Return an extension such as `fst`, or an empty string when disabled |
+| `GetWaveFormat()` | Return an extension such as `fst` |
 | `PauseWaveformDump()` | Pause recording |
 | `ResumeWaveformDump()` | Resume recording |
 | `WaveformPaused()` | Return 1 when paused and 0 when recording |
 | `FlushWaveform()` | Write the waveform buffer to the file |
 
-See [save waveforms](../guides/simulation.md#recording) for export options and a complete script. Frequent flushing adds I/O and affects FST compression efficiency.
+See [save waveforms](../guides/simulation.md#recording) for export options and a complete script.
 
 ## Code coverage and checkpoints
 
@@ -82,19 +78,18 @@ Bits 0–5 of `GetCovMetrics()` represent line, cond, fsm, toggle, branch, and a
 | --- | --- |
 | `GetInternalSignal(name, index=-1, is_array=False, use_vpi=False)` | Return a signal object; `is_array=True` returns a recursive `XArray` using zero-based storage coordinates |
 | `GetInternalSignalView(name, use_vpi=False)` | Return an RTL-indexed recursive `XView`, preferring native metadata; `use_vpi=True` forces VPI |
-| `dut.xcfg.Metadata("ports")` | Explicitly read port metadata from the single `.xscfg` database as JSON; no separate `signals.json` is shipped |
+| `dut.xcfg.Metadata("ports")` | Read port metadata from the `.xscfg` database as JSON |
 | `GetInternalSignalList(prefix="", deep=99, use_vpi=False)` | List accessible names, preferring native layout information and then VPI |
 | `VPIInternalSignalList(prefix="", deep=99)` | Enumerate hierarchical names through VPI |
 
 For native lookup, `prefix` is a substring filter. For VPI, `prefix` and `deep` select the starting hierarchy and search depth.
 
-Successful results are cached by name and lookup options; later calls with the same arguments reuse the first object. An ordinary failed lookup returns `None`; an explicit `use_vpi=True` lookup failure raises an assertion. Native single-element `index` uses a flat storage position; VPI array selection uses that dimension's RTL index. See [access internal signals](../guides/internal-signals.md) for examples.
+Successful results are cached by name and lookup options; later calls with the same arguments reuse the first object. Native single-element `index` uses a flat storage position; VPI array selection uses that dimension's RTL index. See [access internal signals](../guides/internal-signals.md) for examples.
 
 ## Packed signal types and explicit views
 
 These methods belong to `XData` objects returned as generated ports or internal
-signals, not to the DUT wrapper itself. Use the matching native ABI 6 SDK. Packed
-signals remain complete values without extra automatically generated `*_view` members.
+signals. Use the matching native ABI 6 SDK. Packed signals default to complete values.
 
 | Method | Behavior |
 | --- | --- |
@@ -102,15 +97,13 @@ signals remain complete values without extra automatically generated `*_view` me
 | `data.ArrayView()` | Obtain a shared-value `XArray` using the associated packed-array layout |
 | `data.StructView()` | Obtain a shared-value `XStruct` using the associated packed-struct layout |
 | `data.SetLayout(layout_json)` | Explicit type association for manual Data; xcfg already associates generated aggregate ports and available native types |
-| `data.ArrayView(layout_json)` / `data.StructView(layout_json)` | Retain explicit-layout usage without guessing types from width |
+| `data.ArrayView(layout_json)` / `data.StructView(layout_json)` | Supply a layout explicitly |
 
-Missing layouts and kind mismatches produce explicit errors. Argument-free views
-and selected leaves are cached on demand without replacing the Data's backend,
-write mode or XPort registration. Default Python field access and packed
+Argument-free views and selected leaves are cached on demand. Default Python field access and packed
 struct/array elements in unpacked arrays return Data; explicitly convert for
 structural access. Ordinary Data bit indexing remains LSB-zero, while array views
-use declared RTL indices. `ReInit()` clears types and caches and invalidates the
-previous associated views. See [type layouts and explicit views](../explanation/data-layouts.md).
+use declared RTL indices. `ReInit()` clears types and caches.
+See [type layouts and explicit views](../explanation/data-layouts.md).
 
 ## Python asynchronous methods
 

@@ -236,7 +236,7 @@ status = dut.status.value    # 状态标志
 
 ### 1. 从 RTL 自动生成 Transaction (`--from-rtl`)
 
-**新功能！** 无需手写 Transaction，直接从 RTL 模块自动生成：
+从 RTL 模块自动生成 Transaction：
 
 ```bash
 # 自动解析模块端口并生成 transaction

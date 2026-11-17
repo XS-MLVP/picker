@@ -19,13 +19,13 @@ RTL defines the circuit structure. Export options select the language, simulator
 
 Changes to RTL, ports, or export options require another export and build. Changes to Python inputs, assertions, or test organization can run immediately.
 
-Configuration type layouts are associated with `XData` when signals are created or bound. Packed array or struct views are requested explicitly on demand, without automatic `*_view` members. See [XData type layouts and explicit views](data-layouts.md) for APIs, indexing, lifetime, and ABI 6 migration.
+Configuration type layouts are associated with `XData` when signals are created or bound. Packed array or struct views are requested explicitly on demand. See [XData type layouts and explicit views](data-layouts.md) for APIs, indexing, lifetime, and ABI 6 migration.
 
 ## What happens during Step
 
 The test stores pending input values in port objects. When it calls `Step()`, inputs are submitted to the simulator, and registered clock pins change as simulation advances. The simulator evaluates the circuit and refreshes output values in the language interface. The test can then read and compare them.
 
-For sequential circuits, `InitClock()` selects the clock port and `Step(n)` advances complete clock cycles. Combinational circuits can also use `Step()` to update outputs after an input change. To keep the cycle count unchanged, submit the inputs and call `RefreshComb()` as shown in [driving a simulation](../guides/simulation.md).
+For sequential circuits, `InitClock()` selects the clock port and `Step(n)` advances complete clock cycles. Combinational circuits can also use `Step()` to update outputs after an input change. To retain the current cycle count, submit the inputs and call `RefreshComb()` as shown in [driving a simulation](../guides/simulation.md).
 
 ## Why waveforms and internal signals need export options
 

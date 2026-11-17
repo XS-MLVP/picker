@@ -22,10 +22,9 @@ Enable waveforms and checkpoints at export time:
 | Checkpoints | `--checkpoints` | Verilator |
 | Native memory access | `--rw mem_direct` | Verilator and GSIM |
 
-`--rw mem_direct` builds a small address generator against the generated model header. When
-Verilator also receives `--timing`, that header requires C++20 coroutines; Picker detects it and
-builds the generator with `-std=c++20 -fcoroutines`. Without `--timing`, the generator stays on
-C++17, so older compilers keep working for non-timing models.
+`--rw mem_direct` builds an address generator against the generated model header,
+using C++17 for ordinary models. With `--timing`, Picker detects the model header's
+C++20 coroutine requirements and uses `-std=c++20 -fcoroutines`.
 
 ### Unpacked arrays and Verilator versions
 
@@ -41,7 +40,7 @@ The **DPI and mem_direct** paths for fixed unpacked arrays are supported with
 
 Optional Go/Lua port-array RTL tests are enabled with `ARRAY_EXTRA_LANGUAGES=1`.
 The Scala aggregate fixture verifies unpacked containers with Scala 2.13.16 and
-Verilator 5.052, but has not been expanded into a standalone array test matrix.
+Verilator 5.052.
 
 All six language generators use the shared array binding implementation.
 Public arrays use xcomm's recursive `XArray` API, backed by shared internal bindings.
@@ -49,15 +48,14 @@ Use Picker and xcomm as a matched
 toolchain, and regenerate and compile DUTs and single-file `.xscfg` configuration after upgrades.
 
 Native element addresses and strides are computed by the C++ compiler against
-the generated model; they are not hard-coded per Verilator version. The access
+the generated model. The access
 code and layout metadata must be regenerated and compiled together when changing
 Verilator or model build options.
 
 Generated helper formats can change independently of the storage layout. Picker
 selects the trace parser from the actual generated format, tolerates whitespace
-in constant array selections, and falls back to legacy underscore-encoded DPI
-symbol names only if the declared C name is absent. Unsupported trace formats
-must be diagnosed, not treated as valid native layouts. See [array port access](../guides/export.md#export-unpacked-array-ports)
+in constant array selections. DPI prefers the declared C symbol. See
+[array port access](../guides/export.md#export-unpacked-array-ports)
 and [internal native arrays](../guides/internal-signals.md#access-a-native-array)
 for the different indexing APIs.
 
@@ -65,8 +63,7 @@ for the different indexing APIs.
 
 Packed/unpacked structs and multidimensional packed arrays are exported with
 the recursive xcomm containers described in [aggregate export](../guides/export.md#structs-and-multidimensional-packed-arrays).
-Their minimum Verilator version is **5.048**; the generated CMake configuration
-reports an error on older versions. Ordinary unpacked arrays above retain their
+Their minimum Verilator version is **5.048**. Ordinary unpacked arrays above retain their
 5.026 minimum.
 Packed objects bind one complete `XData`; unpacked objects bind independent
 fields or elements. All layouts are derived from RTL, and native member
@@ -81,27 +78,20 @@ addresses/strides come from the generated C++ model.
 | DPI, mem_direct, VPI aggregate fixture | Scala 2.13.16 | 5.052 |
 
 The 5.026/5.048 entries are historical regressions of the existing array/aggregate
-interfaces. This change's ABI 6 type association, argument-free explicit views,
-and removal of automatic packed members were tested with Verilator 5.052; historical
-results do not count as revalidating the new interfaces on older versions.
+interfaces. ABI 6 type association and argument-free explicit views were tested
+with Verilator 5.052.
 
 The tests include nested structs, arrays of structs, mixed-direction bounds,
 65-bit fields and original whole packed values. Python additionally covers
 packed arrays of structs, multidimensional packed/unpacked composition,
 multiple instances, enums and integer fields. VPI views use VPI handles and
-Picker's RTL type layout; they never infer simulator memory offsets. Verilator
-5.048 supports the tested packed aggregates and unpacked arrays, but does not
-expose enough VPI type/member information to traverse unpacked structs. Such a
-request fails with the inaccessible member path; unpacked-struct VPI views
-require 5.052 or newer. The VPI aggregate-port fixture was verified in all six
-language bindings. VPI registers packed type layouts from ports rather than
-internal packed structs; an internal packed
-struct request therefore fails instead of guessing offsets. These results do
-not establish aggregate RTL support on VCS, UVS or GSIM.
+Picker's RTL type layout. Unpacked-struct VPI views require Verilator 5.052 or
+newer. The VPI aggregate-port fixture was verified in all six language bindings.
+VPI registers packed type layouts from ports.
 
 Use the matching xcomm SDK with native ABI 6 and rebuild generated DUTs.
 DPI setters and mem_direct writes access the selected independent field or
-array element directly, without a whole unpacked-array copy.
+array element directly.
 
 ## Languages
 
@@ -118,6 +108,6 @@ Export requires installed binding resources for the selected language. See the [
 
 ## Platforms and distribution
 
-Linux is the primary build environment. macOS supports Verilator and source builds, with dynamic multi-instance use limited by platform loading behavior. Python wheels are specific to a Python minor version, operating system, and architecture; for example, `cp312` means CPython 3.12.
+Linux is the primary build environment, and macOS supports Verilator and source builds. Select a Picker wheel for the operating system and architecture. The accompanying `uc-xcomm` wheel also matches the Python minor version; for example, `cp312` means CPython 3.12.
 
 Use generated models with the toolchain and runtime libraries used during export. Regenerate and recompile after replacing those dependencies. Before distributing a model, run the short test from the [adder tutorial](../tutorials/first-dut.md) in the target environment to check imports, wide signals, and simulation stepping.

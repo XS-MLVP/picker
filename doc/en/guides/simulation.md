@@ -56,7 +56,7 @@ dut.RefreshComb()
 assert dut.sum.value == 6
 ```
 
-This fragment uses the tutorial's Adder. Inputs are submitted immediately and combinational logic is evaluated while the cycle count stays unchanged.
+This fragment uses the tutorial's Adder. Inputs are submitted immediately for combinational evaluation, retaining the current cycle count.
 
 <a id="recording"></a>
 

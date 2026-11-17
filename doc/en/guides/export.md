@@ -57,8 +57,7 @@ picker export example/Adder/Adder.v --sname Adder --lang python \
 Picker generates a `<module>_top.sv` wrapper and instantiates the design inside it, so
 the simulator's top module is the wrapper. That is why design parameters have a
 dedicated option: picker evaluates `--rtl-param` with the RTL frontend and writes the
-resulting constants into the instantiation, which is also the only way to export a
-module whose parameters have no default value.
+resulting constants into the instantiation.
 
 ```sh
 picker export t.sv --sname t --tdir out \
@@ -73,11 +72,8 @@ picker export t.sv --sname t --tdir out \
  ) t(
 ```
 
-A parameter override in `-V` never reaches the instantiated module, and a macro given
-to only one side makes the wrapper ports disagree with the compiled model. Picker warns
-when it sees either pattern. `--rtl-define` is forwarded to the RTL frontend as `-D` and
-to the simulator as `+define+`; it also takes precedence over the same macro in a filelist,
-so a differing redefinition is never passed twice.
+`--rtl-define` is forwarded to the RTL frontend as `-D` and to the simulator as
+`+define+`. It takes precedence over the same macro in a filelist.
 
 ## Export several modules together
 
@@ -113,7 +109,7 @@ for i in dut.data.indices:
 dut.Step(1)
 ```
 
-Python views provide `bounds` (for example, `((-1, 1), (2, 3))`), `shape`, `indices`, `len()`, and iteration over elements in declaration order. A negative index is an RTL index, not a position counted from the end. Each view level preserves the declared direction of its dimension; for `data [3:2]`, `indices` is `[3, 2]` and iteration starts at the left bound. Out-of-range indices raise `IndexError`; replace neither the view nor its elements, and assign to the element's `.value` instead. `dut["data"]` returns the same view and `dut["matrix[-1][2]"]` returns the same bound signal as `dut.matrix[-1][2]`.
+Python views provide `bounds` (for example, `((-1, 1), (2, 3))`), `shape`, `indices`, `len()`, and iteration over elements in declaration order. A negative index is an RTL index. Each view level preserves the declared direction of its dimension; for `data [3:2]`, `indices` is `[3, 2]` and iteration starts at the left bound. Out-of-range indices raise `IndexError`; assign values through the element's `.value`. `dut["data"]` returns the same view and `dut["matrix[-1][2]"]` returns the same bound signal as `dut.matrix[-1][2]`.
 
 | Language | Element access | Container |
 | --- | --- | --- |
@@ -126,8 +122,8 @@ Python views provide `bounds` (for example, `((-1, 1), (2, 3))`), `shape`, `indi
 
 C++ views throw `std::out_of_range` for an index outside the declared bounds.
 
-Every language uses the same recursive `XArray` and checked RTL indices, not
-language-specific maps. `Left()`, `Right()` and `Size()` describe the current
+Every language uses the same recursive `XArray` and checked RTL indices.
+`Left()`, `Right()` and `Size()` describe the current
 dimension; `LeftBounds()`, `RightBounds()` and `Shape()` describe consecutive
 dimensions. The database's `ports` metadata records unpacked bounds as `Unpacked: [[left, right], ...]`
 in declaration order. Multi-instance exports keep the usual module/instance prefix.
@@ -135,25 +131,21 @@ All six bindings use the same array-element binding path.
 
 With Verilator `--rw mem_direct`, each array registers one base address and its
 `sizeof`-derived byte strides. xcomm resolves element addresses when binding the
-leaves, accounting for each RTL dimension's direction. No per-element address map,
-SV storage, continuous-assignment bridges, or port DPI accessors are generated.
-Internal arrays use the [native layout path](internal-signals.md#access-a-native-array), not the port interface or VPI.
+leaves, accounting for each RTL dimension's direction.
+Internal arrays use the [native layout path](internal-signals.md#access-a-native-array).
 
 With `--rw dpi`, each input array has **one indexed getter and one indexed setter**;
-an output array has only the getter. These functions access the original SV array,
-not bridge signals. Their internal flat index follows declaration order, with the
+an output array has only the getter. These functions access the original SV array.
+Their internal flat index follows declaration order, with the
 last dimension changing fastest; the generated SV code maps it back to RTL
 subscripts. Both access modes use one shared internal C++ array backend. Each
-leaf stores a backend reference and its DPI index or precomputed native address,
-not a captured per-element read/write callback. Public indexing still uses the
+leaf stores a backend reference and its DPI index or precomputed native address.
+Public indexing uses the
 RTL bounds.
 
 With Toffee's `SignalArray` support, use `Bundle(matrix=dut.matrix)`
-directly or adapt its metadata binding to the database's `ports` record. Tools
-that only read `signals.json` need this migration; no duplicate file is generated.
-Toffee retains the
-same leaves and original indices without rebinding their backend or registering
-another `XPort`; snapshots retain bounds too. See the
+directly or adapt its metadata binding to the database's `ports` record. Toffee
+retains the same leaves and original indices; snapshots retain bounds too. See the
 [Toffee array guide](https://github.com/XS-MLVP/toffee/blob/main/docs/en/guides/data.md).
 
 Views group references to the bound `XData` objects. A DPI backend read or write
@@ -163,31 +155,26 @@ them with `XPort` during initialization. Standalone `XArray.FromDPI` and
 `XArray.FromNative` factories create and cache leaves on demand through the same
 recursive interface. Shared binding and flat indexing are internal details.
 
-This replaces the former `XDataArray` type and language-specific port containers;
-there is no compatibility alias. Migrate full-coordinate/flat selections to one
+This replaces the former `XDataArray` type and language-specific port containers.
+Migrate full-coordinate/flat selections to one
 `Array(index)` per dimension and `Data(index)` at the leaf (or Python indexing).
 Regenerate DUTs with the matching Picker/xcomm SDK; the current native ABI is 6.
 
-Dynamic arrays, queues, associative arrays, unions, and unpacked `inout` ports are not supported.
-
 ## Structs and multidimensional packed arrays
 
-Picker generates recursive xcomm layouts from elaborated RTL types; no Toffee
-layout declaration is needed. These aggregate port views require Verilator
-**5.048 or newer**; generated builds reject older versions before compilation.
+Picker generates recursive xcomm layouts from elaborated RTL types. These
+aggregate port views require Verilator **5.048 or newer**.
 
 | RTL type | Bound values | Generated interface |
 | --- | --- | --- |
 | Packed struct | One complete `XData` | Original signal with explicit `StructView()` |
 | Multidimensional packed array | One complete `XData` | Original signal with explicit `ArrayView()` |
 | Unpacked array | Independent element values | Array view over `XData` or nested containers |
-| Unpacked struct | Independent field values | An `XStruct`, without a whole-value `XData` |
+| Unpacked struct | Independent field values | An `XStruct` |
 
 Packed ports generate only their complete `XData` by default. Initialization
 associates their types from the same `.xscfg`; explicitly call `StructView()` or
-`ArrayView()` without passing a layout. No `packet_view`, `matrix_view`, or similar
-members are automatically added. Ports actually declared with such names in RTL
-are unaffected. Unpacked structs/arrays still expose their own port containers.
+`ArrayView()`. Unpacked structs/arrays expose their own port containers.
 Structs and arrays compose recursively:
 
 ```python
@@ -212,22 +199,20 @@ array conventions. Scalar leaves use `XData`'s usual width-zero representation.
 Ordinary `XData` bit indexing remains LSB-zero; explicit array views use declared
 RTL bounds. For `logic [1:0][7:4] mixed [3:2]`, `mixed[3]` is the complete 8-bit
 Data and `mixed[3][1]` selects its bit offset 1. `mixed[3].ArrayView()[1][7]` is the
-RTL array selection. Do not mix Data bit offsets, RTL array indices, and legacy
-native storage coordinates. See [XData type layouts and explicit views](../explanation/data-layouts.md).
+RTL array selection. See [XData type layouts and explicit views](../explanation/data-layouts.md).
 
 Packed field writes merge into the parent and follow its existing write/edge
-commit policy. Views do not add `XPort` registrations or simulator backends.
+commit policy.
 Unpacked fields bind independently; a homogeneous field within an unpacked
 array shares one indexed DPI getter/setter pair, or one native base with
-compiler-derived byte strides. Native access uses actual generated C++ members,
-not assumed C++ struct packing. The database's `ports` record stores the recursive type under
+compiler-derived byte strides. Native access uses actual generated C++ members.
+The database's `ports` record stores the recursive type under
 `Layout`, including fields, packed offsets, bounds, widths, signing and state kind.
 The same file's `port_types` maps exact logical port names to the interned type
-table. xcfg associates types with existing Data instead of creating another
-backend. Types and on-demand views are shared; field/element Data retain their
-child types instead of parsing JSON for every request.
+table. xcfg associates types with existing Data. Types and on-demand views are
+shared; field/element Data retain their child types.
 DPI and mem_direct both access the selected independent field or array element
-directly, without copying an entire unpacked array for a single-element write.
+directly.
 
 Run `make -C test export_aggregate_views` for the Python/C++/Java RTL regression
 using `test/data/aggregate_views.sv`. Argument-free explicit views additionally have
@@ -242,21 +227,17 @@ allocator. Ordinary identifiers keep their spelling (Go capitalizes the first
 letter). Wrapper members, methods and target-language keywords are protected;
 conflicting ports use a `pin_` prefix, with a numeric suffix if that name is
 already occupied. For example, with both `vpi_backend` and `pin_vpi_backend`
-ports, Python exposes the former as `pin_vpi_backend_2` and leaves the latter
-unchanged. Names remain stable when enabling VPI or changing declaration order.
+ports, Python exposes the former as `pin_vpi_backend_2` and keeps the latter's
+original name.
 
 Only wrapper attributes are renamed. RTL paths, `XPort` keys and the database's
 port metadata keep their logical names. Use `dut["vpi_backend"]` or the language's
-`XPort` lookup when consuming metadata, rather than assuming `getattr(dut, name)`
-always refers to the port. External attribute-only metadata adapters must account
-for renamed members. Verilator's native identifier escaping is separate from
+`XPort` lookup when consuming metadata. Verilator's native identifier escaping is separate from
 these host-language names.
 
 Every binding emits its `InOut` direction for packed and vector `inout` ports
-(`IOType::InOut` in C++, `IOType_InOut` in Go, `XData.InOut` elsewhere) instead
-of registering them as inputs. This preserves direction metadata and makes the
-signal readable after the DUT drives it; it does not add tri-state resolution or
-prevent a simulator from optimizing an undriven `inout` to a constant.
+(`IOType::InOut` in C++, `IOType_InOut` in Go, `XData.InOut` elsewhere). This
+preserves direction metadata and makes the signal readable after the DUT drives it.
 
 ## Add debugging features
 

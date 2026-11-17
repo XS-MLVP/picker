@@ -105,6 +105,6 @@ sum=1, cout=1
 Adder: 3 cases passed
 ```
 
-Python integers hold the full result. `expected & mask` selects the low 128 bits for comparison with `sum`; `expected >> 128` selects the carry for comparison with `cout`. If a result differs, an assertion identifies the failing check.
+Python integers hold the full result. `expected & mask` selects the low 128 bits for comparison with `sum`; `expected >> 128` selects the carry for comparison with `cout`.
 
 You have exported a model, supplied inputs, advanced the simulation, and checked outputs. Next, [export your own RTL](../guides/export.md), or learn to [set up clocks and reset](../guides/simulation.md) for a sequential circuit.
