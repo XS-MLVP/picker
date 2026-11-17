@@ -61,7 +61,12 @@ logic [1:0][7:4] mixed [3:2];
 4. `XData.ArrayView(layout)`、`StructView(layout)` 已能以外部布局解释现有 packed 值，并共享其存储。
 5. packed 字段切片、unpacked 独立字段绑定及编译器核验的 native offset/stride 已存在。
 
-本次补上的是 **类型布局与实际 `XData` 的关联**。`NewXData()` 将已核验的类型关联到返回的 Data；端口封装在创建、绑定并登记原有 Data 后调用 `BindPortLayouts()`。类型经精确端口名到 ID 的 `port_types` 元数据引用同一张去重类型表，不再送给自动创建的 packed `*_view`。unpacked 容器通过 `NewPortView()` 使用同一类型图和原有叶子。
+本次补上的是 **类型布局与实际 `XData` 的关联**。`NewXData()` 将已核验的类型关联到返回的 Data；端口封装在创建、绑定并登记原有 Data 后调用 `BindDataLayouts()`。类型经精确端口名到 ID 的 `port_types` 元数据引用同一张去重类型表，不再送给自动创建的 packed `*_view`。unpacked 容器通过 `NewViewFromPort()` 使用同一类型图和原有叶子。
+
+这里的 `XPort` 只是一个命名 Data 的 group，不是 RTL struct/array，也没有自己的聚合
+layout。`NewViewFromPort(group, name)` 中，结构来自配置里明确指定的 RTL 对象，group
+仅提供名字到已有 Data 的查找。`BindDataLayouts(group)` 关联的是这些 Data 的类型，
+不是给 group 设置类型；两者都不新增信号或时钟登记。
 
 ## 调用方式
 

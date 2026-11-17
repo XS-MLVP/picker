@@ -78,10 +78,9 @@ namespace picker { namespace codegen {
             if (auto ports = input.get('m', "port_types"))
                 for (const auto &[name, id] : ports->object) {
                     auto type = expand(id.text);
-                    // Ordinary VPI leaves have always normalized one bit to
-                    // scalar XData. Keep that representation, not the wrapper's
-                    // normalized declaration range, while associating its type.
-                    if (type["kind"] == "bits" && type["width"] == 1) type["width"] = 0;
+                    // Keep exact semantic widths/ranges. XVPI normalizes every
+                    // independently bound one-bit value to scalar XData, even
+                    // when its layout is an array or struct nested in a port.
                     layouts[name] = std::move(type);
                 }
         }

@@ -38,12 +38,12 @@ namespace picker { namespace codegen {
     {
         std::optional<MemberNames> local_names;
         if (!names) { local_names.emplace(pins, std::vector<picker::sv_signal_define>{}, nlohmann::json::object(), language); names = &*local_names; }
-        if (language == "cpp") initialization += "    this->xcfg->BindPortLayouts(this->xport);\n";
-        else if (language == "python") initialization += "        self.xcfg.BindPortLayouts(self.xport)\n";
-        else if (language == "java") initialization += "        this.xcfg.BindPortLayouts(this.xport);\n";
-        else if (language == "scala") initialization += "    this.xcfg.BindPortLayouts(this.xport)\n";
-        else if (language == "golang") initialization += "    self.Xcfg.BindPortLayouts(self.Xport)\n";
-        else initialization += "    self.xcfg:BindPortLayouts(self.xport)\n";
+        if (language == "cpp") initialization += "    this->xcfg->BindDataLayouts(this->xport);\n";
+        else if (language == "python") initialization += "        self.xcfg.BindDataLayouts(self.xport)\n";
+        else if (language == "java") initialization += "        this.xcfg.BindDataLayouts(this.xport);\n";
+        else if (language == "scala") initialization += "    this.xcfg.BindDataLayouts(this.xport)\n";
+        else if (language == "golang") initialization += "    self.Xcfg.BindDataLayouts(self.Xport)\n";
+        else initialization += "    self.xcfg:BindDataLayouts(self.xport)\n";
         auto emit = [&](const std::string &path, const nlohmann::json &layout,
                         bool ordinary) {
             const auto &attribute = names->View(path);
@@ -52,23 +52,23 @@ namespace picker { namespace codegen {
             const std::string method = layout["kind"] == "struct" ? "Struct" : "Array";
             if (language == "cpp") {
                 declarations += "    std::shared_ptr<" + type + "> " + attribute + ";\n";
-                initialization += "    this->" + attribute + " = this->xcfg->NewPortView(this->xport, " + name + ");\n";
+                initialization += "    this->" + attribute + " = this->xcfg->NewViewFromPort(this->xport, " + name + ");\n";
             } else if (language == "python") {
-                initialization += "        self." + attribute + " = self.xcfg.NewPortView(self.xport, " + name + ")." + method + "()\n";
+                initialization += "        self." + attribute + " = self.xcfg.NewViewFromPort(self.xport, " + name + ")." + method + "()\n";
                 const auto registry = ordinary ? "_picker_arrays" : "_picker_views";
                 const auto key = name;
                 initialization += "        self." + std::string(registry) + "[" + key + "] = self." + attribute + "\n";
             } else if (language == "java") {
                 declarations += "    public " + type + " " + attribute + ";\n";
-                initialization += "        this." + attribute + " = this.xcfg.NewPortView(this.xport, " + name + ")." + method + "();\n";
+                initialization += "        this." + attribute + " = this.xcfg.NewViewFromPort(this.xport, " + name + ")." + method + "();\n";
             } else if (language == "scala") {
-                initialization += "    val " + attribute + ": " + type + " = this.xcfg.NewPortView(this.xport, " + name + ")." + method + "()\n";
+                initialization += "    val " + attribute + ": " + type + " = this.xcfg.NewViewFromPort(this.xport, " + name + ")." + method + "()\n";
             } else if (language == "golang") {
                 declarations += "    " + attribute + " xspcomm." + type + "\n";
-                initialization += "    {\n        view := self.Xcfg.NewPortView(self.Xport, " + name + ")\n        self." + attribute + " = view." + method +
+                initialization += "    {\n        view := self.Xcfg.NewViewFromPort(self.Xport, " + name + ")\n        self." + attribute + " = view." + method +
                                   "()\n        xspcomm.DeleteXView(view)\n    }\n";
             } else {
-                initialization += "    self." + attribute + " = self.xcfg:NewPortView(self.xport, " + name + "):" + method + "()\n";
+                initialization += "    self." + attribute + " = self.xcfg:NewViewFromPort(self.xport, " + name + "):" + method + "()\n";
             }
         };
 

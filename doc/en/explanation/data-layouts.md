@@ -63,7 +63,13 @@ Configuration generation and runtime views are not being built from scratch:
 4. `XData.ArrayView(layout)` and `StructView(layout)` already interpret an existing packed value with an external layout while sharing its storage.
 5. Packed field slices, independent unpacked field bindings, and compiler-verified native offsets and strides already exist.
 
-This change adds **the association between the type layout and the actual `XData`**. `NewXData()` associates verified types with returned Data; port wrappers call `BindPortLayouts()` after creating, binding, and registering the original Data. Exact port-name-to-ID `port_types` metadata references the same interned type table rather than feeding automatically constructed packed `*_view` members. Unpacked containers use that graph and the original leaves through `NewPortView()`.
+This change adds **the association between the type layout and the actual `XData`**. `NewXData()` associates verified types with returned Data; port wrappers call `BindDataLayouts()` after creating, binding, and registering the original Data. Exact port-name-to-ID `port_types` metadata references the same interned type table rather than feeding automatically constructed packed `*_view` members. Unpacked containers use that graph and the original leaves through `NewViewFromPort()`.
+
+XPort is only a group of named Data, not an RTL struct/array with its own aggregate
+layout. In `NewViewFromPort(group, name)`, configuration supplies the structure
+of the explicitly named RTL object; the group only looks up existing Data by
+name. `BindDataLayouts(group)` associates types with those Data, not with the
+group. Neither operation adds signals or clock registrations.
 
 ## Usage
 
