@@ -691,6 +691,84 @@ class AggregateViewsTest(unittest.TestCase):
     def test_vpi_python(self):
         self.exercise_vpi_language("python", VPI_CHECK)
 
+    def test_vpi_bit_selection_and_one_bit_array_compatibility(self):
+        rtl = """module VpiSelections(
+    input logic [9:9] one,
+    input logic [0:0] arr [0:1],
+    input logic flags [-1:0],
+    input logic [7:4] descending,
+    input logic [0:3] ascending,
+    output logic [12:0] observed
+);
+assign observed = {descending, ascending, one, arr[0], arr[1], flags[-1], flags[0]};
+endmodule
+"""
+        check = r'''from VpiSelections import DUTVpiSelections, xsp
+dut = DUTVpiSelections()
+try:
+    assert hasattr(dut.xcfg, "BindDataLayouts")
+    assert hasattr(dut.xcfg, "NewViewFromPort")
+    assert not hasattr(dut.xcfg, "BindPortLayouts")
+    assert not hasattr(dut.xcfg, "NewPortView")
+    count = dut.xport.PortCount()
+    dut.one.value = 1
+    dut.arr[0].value = 1
+    dut.arr[1].value = 0
+    dut.flags[-1].value = 1
+    dut.flags[0].value = 0
+    dut.descending.value = 0xa
+    dut.ascending.value = 5
+    dut.Step(1)
+    one = dut.GetInternalSignal("one", use_vpi=True)
+    assert one.W() == 0 and one.S() == 1
+    assert one.ArrayView().bounds == ((9, 9),)
+    arr = dut.GetInternalSignal("arr", is_array=True, use_vpi=True)
+    assert arr.bounds == ((0, 1),)
+    for i, expected in ((0, 1), (1, 0)):
+        assert arr[i].W() == 0 and arr[i].S() == expected
+        assert arr[i].ArrayView().bounds == ((0, 0),)
+        raw = dut.dut.GetVPIHandleObj(f"arr[{i}]")
+        direct = xsp.XData.FromVPI(raw, dut.dut.GetVPIFuncPtr("vpi_get"),
+            dut.dut.GetVPIFuncPtr("vpi_get_value"), dut.dut.GetVPIFuncPtr("vpi_put_value"), "direct")
+        assert (direct.W(), direct.S(), direct.U()) == (arr[i].W(), arr[i].S(), arr[i].U())
+    assert dut.GetInternalSignal("descending", use_vpi=True).ArrayView().bounds == ((7, 4),)
+    assert dut.GetInternalSignal("ascending", use_vpi=True).ArrayView()[0].U() == 0
+    # String selections retain simulator/wrapper coordinates. Explicit array
+    # views above independently retain the RTL declaration coordinates.
+    for name in ("one[0]", "arr[0][0]", "descending[3]", "ascending[0]"):
+        raw = dut.dut.GetVPIHandleObj(name)
+        assert raw, name
+        direct = xsp.XData.FromVPI(raw, dut.dut.GetVPIFuncPtr("vpi_get"),
+            dut.dut.GetVPIFuncPtr("vpi_get_value"), dut.dut.GetVPIFuncPtr("vpi_put_value"), "direct")
+        selected = dut.GetInternalSignal(name, use_vpi=True)
+        assert isinstance(selected, xsp.XData), name
+        assert (selected.W(), selected.S(), selected.U()) == (direct.W(), direct.S(), direct.U()), name
+        assert selected.U() == 1, name
+        assert dut.GetInternalSignal(name, use_vpi=True).CSelf() == selected.CSelf()
+        assert dut.GetInternalSignalView(name, use_vpi=True).PackedData().CSelf() == selected.CSelf()
+    assert dut.xport.PortCount() == count
+    held_bit, held_element = selected, arr[0]
+finally:
+    dut.Finish()
+for held in (held_bit, held_element):
+    try:
+        held.U()
+        raise AssertionError("VPI selection survived Finish")
+    except RuntimeError:
+        pass
+'''
+        for access in os.environ.get("AGGREGATE_ACCESS", "dpi,mem_direct").split(","):
+            with self.subTest(access=access), tempfile.TemporaryDirectory(prefix="picker-vpi-select-") as directory:
+                base = Path(directory)
+                source = base / "selections.sv"
+                source.write_text(rtl)
+                output = base / "VpiSelections"
+                self.run_command([self.picker, "export", str(source), "--sname", "VpiSelections",
+                    "--sdir", str(self.root / "template"), "--tdir", str(output), "--sim", "verilator",
+                    "--lang", "python", "--rw", access, "--vpi", "--autobuild", "false", "-V", "-Wno-fatal"])
+                self.run_command(["make", "-C", str(output), "NPROC=4"])
+                self.run_command([sys.executable, "-c", check], cwd=base)
+
     def test_vpi_plain_vectors_with_and_without_aggregate_ports(self):
         # The same plain leaves must keep their XData API when an unrelated
         # aggregate port switches Python from FromVPI to XVPI discovery.
@@ -1120,7 +1198,7 @@ endmodule
             self.assertIn("self.packet_view = xsp.XData", wrapper)
             self.assertIn("self.packet_view_ = xsp.XData", wrapper)
             self.assertNotIn("self.packet_view__ =", wrapper)
-            self.assertIn("self.xcfg.BindPortLayouts(self.xport)", wrapper)
+            self.assertIn("self.xcfg.BindDataLayouts(self.xport)", wrapper)
             self.assertIn("self.pin__picker_views = xsp.XData", wrapper)
             self.assertNotIn("self._picker_views = xsp.XData", wrapper)
 

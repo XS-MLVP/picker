@@ -112,8 +112,8 @@ static void test_unpacked_array_ports()
                 for (const auto &language : {"python", "cpp", "java", "scala", "golang", "lua"}) {
                     std::string declarations, initialization;
                     assert(picker::codegen::render_array_ports(external, language, declarations, initialization));
-                    assert(contains_line(initialization, "BindPortLayouts"));
-                    assert(contains_line(initialization, "NewPortView"));
+                    assert(contains_line(initialization, "BindDataLayouts"));
+                    assert(contains_line(initialization, "NewViewFromPort"));
                     assert(!contains_line(initialization, "_SignalArray"));
                     assert(!contains_line(declarations, "PickerSignalArray"));
                     assert(contains_line(initialization, "matrix") || contains_line(initialization, "Matrix"));
@@ -188,8 +188,8 @@ static void test_recursive_struct_bindings()
         for (const auto &language : {"python", "cpp", "java", "scala", "golang", "lua"}) {
             std::string declarations, initialization;
             picker::codegen::render_array_ports(leaves, language, declarations, initialization);
-            assert(contains_line(initialization, "NewPortView"));
-            assert(contains_line(initialization, "BindPortLayouts"));
+            assert(contains_line(initialization, "NewViewFromPort"));
+            assert(contains_line(initialization, "BindDataLayouts"));
             assert(!contains_line(initialization, "_SignalArray"));
             if (std::string(language) == "golang")
                 assert(contains_line(initialization, "DeleteXView(view)"));
