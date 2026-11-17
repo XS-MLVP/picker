@@ -49,6 +49,7 @@ plugins:
         故障排查: Troubleshooting
         原理与设计: Design
         生成与运行原理: Generation and simulation
+        XData 类型布局与显式视图: XData layouts and explicit views
         开发与贡献: Development
         贡献与测试: Contribute and test
         维护发行: Maintain releases
@@ -73,6 +74,7 @@ nav:
   - 故障排查: reference/troubleshooting.md
 - 原理与设计:
   - 生成与运行原理: explanation/architecture.md
+  - XData 类型布局与显式视图: explanation/data-layouts.md
 - 开发与贡献:
   - 贡献与测试: development/contributing.md
   - 维护发行: development/releases.md

@@ -152,7 +152,7 @@ mem_direct 则直接访问该元素的原生存储。生成的端口视图在初
 
 新接口替代原 `XDataArray` 类型和语言专用端口容器，不保留兼容别名。将完整坐标或扁平
 选择迁移为每层调用 `Array(index)`、叶子调用 `Data(index)`，Python 也可直接索引。
-使用匹配的 Picker/xcomm SDK 重新生成 DUT；原生 ABI 仍为 4。
+使用匹配的 Picker/xcomm SDK 重新生成 DUT；当前原生 ABI 为 6。
 
 动态数组、队列、关联数组、union 和 unpacked `inout` 端口不支持。
 
@@ -165,46 +165,57 @@ Picker 从展开后的 RTL 类型自动生成递归 xcomm 布局，不需要在 
 
 | RTL 类型 | 真实绑定的值 | 生成接口 |
 | --- | --- | --- |
-| packed struct | 一个完整 `XData` | 原始信号与 `XStruct` 字段视图 |
-| 多维 packed array | 一个完整 `XData` | 原始信号与 `XArray` |
+| packed struct | 一个完整 `XData` | 原始信号，显式调用 `StructView()` |
+| 多维 packed array | 一个完整 `XData` | 原始信号，显式调用 `ArrayView()` |
 | unpacked array | 独立元素值 | 包含 `XData` 或嵌套容器的数组视图 |
 | unpacked struct | 独立字段值 | `XStruct`，没有整体 `XData` |
 
-packed 端口 `packet` 的 `dut.packet` 仍是完整 `XData`，`dut.packet_view` 映射其字段；
-packed 数组 `matrix` 同样生成 `dut.matrix_view`。若后缀与其他端口冲突，Picker 追加
-下划线直到视图名称唯一。unpacked struct 直接使用端口原名。struct 与 array 可以递归嵌套：
+packed 端口默认只生成一个完整 `XData`。初始化时从同一 `.xscfg` 中关联类型，用户显式
+调用 `StructView()` 或 `ArrayView()`，无需再传 layout。不会自动增加 `packet_view`、
+`matrix_view` 等成员；RTL 本来就声明的同名端口不受影响。unpacked struct/array 仍直接
+使用端口容器。struct 与 array 可以递归嵌套：
 
 ```python
-dut.packed_in_view.Data("tag").value = 29
-dut.packed_in_view.Data("valid").value = 1
-dut.matrix_view[1][-2].value = 1
-dut.record_in.entries[-1].header.Data("tag").value = 17
+dut.packed_in.StructView().Data("tag").value = 29
+dut.packed_in.StructView().Data("valid").value = 1
+dut.matrix.ArrayView()[1][-2].value = 1
+dut.record_in.entries[-1].header.StructView().Data("tag").value = 17
 dut.record_in.entries[-1].payload[3].value = (1 << 64) + 0x1234
 dut.Step(1)
 ```
 
 struct 的 `Data(name)` 返回完整字段 `XData`，`Struct(name)` 和 `Array(name)` 返回
-嵌套容器。Python 也支持 `view[name]` 和字段属性；packed array 字段通过这两个简写返回
-`XData`，需要下标视图时显式调用 `Array(name)`。与方法重名的字段仍可通过 `view[name]`
+嵌套容器。Python 也支持 `view[name]` 和字段属性；packed struct/array 字段及 unpacked
+数组中的 packed 元素默认返回 `XData`，再显式调用其 `StructView()` / `ArrayView()`。
+也可直接显式调用容器的 `Struct(name)`、`Array(name)`。与方法重名的字段仍可通过 `view[name]`
 访问。packed 数组保留各维 RTL 边界与方向，声明左端的元素位于最高有效位。
 Python 的 `bounds`、`shape`、`indices` 与 unpacked 数组遵循相同规则；标量叶子使用
 普通 `XData` 的零位宽表示。
+
+`XData` 的普通位索引仍以最低有效位为 0；显式数组视图才使用 RTL 声明的边界。
+例如 `logic [1:0][7:4] mixed [3:2]` 中，`mixed[3]` 是完整 8 位 Data，
+`mixed[3][1]` 是其位偏移 1，而 `mixed[3].ArrayView()[1][7]` 才是 RTL 的数组选择。
+不要把 Data 位偏移、RTL 数组下标与旧原生入口的存储坐标混用。详见
+[XData 类型布局与显式视图](../explanation/data-layouts.md)。
 
 packed 字段写入合并到父信号，遵循父信号原有写模式与边沿提交策略；视图不额外注册
 `XPort` 或仿真器后端。unpacked 字段独立绑定，数组中的同类字段共享一对索引式 DPI
 getter/setter，或一份由 C++ 编译器计算的原生基址与字节步长。原生访问使用实际生成的
 C++ 成员，不假设 C++ struct 没有 padding。配置库 `ports` 记录的 `Layout` 描述递归类型，
 包括字段名、packed 位偏移、边界、位宽、有符号性和二态/四态类型。
+同一文件的 `port_types` 将精确逻辑端口名映射到去重类型表；xcfg 为已有 Data 关联类型，
+不新建另一份后端。类型与按需视图共享，字段或元素 Data 保留子类型；不是每次调用都解析 JSON。
 DPI 与 mem_direct 均直接访问选中的独立字段或数组元素，单元素写入不会复制整个
 unpacked 数组。
 
 运行 `make -C test export_aggregate_views` 执行基于 `test/data/aggregate_views.sv` 的
-Python/C++/Java RTL 回归。Picker 须与包含 `XStruct`、`XArray`、原生 ABI 5 的匹配
+原有 Python/C++/Java RTL 回归。此次无参显式视图在 Verilator 5.052 上完成六语言聚合
+fixture 的 DPI、mem_direct、VPI 回归（Scala 使用 2.13.16）。Picker 须与包含无参显式视图、原生 ABI 6 的匹配
 xcomm SDK 配套使用，并用该 SDK 重新编译生成的 DUT。
 
 ## 生成成员名
 
-端口叶子、聚合视图和层次子端口统一分配成员名。普通标识符保持原拼写（Go 首字母大写），
+端口叶子、unpacked 容器和层次子端口统一分配成员名。普通标识符保持原拼写（Go 首字母大写），
 封装成员、方法及目标语言关键字受到保护；冲突端口添加 `pin_` 前缀，如果改名后仍有
 冲突，则添加数字后缀。例如同时存在 `vpi_backend` 和 `pin_vpi_backend` 两个端口时，
 Python 将前者暴露为 `pin_vpi_backend_2`，后者保持不变。开启 VPI 或改变端口声明顺序

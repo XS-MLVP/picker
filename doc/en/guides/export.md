@@ -166,7 +166,7 @@ recursive interface. Shared binding and flat indexing are internal details.
 This replaces the former `XDataArray` type and language-specific port containers;
 there is no compatibility alias. Migrate full-coordinate/flat selections to one
 `Array(index)` per dimension and `Data(index)` at the leaf (or Python indexing).
-Regenerate DUTs with the matching Picker/xcomm SDK; the native ABI remains 4.
+Regenerate DUTs with the matching Picker/xcomm SDK; the current native ABI is 6.
 
 Dynamic arrays, queues, associative arrays, unions, and unpacked `inout` ports are not supported.
 
@@ -178,34 +178,42 @@ layout declaration is needed. These aggregate port views require Verilator
 
 | RTL type | Bound values | Generated interface |
 | --- | --- | --- |
-| Packed struct | One complete `XData` | Original signal plus an `XStruct` field view |
-| Multidimensional packed array | One complete `XData` | Original signal plus an `XArray` |
+| Packed struct | One complete `XData` | Original signal with explicit `StructView()` |
+| Multidimensional packed array | One complete `XData` | Original signal with explicit `ArrayView()` |
 | Unpacked array | Independent element values | Array view over `XData` or nested containers |
 | Unpacked struct | Independent field values | An `XStruct`, without a whole-value `XData` |
 
-For a packed port `packet`, `dut.packet` remains the complete `XData` and
-`dut.packet_view` maps its fields. A packed array `matrix` similarly gets
-`dut.matrix_view`. If the suffix conflicts with another port, Picker appends
-underscores until the view name is unique. Unpacked struct ports use their own
-name directly. Structs and arrays compose recursively:
+Packed ports generate only their complete `XData` by default. Initialization
+associates their types from the same `.xscfg`; explicitly call `StructView()` or
+`ArrayView()` without passing a layout. No `packet_view`, `matrix_view`, or similar
+members are automatically added. Ports actually declared with such names in RTL
+are unaffected. Unpacked structs/arrays still expose their own port containers.
+Structs and arrays compose recursively:
 
 ```python
-dut.packed_in_view.Data("tag").value = 29
-dut.packed_in_view.Data("valid").value = 1
-dut.matrix_view[1][-2].value = 1
-dut.record_in.entries[-1].header.Data("tag").value = 17
+dut.packed_in.StructView().Data("tag").value = 29
+dut.packed_in.StructView().Data("valid").value = 1
+dut.matrix.ArrayView()[1][-2].value = 1
+dut.record_in.entries[-1].header.StructView().Data("tag").value = 17
 dut.record_in.entries[-1].payload[3].value = (1 << 64) + 0x1234
 dut.Step(1)
 ```
 
 Struct `Data(name)` returns the complete field `XData`; `Struct(name)` and
 `Array(name)` select nested containers. Python also offers `view[name]` and
-field attributes; a packed array field is an `XData` through these shortcuts,
-and `Array(name)` explicitly requests its indexed view. Fields conflicting with
+field attributes. Packed struct/array fields and packed elements of unpacked
+arrays default to `XData`; explicitly use its `StructView()` / `ArrayView()`.
+The container's `Struct(name)` and `Array(name)` are also explicit selections. Fields conflicting with
 methods remain accessible with `view[name]`. Packed arrays retain each
 dimension's RTL bounds and direction, with the leftmost declared element at the
 most-significant end. Python `bounds`, `shape`, and `indices` follow unpacked
 array conventions. Scalar leaves use `XData`'s usual width-zero representation.
+
+Ordinary `XData` bit indexing remains LSB-zero; explicit array views use declared
+RTL bounds. For `logic [1:0][7:4] mixed [3:2]`, `mixed[3]` is the complete 8-bit
+Data and `mixed[3][1]` selects its bit offset 1. `mixed[3].ArrayView()[1][7]` is the
+RTL array selection. Do not mix Data bit offsets, RTL array indices, and legacy
+native storage coordinates. See [XData type layouts and explicit views](../explanation/data-layouts.md).
 
 Packed field writes merge into the parent and follow its existing write/edge
 commit policy. Views do not add `XPort` registrations or simulator backends.
@@ -214,16 +222,22 @@ array shares one indexed DPI getter/setter pair, or one native base with
 compiler-derived byte strides. Native access uses actual generated C++ members,
 not assumed C++ struct packing. The database's `ports` record stores the recursive type under
 `Layout`, including fields, packed offsets, bounds, widths, signing and state kind.
+The same file's `port_types` maps exact logical port names to the interned type
+table. xcfg associates types with existing Data instead of creating another
+backend. Types and on-demand views are shared; field/element Data retain their
+child types instead of parsing JSON for every request.
 DPI and mem_direct both access the selected independent field or array element
 directly, without copying an entire unpacked array for a single-element write.
 
 Run `make -C test export_aggregate_views` for the Python/C++/Java RTL regression
-using `test/data/aggregate_views.sv`. Use the matching xcomm SDK containing
-`XStruct`, `XArray` and native ABI 5, and rebuild generated DUTs with that SDK.
+using `test/data/aggregate_views.sv`. Argument-free explicit views additionally have
+six-language aggregate-fixture coverage on Verilator 5.052 for DPI, mem_direct,
+and VPI (Scala 2.13.16). Use the matching xcomm SDK containing
+argument-free explicit views and native ABI 6, and rebuild generated DUTs with that SDK.
 
 ## Generated member names
 
-Leaf ports, aggregate views and hierarchy subports share one member-name
+Leaf ports, unpacked containers and hierarchy subports share one member-name
 allocator. Ordinary identifiers keep their spelling (Go capitalizes the first
 letter). Wrapper members, methods and target-language keywords are protected;
 conflicting ports use a `pin_` prefix, with a numeric suffix if that name is

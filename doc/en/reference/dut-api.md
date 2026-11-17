@@ -90,6 +90,28 @@ For native lookup, `prefix` is a substring filter. For VPI, `prefix` and `deep` 
 
 Successful results are cached by name and lookup options; later calls with the same arguments reuse the first object. An ordinary failed lookup returns `None`; an explicit `use_vpi=True` lookup failure raises an assertion. Native single-element `index` uses a flat storage position; VPI array selection uses that dimension's RTL index. See [access internal signals](../guides/internal-signals.md) for examples.
 
+## Packed signal types and explicit views
+
+These methods belong to `XData` objects returned as generated ports or internal
+signals, not to the DUT wrapper itself. Use the matching native ABI 6 SDK. Packed
+signals remain complete values without extra automatically generated `*_view` members.
+
+| Method | Behavior |
+| --- | --- |
+| `data.HasLayout()` | Test whether a type is associated; conversion still checks width and source validity |
+| `data.ArrayView()` | Obtain a shared-value `XArray` using the associated packed-array layout |
+| `data.StructView()` | Obtain a shared-value `XStruct` using the associated packed-struct layout |
+| `data.SetLayout(layout_json)` | Explicit type association for manual Data; xcfg already associates generated aggregate ports and available native types |
+| `data.ArrayView(layout_json)` / `data.StructView(layout_json)` | Retain explicit-layout usage without guessing types from width |
+
+Missing layouts and kind mismatches produce explicit errors. Argument-free views
+and selected leaves are cached on demand without replacing the Data's backend,
+write mode or XPort registration. Default Python field access and packed
+struct/array elements in unpacked arrays return Data; explicitly convert for
+structural access. Ordinary Data bit indexing remains LSB-zero, while array views
+use declared RTL indices. `ReInit()` clears types and caches and invalidates the
+previous associated views. See [type layouts and explicit views](../explanation/data-layouts.md).
+
 ## Python asynchronous methods
 
 | Method | Behavior |

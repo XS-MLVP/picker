@@ -64,10 +64,9 @@ python3 inspect.py
 
 `GetInternalSignal(..., use_vpi=True)` 对普通 VPI 叶子返回 `XData`。自动发现时，只有一维
 packed bit-vector（包括单比特向量）作为一个 `XData`；此类向量组成的 unpacked 数组
-作为 `XArray`，其元素为 `XData`。多维 packed 值以及 Picker 显式提供的递归 RTL 布局
-仍保留数组/struct 视图及声明边界。递归聚合端口请在
-C++、Java、Go、Lua 和 Scala 中使用 `GetInternalSignalView(name)`；Python 的
-`GetInternalSignal(name, use_vpi=True)` 也会返回 `XStruct`/`XArray`。Picker 为 packed
+作为 `XArray`，其元素为 `XData`。Python 中 packed 聚合也默认返回 `XData`，可显式调用
+其 `StructView()` / `ArrayView()`。unpacked 容器返回 `XStruct`/`XArray`。
+递归聚合也可在六语言中显式使用 `GetInternalSignalView(name)`。Picker 为 packed
 聚合端口提供 RTL 布局，unpacked 数组与 struct 成员则解析为经过检查的 VPI 句柄。
 Verilator 5.048 支持 packed 聚合和 unpacked 数组视图，但不能提供访问 unpacked struct
 所需的 VPI 成员/类型信息；此类请求会明确报错。unpacked struct 的 VPI 视图要求
@@ -107,6 +106,12 @@ memory.Array(3).Data(-1).value = (1 << 64) | 0x55
 默认立即写入，不添加时钟回调；调用 `Step()` 或 `RefreshComb()` 后计算相应电路逻辑。
 完整 packed 值仍可用原有 `GetInternalSignal(name)` 或视图的 `PackedData()` 读写。
 
+原生 `GetInternalSignal(name)` 返回的 Data 会关联可用的类型；例如先取得 packet Data，
+再调用 `StructView()`，无需再次传入布局。视图共享这个 Data 的后端和原有写入模式，
+不是另外创建立即写的原生后端；默认写模式不同的旧查询入口不会因此变成同一个对象。
+缺失或无法核验的布局不能从位宽推测。Data 位索引仍是最低有效位为 0，只有显式数组视图
+使用 RTL 下标。
+
 固定 unpacked struct 及其数组也可生成视图：字段必须能在模型的真实 C++ struct 中
 逐一匹配，地址差和 `sizeof` 决定 padding、大小和数组步长。packed 字段只对完整
 父值切片；unpacked 字段绑定独立存储。不需要 `--vpi` 或波形 trace。
@@ -117,13 +122,13 @@ offset YAML 或旁路索引。Java/Scala 把同一份配置库打入 JAR，运�
 资源，不为每个 DUT 实例复制一份。配置库不保存 Slang AST，也不展开每个数组元素。
 
 构建阶段的候选类型也位于同一个文件，原生地址生成完成后去除候选记录，仅保留成功绑定
-可达的类型。普通值和同构数组复用 offset/stride，unpacked struct 按同构字段组记录
+以及端口类型引用可达的类型。普通值和同构数组复用 offset/stride，unpacked struct 按同构字段组记录
 `bindings`，而不是逐元素注册地址。
 
 配置库采用路径前缀共享、紧凑整数、内置只读查询索引及独立压缩块。POSIX 上直接映射
 文件，首次查询只解压所需块，解压块缓存最多 2 MiB，不会把所有信号展开成运行时 map。
 列出全部名称仍需遍历数据块；`String()` 是显式的全量调试操作。文件使用独立格式版本，
-原生 ABI 仍为 4；运行时核对模型标识、文件边界和访问块的校验和，禁止将其他工程的库
+当前原生 ABI 为 6；运行时核对模型标识、文件边界和访问块的校验和，禁止将其他工程的库
 误绑到当前模型。首次访问一个未缓存块有解压成本，不保证每次查询都快于全量预载入。
 
 可显式查看配置，命令只向标准输出打印 JSON，不额外生成配置文件：

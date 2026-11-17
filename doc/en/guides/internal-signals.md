@@ -65,11 +65,10 @@ By default, `GetInternalSignal()` uses generated native layout information when 
 `GetInternalSignal(..., use_vpi=True)` returns ordinary VPI leaves as `XData`.
 Automatic discovery treats a single packed bit-vector dimension (including a
 one-bit vector) as one `XData`; an unpacked array of such vectors is an `XArray`
-with `XData` elements. Multidimensional packed values and Picker's explicit
-recursive RTL layouts retain their array/struct views and declared bounds.
-For recursive aggregate ports, use `GetInternalSignalView(name)` in C++, Java,
-Go, Lua and Scala; Python also returns `XStruct`/`XArray` from
-`GetInternalSignal(name, use_vpi=True)`. Picker supplies the port's RTL layout
+with `XData` elements. Python packed aggregates also default to `XData`; explicitly
+use its `StructView()` / `ArrayView()`. Unpacked containers return `XStruct`/`XArray`.
+All six languages can also explicitly use `GetInternalSignalView(name)` for
+recursive aggregates. Picker supplies the port's RTL layout
 for packed aggregates; unpacked arrays and struct members are resolved to
 checked VPI handles. Verilator 5.048 supports packed aggregate and unpacked-array
 views, but cannot provide the VPI member/type information needed for unpacked
@@ -115,6 +114,14 @@ to immediate writes without clock callbacks; call `Step()` or `RefreshComb()` to
 evaluate the affected logic. Whole packed values remain accessible through the
 existing `GetInternalSignal(name)` or the view's `PackedData()`.
 
+Data returned by native `GetInternalSignal(name)` retain available types. For
+example, obtain the packet Data and call `StructView()` without supplying its
+layout again. The view shares that Data's backend and existing write mode; it does
+not create another immediate-write native backend. Legacy query paths with
+different default write modes do not become the same object. Missing or unverified
+layouts cannot be guessed from widths. Data bit indexing remains LSB-zero; only
+explicit array views use RTL indices.
+
 Fixed unpacked structs and arrays of them are supported when every member can be
 matched to a real generated C++ member. Address differences and `sizeof` determine
 padding, sizes and strides. Packed fields share their complete parent value;
@@ -129,7 +136,7 @@ per class, rather than copying it for each DUT. Neither the Slang AST nor array
 elements are serialized.
 
 Build-time candidate types live in the same file. Native address generation removes
-candidate records and retains only types reachable from verified bindings.
+candidate records and retains types reachable from verified bindings or port type references.
 Ordinary values and homogeneous arrays reuse offsets/strides; unpacked structs add
 homogeneous field-group `bindings`, not per-element registrations.
 
@@ -138,7 +145,7 @@ lookup index and independent compressed blocks. POSIX readers map the file and
 decompress only requested blocks, with a 2 MiB decompressed-block cache. They do not
 populate maps for every signal. Full name enumeration still scans data blocks;
 `String()` is an explicit full-inspection operation. The file format has its own
-version; native ABI remains 4. Readers verify the model identifier, file bounds and
+version; the current native ABI is 6. Readers verify the model identifier, file bounds and
 checksums of accessed blocks, rejecting another build's database. A first access
 to an uncached block has decompression cost; not every lookup will be faster than
 an already fully loaded map.

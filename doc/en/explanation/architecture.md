@@ -19,6 +19,8 @@ RTL defines the circuit structure. Export options select the language, simulator
 
 Changes to RTL, ports, or export options require another export and build. Changes to Python inputs, assertions, or test organization can run immediately.
 
+Configuration type layouts are associated with `XData` when signals are created or bound. Packed array or struct views are requested explicitly on demand, without automatic `*_view` members. See [XData type layouts and explicit views](data-layouts.md) for APIs, indexing, lifetime, and ABI 6 migration.
+
 ## What happens during Step
 
 The test stores pending input values in port objects. When it calls `Step()`, inputs are submitted to the simulator, and registered clock pins change as simulation advances. The simulator evaluates the circuit and refreshes output values in the language interface. The test can then read and compare them.
