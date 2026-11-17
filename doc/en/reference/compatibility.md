@@ -40,12 +40,13 @@ The **DPI and mem_direct** paths for fixed unpacked arrays are supported with
 | mem_direct internal arrays | Python, C++ | 5.026, 5.048, 5.052 |
 
 Optional Go/Lua port-array RTL tests are enabled with `ARRAY_EXTRA_LANGUAGES=1`.
-Scala runtime array tests remain unverified.
+The Scala aggregate fixture verifies unpacked containers with Scala 2.13.16 and
+Verilator 5.052, but has not been expanded into a standalone array test matrix.
 
 All six language generators use the shared array binding implementation.
 Public arrays use xcomm's recursive `XArray` API, backed by shared internal bindings.
 Use Picker and xcomm as a matched
-toolchain, and regenerate and compile DUTs and array layout YAML after upgrades.
+toolchain, and regenerate and compile DUTs and single-file `.xscfg` configuration after upgrades.
 
 Native element addresses and strides are computed by the C++ compiler against
 the generated model; they are not hard-coded per Verilator version. The access
@@ -77,6 +78,12 @@ addresses/strides come from the generated C++ model.
 | DPI and mem_direct | Go, Lua | 5.048, 5.052 |
 | VPI packed aggregates and unpacked arrays | Python, C++, Java, Go, Lua | 5.048, 5.052 |
 | VPI recursive unpacked structs | Python, C++, Java, Go, Lua | 5.052 |
+| DPI, mem_direct, VPI aggregate fixture | Scala 2.13.16 | 5.052 |
+
+The 5.026/5.048 entries are historical regressions of the existing array/aggregate
+interfaces. This change's ABI 6 type association, argument-free explicit views,
+and removal of automatic packed members were tested with Verilator 5.052; historical
+results do not count as revalidating the new interfaces on older versions.
 
 The tests include nested structs, arrays of structs, mixed-direction bounds,
 65-bit fields and original whole packed values. Python additionally covers
@@ -86,14 +93,13 @@ Picker's RTL type layout; they never infer simulator memory offsets. Verilator
 5.048 supports the tested packed aggregates and unpacked arrays, but does not
 expose enough VPI type/member information to traverse unpacked structs. Such a
 request fails with the inaccessible member path; unpacked-struct VPI views
-require 5.052 or newer. VPI results apply to the tested Python, C++, Java, Go
-and Lua bindings on the tested aggregate-port fixture; Scala aggregate RTL runtime
-behavior (DPI, mem_direct and VPI) has not been verified. Picker currently emits
-packed type layouts for ports, not internal packed structs; an internal packed
+require 5.052 or newer. The VPI aggregate-port fixture was verified in all six
+language bindings. VPI registers packed type layouts from ports rather than
+internal packed structs; an internal packed
 struct request therefore fails instead of guessing offsets. These results do
 not establish aggregate RTL support on VCS, UVS or GSIM.
 
-Use the matching xcomm SDK with native ABI 5 and rebuild generated DUTs.
+Use the matching xcomm SDK with native ABI 6 and rebuild generated DUTs.
 DPI setters and mem_direct writes access the selected independent field or
 array element directly, without a whole unpacked-array copy.
 

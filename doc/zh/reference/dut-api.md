@@ -87,6 +87,25 @@ Verilator 刷新路径继续使用 `eval_step()`，不增加 context 时间或 P
 
 成功查询的结果按名称和查询选项缓存；参数相同的后续调用复用首次查询的对象。普通查询未找到时返回 `None`；显式 `use_vpi=True` 查询失败会触发断言。具体示例见[访问内部信号](../guides/internal-signals.md)。
 
+## Packed 信号类型与显式视图
+
+以下方法属于生成端口或内部查询返回的 `XData`，不是 DUT 包装本身的方法。需要原生 ABI 6
+的匹配 SDK；packed 信号默认仍是完整值，不自动生成额外的 `*_view` 成员。
+
+| 方法 | 行为 |
+| --- | --- |
+| `data.HasLayout()` | 检查是否关联类型；转换时仍检查位宽和来源有效性 |
+| `data.ArrayView()` | 用自身关联的 packed 数组布局取得共享值的 `XArray` |
+| `data.StructView()` | 用自身关联的 packed struct 布局取得共享值的 `XStruct` |
+| `data.SetLayout(layout_json)` | 为手工 Data 显式设置类型；生成的聚合端口和可用的原生类型由 xcfg 关联，无需用户调用 |
+| `data.ArrayView(layout_json)` / `data.StructView(layout_json)` | 保留显式提供布局的用法，不按位宽猜类型 |
+
+无布局或类型不匹配时明确报错。无参视图及选中的叶子按需缓存，不更换原 Data 的后端、写模式
+或 XPort 登记。Python 默认字段访问和 unpacked 数组元素中的 packed struct/array 返回 Data，
+需要结构化访问时再显式转换。普通 Data 位索引仍是最低位为 0；数组视图使用 RTL 声明下标。
+`ReInit()` 清除关联类型及缓存，原有类型视图不能继续访问。详见
+[类型布局与显式视图](../explanation/data-layouts.md)。
+
 ## Python 异步方法
 
 | 方法 | 行为 |
