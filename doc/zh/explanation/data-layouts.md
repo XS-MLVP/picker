@@ -93,7 +93,7 @@ xcfg 负责按需查找、校验和复用类型描述。生成 `.xscfg` 时保�
 | Picker 类型 | `src/parser/sv.cpp` | 统一端口与原生显式视图的布局解释 |
 | 测试与文档 | 两仓库的单元、绑定、真实 RTL 测试和双语手册 | 验证新入口与迁移用法 |
 
-`XData` 的共享类型与视图缓存成员改变了原生对象布局。本分支使用 **ABI 6**，动态库 SONAME 为 `libxspcomm.so.6`，Python 依赖为 `uc-xcomm>=1.6,<2`。使用匹配的 SDK 重新导出并编译 DUT。
+`XData` 的共享类型与视图缓存成员改变了原生对象布局。配套 xcomm 2 使用 **ABI 6**，动态库 SONAME 为 `libxspcomm.so.6`，Python 依赖为 `uc-xcomm>=2.0,<3`。使用匹配的 SDK 重新导出并编译 DUT。
 
 ## 验证与性能测量
 

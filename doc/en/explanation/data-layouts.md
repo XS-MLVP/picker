@@ -95,7 +95,7 @@ Data selected through a field or array layout retain the corresponding child typ
 | Picker types | `src/parser/sv.cpp` | Consistent layout interpretation for explicit port/native views |
 | Tests and documentation | Both repositories' unit, binding, and real RTL tests and bilingual manuals | Validate entry points and migration usage |
 
-Shared type and view-cache members change `XData`'s native object layout. This branch uses **ABI 6** with SONAME `libxspcomm.so.6` and Python dependency `uc-xcomm>=1.6,<2`. Regenerate and compile DUTs with the matching SDK.
+Shared type and view-cache members change `XData`'s native object layout. The matching xcomm 2 uses **ABI 6** with SONAME `libxspcomm.so.6` and Python dependency `uc-xcomm>=2.0,<3`. Regenerate and compile DUTs with the matching SDK.
 
 ## Validation and performance measurements
 
