@@ -69,12 +69,8 @@ MemberNames::MemberNames(const std::vector<sv_signal_define> &external,
         return language == "golang" ? capitalize_first_letter(name) : name;
     };
     std::map<std::string, std::string> requested;
-    std::set<std::string> original;
     for (const auto *pins : {&external, &internal}) for (const auto &pin : *pins) {
         requested["pin:" + pin.logic_pin] = normalize(pin.logic_pin);
-        original.insert(normalize(pin.logic_pin));
-        if (!pin.aggregate_name.empty()) original.insert(normalize(pin.aggregate_name));
-        else if (!pin.array_name.empty()) original.insert(normalize(pin.array_name));
     }
     std::map<std::string, const sv_signal_define *> aggregates;
     for (const auto &pin : external) {
@@ -84,17 +80,12 @@ MemberNames::MemberNames(const std::vector<sv_signal_define> &external,
             requested["view:" + pin.array_name] = normalize(pin.array_name);
         }
     }
-    // Sort before choosing packed-view suffixes as well as before final
-    // allocation: distinct RTL names can normalize to the same attribute.
+    // Only unpacked containers need generated members. Packed values remain
+    // XData and expose their type through explicit ArrayView/StructView calls.
     for (const auto &[name, pin] : aggregates) {
         const auto layout = nlohmann::json::parse(*pin->type_layout);
-        if (layout["kind"] == "bits") continue;
+        if (layout["kind"] == "bits" || layout["packed"].get<bool>()) continue;
         auto attribute = normalize(name);
-        if (layout["packed"].get<bool>()) {
-            attribute += "_view";
-            while (original.count(attribute)) attribute += "_";
-        }
-        original.insert(attribute);
         requested["view:" + name] = attribute;
     }
     std::function<void(const std::string &, const nlohmann::json &)> cascade;

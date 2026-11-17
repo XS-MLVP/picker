@@ -372,19 +372,21 @@ namespace picker { namespace parser {
         struct NativeLayoutCollector : slang::ast::ASTVisitor<NativeLayoutCollector> {
             std::vector<std::pair<std::string, std::string>> &layouts;
             std::vector<std::pair<std::string, std::string>> &types;
-            std::map<const Type *, std::string> cache;
+            std::map<std::pair<const Type *, bool>, std::string> cache;
             std::map<std::string, std::string> interned;
             explicit NativeLayoutCollector(picker::sv_module_define &module)
                 : layouts(module.native_layouts), types(module.native_types) {}
-            std::string describe(const Type &source) {
+            std::string describe(const Type &source, bool root = false) {
                 const auto &type = source.getCanonicalType();
-                if (auto found = cache.find(&type); found != cache.end()) return found->second;
+                const bool flat = root && is_supported_flat_port_type(type);
+                const auto key = std::make_pair(&type, flat);
+                if (auto found = cache.find(key); found != cache.end()) return found->second;
                 using J = nlohmann::json;
                 J node{{"kind", "bits"}, {"packed", true},
                        {"width", type.kind == SymbolKind::ScalarType ? 0 : type.getBitWidth()},
                        {"signed", type.isSigned()}, {"four_state", type.isFourState()}};
                 if (type.kind == SymbolKind::FixedSizeUnpackedArrayType ||
-                    (type.kind == SymbolKind::PackedArrayType && !is_supported_flat_port_type(type))) {
+                    (type.kind == SymbolKind::PackedArrayType && !flat)) {
                     const bool packed = type.kind == SymbolKind::PackedArrayType;
                     const auto range = packed ? type.as<PackedArrayType>().range : type.as<FixedSizeUnpackedArrayType>().range;
                     const auto &element = packed ? type.as<PackedArrayType>().elementType : type.as<FixedSizeUnpackedArrayType>().elementType;
@@ -413,7 +415,7 @@ namespace picker { namespace parser {
                 const auto text = node.dump();
                 auto [found, inserted] = interned.emplace(text, "t" + std::to_string(types.size()));
                 if (inserted) types.emplace_back(found->second, text);
-                cache.emplace(&type, found->second);
+                cache.emplace(key, found->second);
                 return found->second;
             }
             void collect(const slang::ast::ValueSymbol &symbol) {
@@ -422,7 +424,7 @@ namespace picker { namespace parser {
                 auto path = symbol.getHierarchicalPath();
                 // Root scalar/vector metadata is useful too: signedness is not
                 // recoverable from Verilator's unsigned CData/IData aliases.
-                layouts.emplace_back(path, describe(type));
+                layouts.emplace_back(path, describe(type, true));
             }
             void handle(const slang::ast::VariableSymbol &symbol) { collect(symbol); }
             void handle(const slang::ast::NetSymbol &symbol) { collect(symbol); }
@@ -782,9 +784,18 @@ namespace picker { namespace parser {
                 selected_instances.push_back(instance);
                 const int module_nums = has_explicit_requests ? requested_module_counts.at(module_name) : 1;
                 sv_module_result.push_back(convert_instance_to_module_define(*instance, module_nums));
+                NativeLayoutCollector collector(sv_module_result.back());
                 if (opts.rw_type == picker::SignalAccessType::MEM_DIRECT && opts.sim == "verilator") {
-                    NativeLayoutCollector collector(sv_module_result.back());
                     instance->visit(collector);
+                } else {
+                    // DPI still needs complete port types, including ordinary
+                    // vectors whose wrapper storage ranges are normalized. Do
+                    // not visit or materialize the internal hierarchy here.
+                    for (const auto *symbol : instance->body.getPortList()) {
+                        const auto &port = symbol->as<PortSymbol>();
+                        sv_module_result.back().native_layouts.emplace_back(
+                            module_name + "." + std::string(port.name), collector.describe(port.getType(), true));
+                    }
                 }
             }
 
