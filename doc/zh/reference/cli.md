@@ -17,7 +17,7 @@
 
 | 选项 | 参数/默认值 | 用途 |
 | --- | --- | --- |
-| `file` | RTL 文件，可多个 | 提供源文件；没有 `--sname` 时需要 |
+| `file` | RTL 文件，可多个 | 提供源文件 |
 | `--fs, --filelist` | 文件或列表，可多个 | 补充源文件、包含路径和宏定义 |
 | `--sname, --source_module_name` | module 名，可多个 | 指定顶层选择 |
 | `--tname, --target_module_name` | 名称 | 指定生成模块名，默认源模块名 |
@@ -46,7 +46,7 @@
 
 含空格的参数需要 shell 引号，例如 `-V '--trace -Wno-fatal'`。各模拟器的工具环境见[模拟器支持](compatibility.md)。
 
-`--rtl-param` 与 `--rtl-define` 描述的是设计本身而不是工具，应优先于裸透传。`-V` 中的仿真器参数覆盖无法作用到被实例化的模块，`-S` 中的宏对模拟器不可见（`-V` 中的宏对 RTL 前端不可见）。Picker 只用 RTL 前端求值一次参数，并把常量写入生成的 `<module>_top.sv`，因此模拟器侧不需要自己的参数覆盖；宏会同时转发给两侧。两个结构化选项都优先于裸透传（`-S`/`-V`），`--rtl-define` 还会覆盖 filelist 中的同名宏。
+使用 `--rtl-param` 覆盖设计参数，`--rtl-define` 定义 RTL 宏。Picker 用 RTL 前端求值参数，并把常量写入生成的 `<module>_top.sv`；宏同时转发给 RTL 前端和模拟器。两个结构化选项均优先于裸透传（`-S`/`-V`），`--rtl-define` 还会覆盖 filelist 中的同名宏。
 
 ## pack
 
@@ -67,7 +67,7 @@
 
 `picker config <module>.xscfg` 显示格式版本、模型标识、文件字节数与记录数。
 `--section metadata|variables|signals|types|candidates` 查看指定区域，`--name NAME`
-只读取一个记录，不解码全库。结果以 JSON 打印到标准输出，不生成旁路文件。
+选择一个记录。结果以 JSON 打印到标准输出。
 `candidates` 是原生存储生成完成后移除的构建期区域。每个工程只交付一个配置库，
 也包括仅 DPI/VPI 的工程；JVM 封装将它嵌入 JAR。见[内部信号](../guides/internal-signals.md)。
 

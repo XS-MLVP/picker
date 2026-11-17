@@ -26,14 +26,14 @@
 data[tags::top_module_name] = dst_module_name;
 ```
 
-这样变量名拼错会在编译期报错，而不是在渲染时留下空值。新增、重命名或删除变量时：
+新增、重命名或删除变量时：
 
 1. 修改 `PICKER_RENDER_TAGS` 中的对应行。
 2. 修改 `src/codegen/` 中的赋值和 `template/` 中的引用。
 3. 运行 `python scripts/check_render_tags.py --docs` 重新生成 `doc/zh/reference/render-tags.md` 和 `doc/en/reference/render-tags.md`。
 4. 运行 `python scripts/check_render_tags.py` 校验声明、生产者、模板和文档是否一致，CI 会执行同样的检查。
 
-内部流程键（如 `signal_tree`）用普通 `snake_case` 声明为 `internal` 作用域，不要写成标签形式。
+内部流程键（如 `signal_tree`）用普通 `snake_case` 声明为 `internal` 作用域。
 
 ## 运行测试
 
@@ -59,14 +59,13 @@ make unit_tests NPROC=4 BUILD_XSPCOMM_SWIG=python,java
 | 发布脚本 | `python3 -m unittest discover -s test/release -v` |
 | 文档 | [检查与预览](documentation.md) |
 
-完整集成测试使用 `make -C test all`，需要对应语言和模拟器环境。测试的 preflight 会检查绑定，缺失时可能重新构建；需要保留其他构建产物时使用独立 checkout。记录实际执行的测试和工具缺失导致的跳过项。
+完整集成测试使用 `make -C test all`，需要对应语言和模拟器环境。preflight 检查并按需构建绑定；需要保留其他构建产物时使用独立 checkout。记录工具版本和测试结果。
 安装 Go、Lua、Scala 工具链及对应 xcomm 绑定后，运行 `export_aggregate_views` 时设置
 `AGGREGATE_EXTRA_LANGUAGES=1`，即可纳入这些语言的 RTL 测试。
 普通 unpacked 数组的额外 Go/Lua 回归使用 `ARRAY_EXTRA_LANGUAGES=1`。
 
-VPI 回归将基础聚合访问与 `test_vpi_unpacked_struct_*` 分开报告。后者在 Verilator 5.048
-上检查缺失成员的明确诊断和路径，不作为跳过项；在 5.052 及更新版本上必须成功读写。
-同一语言复用构建产物，但每个用例在独立进程中运行。
+VPI 回归将基础聚合访问与 `test_vpi_unpacked_struct_*` 分开报告。同一语言复用构建产物，
+每个用例在独立进程中运行。
 
 ## 提交改动
 

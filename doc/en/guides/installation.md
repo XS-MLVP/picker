@@ -69,13 +69,13 @@ picker --version
 ```
 
 Pip installs `uc-xcomm` and SWIG automatically. The official Picker wheel targets
-Linux x86-64 with GLIBC 2.17 or newer and is independent of the Python minor
-version. CMake, the C++ compiler and the simulator remain system dependencies.
+Linux x86-64 with GLIBC 2.17 or newer.
+CMake, the C++ compiler and the simulator remain system dependencies.
 For other environments, use a matching native archive or build from source.
 
 ## Use a release package
 
-[GitHub Releases](https://github.com/XS-MLVP/picker/releases) provides Linux AppImages, installation archives, and Python wheels. Choose a file for your machine's architecture. Picker wheels use `py3-none` because the command-line launcher has no Python C API dependency; they still target a specific OS and architecture. The `uc-xcomm` dependency must match the Python minor version.
+[GitHub Releases](https://github.com/XS-MLVP/picker/releases) provides Linux AppImages, installation archives, and Python wheels. Choose a file for the operating system and machine architecture. Picker wheels use `py3-none`; the accompanying `uc-xcomm` wheel also matches the Python minor version.
 
 For an AppImage, make the downloaded file executable and run it. For an installation archive, extract the full directory and add its `bin` directory to `PATH`. Templates and runtime resources are located through the installation tree, so keep them together when distributing it.
 

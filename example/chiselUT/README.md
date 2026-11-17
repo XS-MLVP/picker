@@ -120,25 +120,23 @@ object attrOf {
 // 使用举例（Example usage）:
 // 获取当前class中类型属于chisel3.Data的所有val和var（Retrieve all `val` and `var` fields of type `chisel3.Data` in the current class）
 var ret = attrOf[chisel3.Data](this,
-                               filter = (k, v) => !v.isLit && // Data不能是字面量（Data must not be a literal）
-                                                  !v.isInstanceOf[chisel3.Bundle] // Data不能是Bundle类型（Data must not be of type Bundle）
+                               filter = (k, v) => !v.isLit &&
+                                                  !v.isInstanceOf[chisel3.Bundle]
                                )
 
 ```
 
 **保留内部信号（Preserve Internal Signals）**：
 
-保留指定Reg或者Wire，防止被chisel或者verilator优化掉，以便在TestCase中获取进行读取。具体可参考`src/test/scala/TestUtil.scala`中`MarkAsDebug`的实现（Preserve specified `Reg` or `Wire` to prevent them from being optimized out by Chisel or Verilator, allowing them to be accessed and read in test cases. Refer to the implementation of `MarkAsDebug` in TestUtil.scala for details）：
+保留指定 Reg 或 Wire，供 TestCase 获取和读取。具体可参考 `src/test/scala/TestUtil.scala` 中 `MarkAsDebug` 的实现（Preserve specified `Reg` or `Wire` for test cases to read. Refer to `MarkAsDebug` in TestUtil.scala for details）：
 
 ```scala
 // src/main/scala/ALU.scala:87
 
 ...
-  // 在 DUT 定义的最后标记需要保留，防止被优化掉的Reg或者Wire
-  //（At the end of the DUT definition, mark the registers or wires that need to be preserved to prevent optimization）
+  // 在 DUT 定义的最后标记需要保留的 Reg 或 Wire
+  //（At the end of the DUT definition, mark the registers or wires to preserve）
   MarkAsDebug(nameOf(unusedReg, unusedWire1, unusedWire2))
-  // 或者通过attrOf把所有信号都保留，Lit和Bundle除外
-  // Or use `attrOf` to preserve all signals, excluding literals and Bundles.
   //MarkAsDebug(attrOf[chisel3.Data](this, filter = (k, v) => !v.isLit && !v.isInstanceOf[chisel3.Bundle]))
 }
 ```
@@ -151,8 +149,8 @@ dut("MultiCycleALU_top.MultiCycleALU.unusedReg_debug").AsInt32()
 
 MarkAsDebug可通过环境变量`XDebug`控制是否生效，例如（`MarkAsDebug` can be controlled via the `XDebug` environment variable, for example）：
 ```bash
-# 关闭Debug，不对MarkAsDebug的信号做任何处理
-#（Disable Debug, do not process signals in MarkAsDebug）
+# 关闭 Debug
+#（Disable Debug）
 make XDebug=0
 # 开启Debug，利用 "名称+_debug"的Reg保留MarkAsDebug中信号的值
 #（Enable Debug, preserve the values of signals in MarkAsDebug using "name + _debug" registers）

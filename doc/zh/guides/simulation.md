@@ -56,7 +56,7 @@ dut.RefreshComb()
 assert dut.sum.value == 6
 ```
 
-这段代码适用于教程中的 Adder。输入会立即提交，组合逻辑重新求值，周期计数保持不变。
+这段代码适用于教程中的 Adder。输入立即提交并触发组合求值，保留当前周期计数。
 
 <a id="recording"></a>
 

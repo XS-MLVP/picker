@@ -26,7 +26,7 @@ Template variables are declared once, as rows of `PICKER_RENDER_TAGS` in `includ
 data[tags::top_module_name] = dst_module_name;
 ```
 
-A misspelled variable is therefore a compile error instead of an empty value at render time. To add, rename or remove one:
+To add, rename or remove a variable:
 
 1. Edit its row in `PICKER_RENDER_TAGS`.
 2. Update the assignment under `src/codegen/` and the use under `template/`.
@@ -59,15 +59,13 @@ Choose integration tests for the change:
 | Release scripts | `python3 -m unittest discover -s test/release -v` |
 | Documentation | [Checks and preview](documentation.md) |
 
-Run the complete integration suite with `make -C test all`, using the corresponding language and simulator environments. Test preflight checks bindings and may rebuild missing ones; use a separate checkout when preserving other build outputs. Record the tests executed and any skips caused by missing tools.
+Run the complete integration suite with `make -C test all`, using the corresponding language and simulator environments. Preflight checks and builds bindings as needed; use a separate checkout when preserving other build outputs. Record tool versions and test results.
 Set `AGGREGATE_EXTRA_LANGUAGES=1` when running `export_aggregate_views` with the
 Go, Lua and Scala toolchains and xcomm bindings installed to include those RTL tests.
 Set `ARRAY_EXTRA_LANGUAGES=1` for additional Go/Lua `export_unpacked_array` tests.
 
 VPI regressions report basic aggregate access separately from `test_vpi_unpacked_struct_*`.
-The latter checks the explicit missing-member diagnostic and path on Verilator 5.048,
-rather than skipping; on 5.052 and newer, reads and writes must succeed. Cases reuse
-each language's build artifacts but run in separate processes.
+Cases reuse each language's build artifacts and run in separate processes.
 
 ## Submit a change
 

@@ -56,7 +56,7 @@ picker export example/Adder/Adder.v --sname Adder --lang python \
 
 Picker 会生成 `<module>_top.sv` 外壳并在其中实例化设计，因此模拟器看到的顶层是外壳。
 这正是设计参数需要专用选项的原因：picker 用 RTL 前端求值 `--rtl-param`，再把得到的常量
-写入实例化语句；这也是导出「参数没有默认值」的模块的唯一方式。
+写入实例化语句。
 
 ```sh
 picker export t.sv --sname t --tdir out \
@@ -71,10 +71,8 @@ picker export t.sv --sname t --tdir out \
  ) t(
 ```
 
-`-V` 中的参数覆盖永远不会作用到被实例化的模块；只给一侧的宏会让外壳端口与编译出的模型
-不一致，Picker 检测到这两种写法时会给出提示。`--rtl-define` 会以 `-D` 形式传给 RTL 前端，
-以 `+define+` 形式传给模拟器，并优先于 filelist 中的同名宏，因此不同取值的重复定义不会被
-传递两次。
+`--rtl-define` 以 `-D` 形式传给 RTL 前端，以 `+define+` 形式传给模拟器，并优先于
+filelist 中的同名宏。
 
 ## 将多个模块组合导出
 
@@ -111,7 +109,7 @@ for i in dut.data.indices:
 dut.Step(1)
 ```
 
-Python 数组视图提供 `bounds`（如 `((-1, 1), (2, 3))`）、`shape`、`indices`、`len()`，并支持按声明顺序遍历元素。负下标表示 RTL 下标，不表示倒数位置。每层视图保留该维声明的方向；例如 `data [3:2]` 的 `indices` 为 `[3, 2]`，迭代从左侧边界开始。越界抛出 `IndexError`；数组结构只读，不要替换视图或元素，应给元素的 `.value` 赋值。`dut["data"]` 返回同一视图，`dut["matrix[-1][2]"]` 与 `dut.matrix[-1][2]` 指向同一绑定信号。
+Python 数组视图提供 `bounds`（如 `((-1, 1), (2, 3))`）、`shape`、`indices`、`len()`，并支持按声明顺序遍历元素。负下标表示 RTL 下标。每层视图保留该维声明的方向；例如 `data [3:2]` 的 `indices` 为 `[3, 2]`，迭代从左侧边界开始。越界抛出 `IndexError`；通过元素的 `.value` 赋值。`dut["data"]` 返回同一视图，`dut["matrix[-1][2]"]` 与 `dut.matrix[-1][2]` 指向同一绑定信号。
 
 | 语言 | 元素访问 | 容器 |
 | --- | --- | --- |
@@ -124,25 +122,24 @@ Python 数组视图提供 `bounds`（如 `((-1, 1), (2, 3))`）、`shape`、`ind
 
 C++ 视图对超出声明边界的下标抛出 `std::out_of_range`。
 
-各语言统一使用递归 `XArray` 和经过检查的 RTL 下标，不再使用语言专用 map。
+各语言统一使用递归 `XArray` 和经过检查的 RTL 下标。
 `Left()`、`Right()` 和 `Size()` 描述当前维度；`LeftBounds()`、`RightBounds()` 和
 `Shape()` 描述连续数组维度。配置库的 `ports` 元数据使用 `Unpacked: [[left, right], ...]`
 按声明顺序记录各维边界。多实例导出沿用原有模块/实例前缀，六种绑定使用同一套数组元素绑定路径。
 
 Verilator `--rw mem_direct` 为每个数组只登记一个基地址和由 `sizeof` 得到的各维字节步长。
-xcomm 在绑定叶子时根据 RTL 各维方向计算元素地址，不生成逐元素地址映射、SV 存储、
-连续赋值桥接或端口 DPI 访问器。内部数组使用[原生布局路径](internal-signals.md#native-arrays)，不通过端口接口或 VPI 绕行。
+xcomm 在绑定叶子时根据 RTL 各维方向计算元素地址。内部数组使用
+[原生布局路径](internal-signals.md#native-arrays)。
 
 `--rw dpi` 为每个输入数组只生成**一个带下标的 getter 和一个 setter**，输出数组只有
-getter。这些函数直接访问原 SV 数组，不经过桥接信号。内部扁平下标按声明顺序排列，
+getter。这些函数直接访问原 SV 数组。内部扁平下标按声明顺序排列，
 最后一维变化最快；生成的 SV 代码将其换算为 RTL 下标。两种访问模式均使用 xcomm 中共享
-的内部 C++ 数组后端。每个叶子保存后端引用及 DPI 下标或已计算的原生地址，不保存
-逐元素的捕获状态读写回调。对外访问仍使用原 RTL 边界。
+的内部 C++ 数组后端。每个叶子保存后端引用及 DPI 下标或已计算的原生地址。
+对外访问使用原 RTL 边界。
 
 Toffee 的 `SignalArray` 支持直接写
-`Bundle(matrix=dut.matrix)`，或将元数据绑定入口适配到配置库的 `ports` 记录。仅支持
-`signals.json` 文件的工具需要迁移，不会再默认生成重复文件。Toffee 保留同一
-批叶子和原始下标，不改写后端或自动登记其他 `XPort`；数组快照也保留边界。详见
+`Bundle(matrix=dut.matrix)`，或将元数据绑定入口适配到配置库的 `ports` 记录。
+Toffee 保留同一批叶子和原始下标，数组快照保留边界。详见
 [Toffee 数组指南](https://github.com/XS-MLVP/toffee/blob/main/docs/zh/guides/data.md)。
 
 数组视图组织已绑定 `XData` 的引用。DPI 后端每次通过带下标的访问器读写一个元素，
@@ -150,30 +147,27 @@ mem_direct 则直接访问该元素的原生存储。生成的端口视图在初
 `XPort`；独立的 `XArray.FromDPI` 和 `XArray.FromNative` 工厂通过同一递归接口按需创建、
 缓存叶子。共享绑定和扁平下标属于内部实现。
 
-新接口替代原 `XDataArray` 类型和语言专用端口容器，不保留兼容别名。将完整坐标或扁平
+新接口替代原 `XDataArray` 类型和语言专用端口容器。将完整坐标或扁平
 选择迁移为每层调用 `Array(index)`、叶子调用 `Data(index)`，Python 也可直接索引。
 使用匹配的 Picker/xcomm SDK 重新生成 DUT；当前原生 ABI 为 6。
-
-动态数组、队列、关联数组、union 和 unpacked `inout` 端口不支持。
 
 <a id="struct-packed"></a>
 
 ## Struct 与多维 packed 数组
 
-Picker 从展开后的 RTL 类型自动生成递归 xcomm 布局，不需要在 Toffee 中重复声明布局。
-这些聚合端口视图要求 **Verilator 5.048 及更新版本**；生成项目会在编译前拒绝更旧版本。
+Picker 从展开后的 RTL 类型自动生成递归 xcomm 布局。
+这些聚合端口视图要求 **Verilator 5.048 及更新版本**。
 
 | RTL 类型 | 真实绑定的值 | 生成接口 |
 | --- | --- | --- |
 | packed struct | 一个完整 `XData` | 原始信号，显式调用 `StructView()` |
 | 多维 packed array | 一个完整 `XData` | 原始信号，显式调用 `ArrayView()` |
 | unpacked array | 独立元素值 | 包含 `XData` 或嵌套容器的数组视图 |
-| unpacked struct | 独立字段值 | `XStruct`，没有整体 `XData` |
+| unpacked struct | 独立字段值 | `XStruct` |
 
 packed 端口默认只生成一个完整 `XData`。初始化时从同一 `.xscfg` 中关联类型，用户显式
-调用 `StructView()` 或 `ArrayView()`，无需再传 layout。不会自动增加 `packet_view`、
-`matrix_view` 等成员；RTL 本来就声明的同名端口不受影响。unpacked struct/array 仍直接
-使用端口容器。struct 与 array 可以递归嵌套：
+调用 `StructView()` 或 `ArrayView()`。unpacked struct/array 直接使用端口容器。
+struct 与 array 可以递归嵌套：
 
 ```python
 dut.packed_in.StructView().Data("tag").value = 29
@@ -195,18 +189,17 @@ Python 的 `bounds`、`shape`、`indices` 与 unpacked 数组遵循相同规则�
 `XData` 的普通位索引仍以最低有效位为 0；显式数组视图才使用 RTL 声明的边界。
 例如 `logic [1:0][7:4] mixed [3:2]` 中，`mixed[3]` 是完整 8 位 Data，
 `mixed[3][1]` 是其位偏移 1，而 `mixed[3].ArrayView()[1][7]` 才是 RTL 的数组选择。
-不要把 Data 位偏移、RTL 数组下标与旧原生入口的存储坐标混用。详见
+详见
 [XData 类型布局与显式视图](../explanation/data-layouts.md)。
 
-packed 字段写入合并到父信号，遵循父信号原有写模式与边沿提交策略；视图不额外注册
-`XPort` 或仿真器后端。unpacked 字段独立绑定，数组中的同类字段共享一对索引式 DPI
+packed 字段写入合并到父信号，遵循父信号原有写模式与边沿提交策略。
+unpacked 字段独立绑定，数组中的同类字段共享一对索引式 DPI
 getter/setter，或一份由 C++ 编译器计算的原生基址与字节步长。原生访问使用实际生成的
-C++ 成员，不假设 C++ struct 没有 padding。配置库 `ports` 记录的 `Layout` 描述递归类型，
+C++ 成员。配置库 `ports` 记录的 `Layout` 描述递归类型，
 包括字段名、packed 位偏移、边界、位宽、有符号性和二态/四态类型。
-同一文件的 `port_types` 将精确逻辑端口名映射到去重类型表；xcfg 为已有 Data 关联类型，
-不新建另一份后端。类型与按需视图共享，字段或元素 Data 保留子类型；不是每次调用都解析 JSON。
-DPI 与 mem_direct 均直接访问选中的独立字段或数组元素，单元素写入不会复制整个
-unpacked 数组。
+同一文件的 `port_types` 将精确逻辑端口名映射到去重类型表；xcfg 为已有 Data 关联类型。
+类型与按需视图共享，字段或元素 Data 保留子类型。
+DPI 与 mem_direct 均直接访问选中的独立字段或数组元素。
 
 运行 `make -C test export_aggregate_views` 执行基于 `test/data/aggregate_views.sv` 的
 原有 Python/C++/Java RTL 回归。此次无参显式视图在 Verilator 5.052 上完成六语言聚合
@@ -218,18 +211,15 @@ xcomm SDK 配套使用，并用该 SDK 重新编译生成的 DUT。
 端口叶子、unpacked 容器和层次子端口统一分配成员名。普通标识符保持原拼写（Go 首字母大写），
 封装成员、方法及目标语言关键字受到保护；冲突端口添加 `pin_` 前缀，如果改名后仍有
 冲突，则添加数字后缀。例如同时存在 `vpi_backend` 和 `pin_vpi_backend` 两个端口时，
-Python 将前者暴露为 `pin_vpi_backend_2`，后者保持不变。开启 VPI 或改变端口声明顺序
-不会改变分配结果。
+Python 将前者暴露为 `pin_vpi_backend_2`，后者使用原名。
 
 这里只修改封装属性名。RTL 路径、`XPort` 键和配置库端口元数据仍使用逻辑原名。
-消费元数据时应使用 `dut["vpi_backend"]` 或对应语言的 `XPort` 查询，不要假设
-`getattr(dut, name)` 一定取得端口；仅按属性绑定的外部适配器需要处理改名。
+消费元数据时使用 `dut["vpi_backend"]` 或对应语言的 `XPort` 查询。
 Verilator 的原生标识符转义与这些宿主语言成员名相互独立。
 
 所有语言绑定都对 packed 和向量 `inout` 端口生成各自的 `InOut` 方向（C++ 为
-`IOType::InOut`，Go 为 `IOType_InOut`，其余为 `XData.InOut`），而不是把它们登记成输入。
-这保留了方向元数据，使信号在 DUT 驱动后可读；这不代表新增三态总线解析能力，也不阻止
-模拟器将无驱动的 `inout` 优化成常量。
+`IOType::InOut`，Go 为 `IOType_InOut`，其余为 `XData.InOut`）。
+方向元数据使信号在 DUT 驱动后可读。
 
 ## 添加调试功能
 

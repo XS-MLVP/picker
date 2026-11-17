@@ -17,7 +17,7 @@ Use `picker --help`, `picker export --help`, and `picker pack --help` for comman
 
 | Option | Argument/default | Purpose |
 | --- | --- | --- |
-| `file` | One or more RTL files | Source inputs; required without `--sname` |
+| `file` | One or more RTL files | Source inputs |
 | `--fs, --filelist` | Files or lists, multiple allowed | Additional sources, includes and definitions |
 | `--sname, --source_module_name` | Module names, multiple allowed | Select tops |
 | `--tname, --target_module_name` | Name | Generated module name; defaults to source name |
@@ -46,7 +46,7 @@ Use `picker --help`, `picker export --help`, and `picker pack --help` for comman
 
 Quote arguments containing spaces, for example `-V '--trace -Wno-fatal'`. See [simulator support](compatibility.md) for tool environments.
 
-`--rtl-param` and `--rtl-define` describe the design rather than the tools, so prefer them over the raw passthroughs. A simulator parameter override in `-V` cannot reach the instantiated module, and a macro in `-S` is invisible to the simulator (a macro in `-V` is invisible to the RTL frontend). Picker evaluates parameters with the RTL frontend once and writes the constants into the generated `<module>_top.sv`, so the simulator needs no parameter arguments of its own; macros are forwarded to both sides. Both structured options take precedence over a raw passthrough (`-S`/`-V`), and `--rtl-define` also overrides the same macro in a filelist.
+Use `--rtl-param` for design parameters and `--rtl-define` for RTL macros. Picker evaluates parameters with the RTL frontend and writes the constants into the generated `<module>_top.sv`; macros are forwarded to both the frontend and simulator. Both structured options take precedence over raw passthroughs (`-S`/`-V`), and `--rtl-define` also overrides the same macro in a filelist.
 
 ## pack
 
@@ -67,8 +67,8 @@ See [UVM transaction bridges](../guides/uvm-tlm.md) for generated directories an
 
 `picker config <module>.xscfg` reports the format, model identifier, byte size and
 record count. `--section metadata|variables|signals|types|candidates` inspects a
-section; `--name NAME` selects one record without decoding the entire database.
-Output is JSON on stdout; no sidecars are created. `candidates` is a build-time
+section; `--name NAME` selects one record. Output is JSON on stdout.
+`candidates` is a build-time
 section removed when native storage is finalized. Every export ships one database,
 including DPI/VPI-only projects; JVM bindings embed it in their JAR.
 See [internal signals](../guides/internal-signals.md).

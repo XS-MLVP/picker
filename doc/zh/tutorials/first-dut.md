@@ -105,6 +105,6 @@ sum=1, cout=1
 Adder: 3 cases passed
 ```
 
-Python 整数保留完整计算结果。`expected & mask` 取低 128 位，与 `sum` 比较；`expected >> 128` 取进位，与 `cout` 比较。任意一项不符合预期，断言都会指出失败的位置。
+Python 整数保留完整计算结果。`expected & mask` 取低 128 位，与 `sum` 比较；`expected >> 128` 取进位，与 `cout` 比较。
 
 你已经完成了导出、输入激励、推进仿真和检查输出。接下来可以[导出自己的 RTL](../guides/export.md)，或学习怎样给时序电路[设置时钟和复位](../guides/simulation.md)。

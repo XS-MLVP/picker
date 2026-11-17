@@ -18,9 +18,9 @@ dut.Finish()
 
 `dut.pin` 和 `dut["pin"]` 返回同一个端口对象。通过 `.value` 或 `Set(value)` 写入，`.value` 读取完整位宽的无符号 Python 整数。端口属性本身只读。
 
-packed struct 和多维 packed 数组在端口原名下保留完整 `XData`，并增加 `port_view`
-字段/下标容器（与端口重名时追加下划线）。unpacked struct 直接使用 `XStruct`；其中的
-数组与 struct 字段递归组合，不伪造整体位向量。例如 `dut.record.entries[-1].flag`
+packed struct 和多维 packed 数组在端口原名下保留完整 `XData`，通过 `StructView()` /
+`ArrayView()` 显式访问结构。unpacked struct 直接使用 `XStruct`，数组与 struct 字段
+递归组合。例如 `dut.record.entries[-1].flag`
 仍是普通 `XData`。`Data(name)`、`Struct(name)`、`Array(name)` 选择字段接口。
 四种存储模型、原始 RTL 下标与示例见[聚合类型导出](../guides/export.md#struct-packed)。
 
@@ -39,26 +39,24 @@ packed struct 和多维 packed 数组在端口原名下保留完整 `XData`，�
 回调在相应边沿的求值和信号刷新后执行。复位通过 RTL 复位端口驱动，示例见[设置时钟和复位](../guides/simulation.md)。
 
 新生成的 Python、C++、Java、Scala、Go 和 Lua 包将 `RefreshComb()` 统一交给
-`XClock.RefreshComb()`。与匹配版本的 xcomm 配合时，框架持有控制权期间（包括暂停）
-手动刷新和手动 Step 一样会报错；释放后恢复。组合事件应通过框架请求，而不是绕过时钟
-直接访问底层 simulator。旧生成包需重新导出、编译。
-Verilator 刷新路径继续使用 `eval_step()`，不增加 context 时间或 Picker 内部周期计数；
-不会替用户提交延迟到边沿的写入，纯组合输入应使用 `AsImmWrite()`。
+`XClock.RefreshComb()`。框架持有时钟控制权期间，通过框架请求组合求值。
+旧生成包需重新导出、编译。Verilator 刷新使用 `eval_step()`；纯组合输入使用
+`AsImmWrite()` 提交。
 
-测试框架取得时钟控制权期间，`Step()` 会报告错误。此时通过框架的执行方法推进仿真。新生成的 VCS 包在子进程中完成结束流程，宿主进程可在 `Finish()` 后继续生成报告；旧包须重新生成并编译。UVS 的结束流程仍可能终止进程，其测试汇总应安排在 `Finish()` 前。
+新生成的 VCS 包在子进程中完成结束流程，宿主进程可在 `Finish()` 后继续生成报告。
 
 ## 波形
 
 | 方法 | 行为与返回值 |
 | --- | --- |
 | `SetWaveform(filename)` | 设置波形文件路径，格式与导出时的配置一致 |
-| `GetWaveFormat()` | 返回扩展名，如 `fst`；未启用时返回空字符串 |
+| `GetWaveFormat()` | 返回扩展名，如 `fst` |
 | `PauseWaveformDump()` | 暂停波形记录 |
 | `ResumeWaveformDump()` | 恢复波形记录 |
 | `WaveformPaused()` | 返回 1 表示暂停，0 表示记录中 |
 | `FlushWaveform()` | 将波形缓冲写入文件 |
 
-导出选项及完整脚本见[保存波形](../guides/simulation.md#recording)。频繁刷新会增加 I/O，也会影响 FST 压缩效率。
+导出选项及完整脚本见[保存波形](../guides/simulation.md#recording)。
 
 ## 代码覆盖率与检查点
 
@@ -78,32 +76,31 @@ Verilator 刷新路径继续使用 `eval_step()`，不增加 context 时间或 P
 | --- | --- |
 | `GetInternalSignal(name, index=-1, is_array=False, use_vpi=False)` | 按名称返回信号对象；`is_array=True` 返回使用零基存储坐标的递归 `XArray` |
 | `GetInternalSignalView(name, use_vpi=False)` | 返回使用 RTL 坐标的递归 `XView`；默认优先原生元数据，`use_vpi=True` 强制 VPI |
-| `dut.xcfg.Metadata("ports")` | 显式从唯一的 `.xscfg` 配置库读取端口元数据 JSON；不再附带 `signals.json` |
+| `dut.xcfg.Metadata("ports")` | 从 `.xscfg` 配置库读取端口元数据 JSON |
 | `GetInternalSignalList(prefix="", deep=99, use_vpi=False)` | 返回可访问名称；默认优先原生布局，随后 VPI |
 | `VPIInternalSignalList(prefix="", deep=99)` | 通过 VPI 枚举层次名称 |
 
 原生查询中的 `prefix` 按名称子串筛选。VPI 中的 `prefix` 和 `deep` 指定起始层次与搜索深度。
 原生单元素 `index` 是扁平存储位置；VPI 数组选择使用该层的 RTL 下标。
 
-成功查询的结果按名称和查询选项缓存；参数相同的后续调用复用首次查询的对象。普通查询未找到时返回 `None`；显式 `use_vpi=True` 查询失败会触发断言。具体示例见[访问内部信号](../guides/internal-signals.md)。
+成功查询的结果按名称和查询选项缓存，参数相同的后续调用复用首次查询的对象。具体示例见[访问内部信号](../guides/internal-signals.md)。
 
 ## Packed 信号类型与显式视图
 
-以下方法属于生成端口或内部查询返回的 `XData`，不是 DUT 包装本身的方法。需要原生 ABI 6
-的匹配 SDK；packed 信号默认仍是完整值，不自动生成额外的 `*_view` 成员。
+以下方法属于生成端口或内部查询返回的 `XData`，使用原生 ABI 6 的匹配 SDK。
+packed 信号默认是完整值。
 
 | 方法 | 行为 |
 | --- | --- |
 | `data.HasLayout()` | 检查是否关联类型；转换时仍检查位宽和来源有效性 |
 | `data.ArrayView()` | 用自身关联的 packed 数组布局取得共享值的 `XArray` |
 | `data.StructView()` | 用自身关联的 packed struct 布局取得共享值的 `XStruct` |
-| `data.SetLayout(layout_json)` | 为手工 Data 显式设置类型；生成的聚合端口和可用的原生类型由 xcfg 关联，无需用户调用 |
-| `data.ArrayView(layout_json)` / `data.StructView(layout_json)` | 保留显式提供布局的用法，不按位宽猜类型 |
+| `data.SetLayout(layout_json)` | 为手工 Data 显式设置类型；生成的聚合端口和可用的原生类型由 xcfg 关联 |
+| `data.ArrayView(layout_json)` / `data.StructView(layout_json)` | 显式提供布局 |
 
-无布局或类型不匹配时明确报错。无参视图及选中的叶子按需缓存，不更换原 Data 的后端、写模式
-或 XPort 登记。Python 默认字段访问和 unpacked 数组元素中的 packed struct/array 返回 Data，
+无参视图及选中的叶子按需缓存。Python 默认字段访问和 unpacked 数组元素中的 packed struct/array 返回 Data，
 需要结构化访问时再显式转换。普通 Data 位索引仍是最低位为 0；数组视图使用 RTL 声明下标。
-`ReInit()` 清除关联类型及缓存，原有类型视图不能继续访问。详见
+`ReInit()` 清除关联类型及缓存。详见
 [类型布局与显式视图](../explanation/data-layouts.md)。
 
 ## Python 异步方法

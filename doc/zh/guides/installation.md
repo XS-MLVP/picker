@@ -69,12 +69,12 @@ picker --version
 ```
 
 pip 自动安装 `uc-xcomm` 和 SWIG。官方 Picker wheel 面向 GLIBC 2.17 或更新的 Linux
-x86-64 环境，不绑定 Python 小版本。CMake、C++ 编译器和仿真器由系统提供。
+x86-64 环境。CMake、C++ 编译器和仿真器由系统提供。
 其他环境可使用匹配的原生压缩包或从源码构建。
 
 ## 使用发行包
 
-[GitHub Releases](https://github.com/XS-MLVP/picker/releases) 提供 Linux AppImage、安装目录压缩包和 Python wheel。按主机架构选择文件；Picker wheel 使用 `py3-none`，命令行启动器不依赖 Python C API，但仍区分操作系统与架构；依赖 `uc-xcomm` 的 wheel 需要匹配 Python 小版本。
+[GitHub Releases](https://github.com/XS-MLVP/picker/releases) 提供 Linux AppImage、安装目录压缩包和 Python wheel。按操作系统和主机架构选择文件；Picker wheel 使用 `py3-none`，配套的 `uc-xcomm` wheel 还需匹配 Python 小版本。
 
 使用 AppImage 时，赋予下载文件执行权限后运行。使用安装目录压缩包时，完整解压并将其中的 `bin` 加入 `PATH`。模板和运行资源通过安装目录定位，分发时一起保留。
 
