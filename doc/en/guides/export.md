@@ -89,7 +89,7 @@ Inspect the generated interface for instance and port names before writing the t
 ## Export unpacked array ports
 
 Fixed-size unpacked array ports are supported with the Verilator backend on
-5.026 and newer; regression anchors are 5.026, 5.048, and 5.052. See the
+5.026 and newer; regression anchors are 5.026, 5.052, and 5.054. See the
 [version compatibility notes](../reference/compatibility.md#unpacked-arrays-and-verilator-versions).
 
 Fixed-size unpacked input/output arrays of scalar `bit`/`logic` or one-dimensional packed `bit`/`logic` vectors are supported. Generated interfaces preserve the array structure; each element is an ordinary `XData`:

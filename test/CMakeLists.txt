@@ -54,6 +54,10 @@ add_test(NAME test_parser_verilator_trace_dtype_array
 add_test(NAME test_parser_verilator_trace_dtype_array_v5_026
     COMMAND test_parser_verilator_trace_dtype_array_unit "${PICKER_TEST_DATA_DIR}/verilator_trace/dtype_array_v5_026" 1)
 add_test(NAME test_parser_verilator_trace_structure COMMAND test_parser_verilator_trace_structure_unit)
+add_test(NAME test_parser_verilator_trace_v5_054
+    COMMAND test_parser_verilator_trace_latest_unit "${PICKER_TEST_DATA_DIR}/verilator_trace/v5_054")
+add_test(NAME test_parser_verilator_trace_v5_054_array
+    COMMAND test_parser_verilator_trace_array_latest_unit "${PICKER_TEST_DATA_DIR}/verilator_trace/v5_054_array")
 
 add_executable(test_native_layout_unit test_native_layout_unit.cpp)
 target_link_libraries(test_native_layout_unit parser test_common)

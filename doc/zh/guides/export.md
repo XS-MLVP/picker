@@ -89,7 +89,7 @@ picker export rtl/a.v,rtl/b.v --sname A,2,B,3 \
 
 ## 导出 unpacked 数组端口
 
-Verilator 后端的定长 unpacked 数组端口支持 5.026 及更新版本；回归锚点为 5.026、5.048 和 5.052。
+Verilator 后端的定长 unpacked 数组端口支持 5.026 及更新版本；回归锚点为 5.026、5.052 和 5.054。
 见[版本兼容说明](../reference/compatibility.md#unpacked-array-versions)。
 
 支持元素为标量 `bit`/`logic` 或一维 packed `bit`/`logic` 位向量的定长 unpacked 输入/输出数组。生成接口保留数组结构，每个元素仍是普通的 `XData`：

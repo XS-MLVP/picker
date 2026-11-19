@@ -1,5 +1,6 @@
 #include "parser/native_layout.hpp"
 #include "parser/verilator_root.hpp"
+#include "verilator_root/common.hpp"
 
 #include <fstream>
 #include <functional>
@@ -8,7 +9,6 @@
 #include <stdexcept>
 
 namespace picker::parser {
-namespace verilator { cpp_variableInfo parseType(const std::string &type); }
 namespace {
 using J = nlohmann::json;
 using Members = std::map<std::string, std::string>;
@@ -24,10 +24,14 @@ std::string logical_name(std::string name) {
 
 struct Binder {
     const J &types;
+    // Struct definitions come from the same generator as the root header, so
+    // one format covers every scanned type spelling.
+    verilator::detail::root_format format;
     std::map<std::string, Members> structs;
     std::map<std::string, cpp_variableInfo> parsed;
 
-    explicit Binder(const J &types, const std::string &header) : types(types) {
+    explicit Binder(const J &types, const std::string &header)
+        : types(types), format(verilator::detail::detect_root_format(header)) {
         // Types are emitted in generated headers next to the root. Only simple
         // data-member declarations are accepted, never C++ method bodies.
         const std::regex start(R"(^\s*struct\s+([A-Za-z_]\w*)\s*\{\s*$)");
@@ -57,7 +61,7 @@ struct Binder {
 
     const cpp_variableInfo &parse(const std::string &text) {
         auto [found, inserted] = parsed.try_emplace(text);
-        if (inserted) found->second = verilator::parseType(text);
+        if (inserted) found->second = verilator::detail::parse_root_type(text, format);
         return found->second;
     }
 
@@ -68,9 +72,8 @@ struct Binder {
         if (active.size() >= 128 || !active.insert(id).second)
             throw std::invalid_argument("recursive or excessively deep native type");
         const auto &node = types.at(id);
-        static const std::regex alignment(R"(^alignas\s*\([^)]*\)\s*)");
         static const std::regex unpacked(R"(^VlUnpacked<(.+),\s*(\d+)>$)");
-        if (cpp_type.starts_with("alignas")) cpp_type = std::regex_replace(cpp_type, alignment, "");
+        cpp_type = verilator::detail::normalize_root_type(std::move(cpp_type), format);
         const bool packed = node.at("packed").get<bool>();
         if (packed) {
             const auto &storage = parse(cpp_type);

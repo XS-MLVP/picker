@@ -31,16 +31,23 @@
 ### Unpacked 数组与 Verilator 版本
 
 定长 unpacked 数组的 **DPI 与 mem_direct** 路径支持 **Verilator 5.026 及更新版本**。回归锚点为
-5.026、5.048、5.052；其他功能的通用构建最低版本为 5.020。
+5.026、5.052、5.054；其他功能的通用构建最低版本为 5.020。
 
 | 数组访问路径 | RTL 回归覆盖 | 已验证的 Verilator 版本 |
 | --- | --- | --- |
-| DPI 端口 | Python、C++、Java | 5.026、5.048、5.052 |
-| mem_direct 端口 | Python、C++、Java | 5.026、5.048、5.052 |
-| mem_direct 内部数组 | Python、C++ | 5.026、5.048、5.052 |
+| DPI 端口 | Python、C++、Java | 5.026、5.052、5.054 |
+| mem_direct 端口 | Python、C++、Java | 5.026、5.052、5.054 |
+| mem_direct 内部数组 | Python、C++ | 5.026、5.052、5.054 |
 
 设置 `ARRAY_EXTRA_LANGUAGES=1` 可运行额外的 Go/Lua 端口数组 RTL 回归。Scala 的聚合
 fixture 已在 2.13.16 与 Verilator 5.052 上验证 unpacked 容器。
+
+Verilator 5.054 修改了生成模型的文本形式，Picker 用独立的 5.054 解析实现处理：
+状态区段改名为 `TRIVIALLY CONSTRUCTIBLE STATE`，存储类型增加全局限定符
+（例如 `::CData`、`::VlUnpacked<::QData, 1>`），状态区段前多出 `TOP LEVEL PORTS`
+union，被 decompose 的数组还会生成 `__BRA__N__KET__` 分量成员。存储布局本身未变。
+Adder 的 mem_direct/FST 路径、unpacked 数组内部信号访问和 Python 聚合回归已在
+Verilator 5.054 与 5.055 开发版上验证。
 
 六种语言生成器使用同一套共享数组绑定实现，公开数组统一使用 xcomm 的递归 `XArray` API。
 Picker 与 xcomm 使用匹配的工具链；升级后重新生成并编译 DUT 和单文件 `.xscfg` 配置。
@@ -63,14 +70,14 @@ packed/unpacked struct 与多维 packed 数组使用[聚合类型导出](../guid
 
 | 访问路径 | RTL 回归语言 | 已验证的 Verilator 版本 |
 | --- | --- | --- |
-| DPI 与 mem_direct | Python、C++、Java | 5.048、5.052 |
-| DPI 与 mem_direct | Go、Lua | 5.048、5.052 |
-| VPI packed 聚合与 unpacked 数组 | Python、C++、Java、Go、Lua | 5.048、5.052 |
-| VPI 递归访问 unpacked struct | Python、C++、Java、Go、Lua | 5.052 |
-| DPI、mem_direct、VPI 聚合 fixture | Scala 2.13.16 | 5.052 |
+| DPI 与 mem_direct | Python、C++、Java | 5.052、5.054 |
+| DPI 与 mem_direct | Go、Lua | 5.052、5.054 |
+| VPI packed 聚合与 unpacked 数组 | Python、C++、Java、Go、Lua | 5.052、5.054 |
+| VPI 递归访问 unpacked struct | Python、C++、Java、Go、Lua | 5.052、5.054 |
+| DPI、mem_direct、VPI 聚合 fixture | Scala 2.13.16 | 5.052、5.054 |
 
-表中 5.026/5.048 的结果是既有数组/聚合接口的历史回归。此次 ABI 6 类型关联、无参显式
-视图的 RTL 回归使用 Verilator 5.052。
+5.048 仍是聚合视图的功能门槛（生成的 CMake 会校验），但 CI 回归锚点已收敛为
+5.052 与 5.054，前者覆盖 5.050 的 `alignas` 与 unpacked struct 的 VPI 视图。
 
 测试覆盖嵌套 struct、struct 数组、混合方向边界、65 位字段及原始 packed 整体值。
 Python 还覆盖 packed struct 数组、多维 packed/unpacked 组合、多实例、enum 与整数

@@ -34,13 +34,21 @@ The **DPI and mem_direct** paths for fixed unpacked arrays are supported with
 
 | Array path | RTL regression coverage | Verified Verilator versions |
 | --- | --- | --- |
-| DPI ports | Python, C++, Java | 5.026, 5.048, 5.052 |
-| mem_direct ports | Python, C++, Java | 5.026, 5.048, 5.052 |
-| mem_direct internal arrays | Python, C++ | 5.026, 5.048, 5.052 |
+| DPI ports | Python, C++, Java | 5.026, 5.052, 5.054 |
+| mem_direct ports | Python, C++, Java | 5.026, 5.052, 5.054 |
+| mem_direct internal arrays | Python, C++ | 5.026, 5.052, 5.054 |
 
 Optional Go/Lua port-array RTL tests are enabled with `ARRAY_EXTRA_LANGUAGES=1`.
 The Scala aggregate fixture verifies unpacked containers with Scala 2.13.16 and
 Verilator 5.052.
+
+Verilator 5.054 changed the generated text, so Picker has a dedicated 5.054
+parser: the state section became `TRIVIALLY CONSTRUCTIBLE STATE`, storage types
+are globally qualified (`::CData`, `::VlUnpacked<::QData, 1>`), a `TOP LEVEL PORTS`
+union precedes the state, and decomposed arrays gain `__BRA__N__KET__` component
+members. The storage layout itself is unchanged. The Adder mem_direct/FST path,
+unpacked-array internal-signal access, and the Python aggregate regression were
+verified with Verilator 5.054 and a 5.055 development build.
 
 All six language generators use the shared array binding implementation.
 Public arrays use xcomm's recursive `XArray` API, backed by shared internal bindings.
@@ -71,15 +79,15 @@ addresses/strides come from the generated C++ model.
 
 | Paths | RTL regression languages | Verified Verilator versions |
 | --- | --- | --- |
-| DPI and mem_direct | Python, C++, Java | 5.048, 5.052 |
-| DPI and mem_direct | Go, Lua | 5.048, 5.052 |
-| VPI packed aggregates and unpacked arrays | Python, C++, Java, Go, Lua | 5.048, 5.052 |
-| VPI recursive unpacked structs | Python, C++, Java, Go, Lua | 5.052 |
-| DPI, mem_direct, VPI aggregate fixture | Scala 2.13.16 | 5.052 |
+| DPI and mem_direct | Python, C++, Java | 5.052, 5.054 |
+| DPI and mem_direct | Go, Lua | 5.052, 5.054 |
+| VPI packed aggregates and unpacked arrays | Python, C++, Java, Go, Lua | 5.052, 5.054 |
+| VPI recursive unpacked structs | Python, C++, Java, Go, Lua | 5.052, 5.054 |
+| DPI, mem_direct, VPI aggregate fixture | Scala 2.13.16 | 5.052, 5.054 |
 
-The 5.026/5.048 entries are historical regressions of the existing array/aggregate
-interfaces. ABI 6 type association and argument-free explicit views were tested
-with Verilator 5.052.
+5.048 remains the functional minimum for aggregate views (the generated CMake
+enforces it), but the CI regression anchors are now 5.052 and 5.054. 5.052
+covers the 5.050 `alignas` handling and unpacked-struct VPI views.
 
 The tests include nested structs, arrays of structs, mixed-direction bounds,
 65-bit fields and original whole packed values. Python additionally covers

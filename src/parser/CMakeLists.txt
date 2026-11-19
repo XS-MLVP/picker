@@ -5,7 +5,10 @@ set(source_file
      sv.cpp
      internalcfg.cpp
      uvm.cpp
-     verilator_root.cpp
+     verilator_root/common.cpp
+     verilator_root/v5_026.cpp
+     verilator_root/v5_054.cpp
+     verilator_root/dispatch.cpp
      native_layout.cpp
      firrtl.cpp
      gsim_root.cpp

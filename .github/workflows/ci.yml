@@ -64,17 +64,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Primary: the newest supported Verilator on both architectures, with
+          # the full suite. .build-config.yml pins the same version, so the
+          # Dockerfile and release artifacts match what CI validates.
           - os: ubuntu-22.04
             verilator_override: ''
             full_test: true
           - os: ubuntu-22.04-arm
             verilator_override: ''
             full_test: true
+          # Fallbacks: the older root-header grammars. 5.052 exercises the
+          # pre-5.054 grammar with every feature that skips on older releases
+          # (alignas from 5.050, VPI unpacked structs from 5.052), so it covers
+          # strictly more than 5.048 did. 5.026 is the oldest supported release.
           - os: ubuntu-22.04
             verilator_override: v5.026
             full_test: false
           - os: ubuntu-22.04
-            verilator_override: v5.048
+            verilator_override: v5.052
             full_test: false
     runs-on: ${{ matrix.os }}
     env:

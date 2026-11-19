@@ -16,3 +16,11 @@ add_executable(test_parser_verilator_trace_structure_unit test_parser_verilator_
 target_link_libraries(test_parser_verilator_trace_structure_unit parser test_common)
 target_compile_options(test_parser_verilator_trace_structure_unit PRIVATE
     $<$<CXX_COMPILER_ID:GNU,Clang>:-UNDEBUG>)
+add_executable(test_parser_verilator_trace_latest_unit test_parser_verilator_trace_latest_unit.cpp)
+target_link_libraries(test_parser_verilator_trace_latest_unit parser test_common)
+target_compile_options(test_parser_verilator_trace_latest_unit PRIVATE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-UNDEBUG>)
+add_executable(test_parser_verilator_trace_array_latest_unit test_parser_verilator_trace_array_latest_unit.cpp)
+target_link_libraries(test_parser_verilator_trace_array_latest_unit parser test_common)
+target_compile_options(test_parser_verilator_trace_array_latest_unit PRIVATE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-UNDEBUG>)
