@@ -149,8 +149,8 @@ metadata. Third-party tools can use this entry point to read the database.
 ## Access a native array
 
 On Verilator, native array access uses the `--rw mem_direct` layout path and the
-same 5.026-and-newer range as array ports; regression anchors are 5.026, 5.048,
-and 5.052. See [version compatibility](../reference/compatibility.md#unpacked-arrays-and-verilator-versions).
+same 5.026-and-newer range as array ports; regression anchors are 5.026, 5.052,
+and 5.054. See [version compatibility](../reference/compatibility.md#unpacked-arrays-and-verilator-versions).
 
 For fixed-size arrays in models with native layout information, obtain the array once and access its elements:
 

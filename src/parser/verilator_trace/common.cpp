@@ -726,6 +726,17 @@ std::string strip_wrapping_parentheses(std::string expr)
     return expr;
 }
 
+std::string strip_global_cast_qualifier(std::string expr)
+{
+    // Verilator 5.054 qualifies C-style casts in trace expressions, emitting
+    // `(::IData)`, `(::QData)`, and so on. The global qualifier is not part of
+    // the value, so drop it and keep one spelling across versions. This runs
+    // before classification, otherwise a plain read wrapped in a qualified cast
+    // would not be recognized as direct storage.
+    static const std::regex qualified_cast(R"(\(\s*::\s*)");
+    return std::regex_replace(expr, qualified_cast, "(");
+}
+
 std::string normalize_expr(const std::string &expr)
 {
     auto normalized = replace_member_refs_with_dots(expr);
@@ -766,6 +777,7 @@ trace_parse_result build_result(const std::vector<trace_event> &events,
         }
         if (!slotToSource.contains(source.slot)) ++result.value_count;
         source.raw_expr = strip_wrapping_parentheses(source.raw_expr);
+        source.raw_expr = strip_global_cast_qualifier(source.raw_expr);
         source.expr = normalize_expr(source.raw_expr);
         slotToSource[source.slot] = source;
     }

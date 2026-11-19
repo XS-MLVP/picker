@@ -121,6 +121,33 @@ int main() {
             std::reverse(files.begin(), files.end());
         }
 
+        // Verilator 5.054 qualifies C-style casts in trace expressions. The
+        // stored expression must keep the older spelling, because consumers of
+        // the configuration database only strip `(IData)`. A plain read wrapped
+        // in a qualified cast still has to classify as direct storage.
+        {
+            auto qualified = dir / "qualified.cpp";
+            write(qualified,
+                "void VTop__trace_init_top(Root* vlSelf, Trace* tracep) {\n"
+                + f.push("\"Top\"") + f.decl("c+6", "\"wrapped\"")
+                + f.decl("c+7", "\"derived\"") + f.pop() + "}\n"
+                "void VTop__trace_full_q(Root* vlSelf, Buffer* bufp) {\n"
+                "bufp->fullSData(oldp+6, (::IData)(vlSelfRef.Top__DOT__native), 16);\n"
+                "bufp->fullCData(oldp+7, ((::IData)(vlSelfRef.Top__DOT__scalar) == 4U), 1);\n"
+                "}\n");
+            auto result = picker::parser::verilator::processTraceFiles({qualified.string()}, vars);
+            std::map<std::string, picker::parser::trace_signal_info> signals;
+            for (const auto &s : result.signals) signals[s.name] = s;
+            assert(signals.at("Top.wrapped").source_expr == "(IData)(Top.native)");
+            assert(signals.at("Top.wrapped").kind == "direct");
+            assert(signals.at("Top.wrapped").root_name == "Top.native");
+            assert(signals.at("Top.derived").source_expr
+                   == "(IData)(Top.scalar) == 4U");
+            for (const auto &s : result.signals) {
+                assert(s.source_expr.find("(::") == std::string::npos);
+            }
+        }
+
         auto bad = dir / "bad.cpp";
         expect_error(bad, f.pop(), "underflow");
         expect_error(bad, f.push("\"Top\""), "unbalanced");

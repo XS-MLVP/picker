@@ -69,6 +69,24 @@ class VTop___024root {
     assert(vars[2].native_groups[1].dimensions == std::vector<int>({2, 2}));
     assert(vars[2].native_groups[1].member == "Top__DOT__a__DOT__records[0].__PVT__words[0]");
     assert(!used.contains(signals.at("Top.b.parameterized")));
+    // Verilator 5.054 qualifies generated storage types with a leading `::`.
+    const auto modern_header = base / "VModernTop___024root.h";
+    std::ofstream(modern_header) << R"(
+class VModernTop___024root {
+    // TRIVIALLY CONSTRUCTIBLE STATE
+    ::IData/*31:0*/ Top__DOT__a__DOT__packet;
+    ::IData/*15:0*/ Top__DOT__a__DOT__parameterized;
+    ::VlUnpacked<::VRecord, 2> Top__DOT__a__DOT__records;
+};
+)";
+    std::vector<picker::cpp_variableInfo> modern_vars{
+        {"Top__DOT__a__DOT__packet", "IData", 32},
+        {"Top__DOT__a__DOT__parameterized", "IData", 16}};
+    picker::parser::bind_native_layouts(modern_header.string(), metadata, modern_vars);
+    assert(modern_vars.size() == 3);
+    assert(modern_vars[0].layout == signals.at("Top.a.packet"));
+    assert(modern_vars[2].native_groups.size() == 2);
+    assert(modern_vars[2].native_groups[1].path == "[].words[]");
     auto aliases_metadata = metadata;
     aliases_metadata["signals"]["Top.alias"] = signals.at("Top.a.packet");
     picker::parser::trace_signal_info alias;
@@ -85,5 +103,6 @@ class VTop___024root {
     }
     assert(matched_alias);
     // The source/header files are tiny private fixtures, not product RTL.
-    fs::remove(source); fs::remove(header); fs::remove(base / "VTop_types.h"); fs::remove(base);
+    fs::remove(source); fs::remove(header); fs::remove(modern_header);
+    fs::remove(base / "VTop_types.h"); fs::remove(base);
 }

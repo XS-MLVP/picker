@@ -140,7 +140,7 @@ Python 也可用 `json.loads(dut.xcfg.Metadata("ports"))` 获取端口元数据�
 ## 访问原生数组
 
 在 Verilator 上，原生数组访问使用 `--rw mem_direct` 布局路径，版本范围与数组端口相同，
-为 5.026 及更新版本；回归锚点为 5.026、5.048 和 5.052。见[版本兼容说明](../reference/compatibility.md#unpacked-array-versions)。
+为 5.026 及更新版本；回归锚点为 5.026、5.052 和 5.054。见[版本兼容说明](../reference/compatibility.md#unpacked-array-versions)。
 
 在提供原生布局的模型中，可以一次取得定长数组，再访问元素：
 

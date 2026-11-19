@@ -709,6 +709,12 @@ int main(int argc, char **argv)
             auto processDeclarations = picker::parser::GetProcessDeclarations(export_opts.sim);
             declarations = readVarDeclarations(source_file);
             vars = processDeclarations(declarations);
+            if (vars.empty()) {
+                PK_FATAL("No addressable variables were parsed from %s "
+                         "(%zu declarations). The generated header format is probably "
+                         "newer than this Picker version supports.",
+                         source_file.c_str(), declarations.size());
+            }
 
             const auto trace_files = picker::parser::verilator::findTraceFiles(source_file);
             picker::parser::trace_parse_result trace_result;
